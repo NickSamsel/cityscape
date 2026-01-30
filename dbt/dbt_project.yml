@@ -14,6 +14,9 @@ clean-targets:
   - "dbt_packages"
   - "logs"
 
+vars:
+  raw_schema: "raw"
+
 models:
   cityscape:
     +materialized: view

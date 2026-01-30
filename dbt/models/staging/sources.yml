@@ -1,0 +1,24 @@
+version: 2
+
+# Raw landing tables live in a single schema (default: `raw`) and use league-prefixed table names.
+# Example raw tables: raw.nba_games, raw.mlb_games, raw.nhl_games, raw.nfl_games
+
+sources:
+  - name: raw
+    schema: "{{ var('raw_schema', 'raw') }}"
+    tables:
+      # NBA
+      - name: nba_games
+      - name: nba_teams
+
+      # MLB
+      - name: mlb_games
+      - name: mlb_teams
+
+      # NHL
+      - name: nhl_games
+      - name: nhl_teams
+
+      # NFL
+      - name: nfl_games
+      - name: nfl_teams

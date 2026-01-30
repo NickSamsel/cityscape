@@ -23,9 +23,20 @@ The compose file starts Prefect Server on `http://localhost:4200` and sets `PREF
 
 The dbt project lives in `dbt/` and is structured for:
 
-- `models/staging` (stg)
-- `models/intermediate` (int)
-- `models/core` (core)
+- `models/staging/<league>` (stg)
+- `models/intermediate/<league>` (int)
+- `models/core/<league>` (core)
+
+Naming convention (standardized prefixes):
+
+- Staging: `stg_<league>__<entity>`
+- Intermediate: `int_<league>__<entity>`
+- Core: `core_<league>__<entity>`
+
+SQL portability (ANSI-leaning):
+
+- Prefer `CAST(x AS type)` over Postgres `x::type`
+- Avoid engine-specific functions when possible
 
 Recommended local setup:
 
@@ -37,3 +48,18 @@ Common commands (inside the dev container):
 - `make dbt-deps`
 - `make dbt-run`
 - `make dbt-test`
+
+## Postgres persistence
+
+Postgres data persists outside the containers via a named Docker volume (`cityscape-postgres-data`).
+
+- Safe: `docker compose down` (stops/removes containers, keeps the volume)
+- Destroys data: `docker compose down -v` (removes volumes)
+
+## Python package structure
+
+The Python code uses a single installable package under `src/cityscape/`, organized as:
+
+- `integrations/` — API clients, database clients, external system adapters
+- `automations/` — orchestration (e.g., Prefect flows/jobs)
+- `utils/` — shared helpers (settings, logging, etc.)

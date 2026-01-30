@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: stg_nba__games
+    description: "NBA games staged from raw landing tables"
+    columns:
+      - name: game_id
+        tests: [not_null]
+  - name: stg_nba__teams
+    description: "NBA teams staged from raw landing tables"
+    columns:
+      - name: team_id
+        tests: [not_null]
