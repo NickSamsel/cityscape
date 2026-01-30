@@ -1,0 +1,28 @@
+# Prefect project configuration + deployments
+# Docs: https://docs.prefect.io/
+
+name: cityscape
+
+# Disable image build/push (we run flows with a local process worker in docker-compose)
+build: []
+push: []
+
+# This is a minimal deployment definition for local Prefect Server + process worker.
+# You can tweak the cron/timezone/parameters as you like.
+
+deployments:
+  - name: mlb-season-daily
+    description: "Ingest MLB season data (Stats API) into Postgres raw tables"
+    entrypoint: src/cityscape/automations/prefect/mlb.py:mlb_daily_ingestion
+    parameters:
+      season: 2026
+      game_types: R
+      lookback_days: 2
+    work_pool:
+      name: cityscape-pool
+    schedule:
+      cron: "0 6 * * *"
+      timezone: "America/New_York"
+    tags:
+      - mlb
+      - ingest

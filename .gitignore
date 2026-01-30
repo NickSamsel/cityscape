@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environment variables
+.env
+
+# OS/editor
+.DS_Store
+.vscode/
+
+# Prefect local state (if created outside the named docker volume)
+.prefect/
+
+# dbt artifacts
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.env
+profiles.yml

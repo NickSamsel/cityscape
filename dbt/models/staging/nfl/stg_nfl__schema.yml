@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: stg_nfl__games
+    description: "NFL games staged from raw landing tables"
+    columns:
+      - name: game_id
+        tests: [not_null]
+  - name: stg_nfl__teams
+    description: "NFL teams staged from raw landing tables"
+    columns:
+      - name: team_id
+        tests: [not_null]

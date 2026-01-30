@@ -1,5 +1,25 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: cityscape-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-cityscape}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   prefect:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: cityscape:dev
     container_name: cityscape-prefect
     working_dir: /workspaces/cityscape
@@ -18,17 +38,59 @@ services:
     image: cityscape:dev
     container_name: cityscape-dev
     working_dir: /workspaces/cityscape
+    env_file:
+      - .env
     depends_on:
-      - prefect
+      postgres:
+        condition: service_healthy
+      prefect:
+        condition: service_started
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
+      - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
+      - DBT_HOST=postgres
+      - DBT_PORT=5432
+      - DBT_USER=${POSTGRES_USER:-postgres}
+      - DBT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DBT_DBNAME=${POSTGRES_DB:-cityscape}
+      - DBT_SCHEMA=analytics
     volumes:
       - .:/workspaces/cityscape:cached
       - cityscape-venv:/workspaces/cityscape/.venv
       - cityscape-uv-cache:/root/.cache/uv
     command: sleep infinity
 
+  prefect-worker:
+    image: cityscape:dev
+    container_name: cityscape-prefect-worker
+    working_dir: /workspaces/cityscape
+    depends_on:
+      prefect:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      - PREFECT_API_URL=http://prefect:4200/api
+      - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
+      - DBT_HOST=postgres
+      - DBT_PORT=5432
+      - DBT_USER=${POSTGRES_USER:-postgres}
+      - DBT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DBT_DBNAME=${POSTGRES_DB:-cityscape}
+      - DBT_SCHEMA=analytics
+    volumes:
+      - .:/workspaces/cityscape:cached
+      - cityscape-venv:/workspaces/cityscape/.venv
+      - cityscape-uv-cache:/root/.cache/uv
+    command: >-
+      sh -lc
+      "uv pip install -e '.[dev]' &&
+       uv run prefect work-pool create cityscape-pool --type process --overwrite || true &&
+       uv run prefect worker start --pool cityscape-pool --type process"
+
 volumes:
+  postgres-data:
+    name: cityscape-postgres-data
   cityscape-venv:
   cityscape-uv-cache:
   prefect-home:
