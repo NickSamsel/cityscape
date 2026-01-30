@@ -38,6 +38,8 @@ services:
     image: cityscape:dev
     container_name: cityscape-dev
     working_dir: /workspaces/cityscape
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
