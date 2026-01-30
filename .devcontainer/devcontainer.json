@@ -1,0 +1,12 @@
+{
+  "name": "cityscape",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "dev",
+  "workspaceFolder": "/workspaces/cityscape",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "shutdownAction": "stopCompose"
+}
