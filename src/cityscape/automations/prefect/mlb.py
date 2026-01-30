@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from prefect import flow
 
 from cityscape.automations.ingest.mlb import ingest_mlb_season
+from cityscape.integrations.mlb.statsapi import MlbStatsApi
 from cityscape.utils.logger import get_run_logger
 
 
@@ -72,6 +73,46 @@ def mlb_daily_ingestion(
         "season": season,
         "window_start": window_start.isoformat(),
         "window_end": window_end.isoformat(),
+    }
+
+
+@flow(name="mlb-multi-season-ingestion", log_prints=False)
+def mlb_multi_season_ingestion(
+    *,
+    start_year: int,
+    end_year: int,
+    game_types: str = "R",
+) -> dict[str, int | list]:
+    """Ingest MLB data for multiple seasons from start_year to end_year (inclusive).
+
+    Example: start_year=2020, end_year=2024 will ingest seasons 2020, 2021, 2022, 2023, 2024
+    """
+
+    logger = get_run_logger()
+    logger.info(f"Starting multi-season ingestion: {start_year} to {end_year}")
+
+    results = []
+    total_teams = 0
+    total_games = 0
+
+    for season in range(start_year, end_year + 1):
+        logger.info(f"Processing season {season}...")
+        result = mlb_season_ingestion(season=season, game_types=game_types)
+        
+        total_teams += result["teams"]
+        total_games += result["games"]
+        results.append({"season": season, **result})
+
+    logger.info(
+        f"Completed multi-season ingestion: {len(results)} seasons, "
+        f"{total_teams} total teams, {total_games} total games"
+    )
+
+    return {
+        "seasons_processed": len(results),
+        "total_teams": total_teams,
+        "total_games": total_games,
+        "results": results,
     }
 
 

@@ -34,4 +34,4 @@ prefect-pool:
 	uv run prefect work-pool create cityscape-pool --type process --overwrite
 
 prefect-deploy:
-	uv run prefect deploy --prefect-file prefect.yaml --name mlb-season-daily --pool cityscape-pool
+	uv run prefect deploy --all
