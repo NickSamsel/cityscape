@@ -31,7 +31,7 @@ dbt-clean:
 	cd dbt && uv run dbt clean
 
 prefect-pool:
-	uv run prefect work-pool create cityscape-pool --type process
+	uv run prefect work-pool create cityscape-pool --type process --overwrite
 
 prefect-deploy:
-	uv run prefect deploy --prefect-file prefect.yaml
+	uv run prefect deploy --prefect-file prefect.yaml --name mlb-season-daily --pool cityscape-pool

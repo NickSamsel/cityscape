@@ -83,8 +83,8 @@ services:
     command: >-
       sh -lc
       "uv pip install -e '.[dev]' &&
-       prefect work-pool create cityscape-pool --type process --overwrite || true &&
-       uv run prefect worker start --pool cityscape-pool"
+       uv run prefect work-pool create cityscape-pool --type process --overwrite || true &&
+       uv run prefect worker start --pool cityscape-pool --type process"
 
 volumes:
   postgres-data:

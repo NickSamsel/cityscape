@@ -47,6 +47,10 @@ Typical flow:
 - `make prefect-deploy` (apply deployments from `prefect.yaml`)
 - `docker compose up -d prefect-worker` (start polling/executing scheduled runs)
 
+Note: when running `prefect deploy` in the dev container, choose **not** to build a custom Docker image.
+
+This project uses a **process** work pool/worker by default (runs flows as Python processes inside the worker container). A **docker** work pool is a different setup and typically requires Docker daemon access from the worker.
+
 ## dbt
 
 The dbt project lives in `dbt/` and is structured for:

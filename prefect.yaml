@@ -3,6 +3,10 @@
 
 name: cityscape
 
+# Disable image build/push (we run flows with a local process worker in docker-compose)
+build: []
+push: []
+
 # This is a minimal deployment definition for local Prefect Server + process worker.
 # You can tweak the cron/timezone/parameters as you like.
 
