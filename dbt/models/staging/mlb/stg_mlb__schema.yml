@@ -5,9 +5,13 @@ models:
     description: "MLB games staged from raw landing tables"
     columns:
       - name: game_id
+        tests: [not_null, unique]
+      - name: season
         tests: [not_null]
   - name: stg_mlb__teams
     description: "MLB teams staged from raw landing tables"
     columns:
       - name: team_id
+        tests: [not_null]
+      - name: season
         tests: [not_null]

@@ -1,4 +1,4 @@
-.PHONY: venv install test lint format dbt-deps dbt-run dbt-test dbt-docs dbt-clean
+.PHONY: venv install test lint format dbt-deps dbt-run dbt-test dbt-docs dbt-clean prefect-pool prefect-deploy
 
 venv:
 	uv venv -p 3.11
@@ -29,3 +29,9 @@ dbt-docs:
 
 dbt-clean:
 	cd dbt && uv run dbt clean
+
+prefect-pool:
+	uv run prefect work-pool create cityscape-pool --type process
+
+prefect-deploy:
+	uv run prefect deploy --prefect-file prefect.yaml
