@@ -1,0 +1,29 @@
+name: "cityscape"
+version: "1.0.0"
+config-version: 2
+
+profile: "cityscape"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+models:
+  cityscape:
+    +materialized: view
+    staging:
+      +schema: stg
+      +tags: ["stg"]
+    intermediate:
+      +schema: int
+      +tags: ["int"]
+    core:
+      +schema: core
+      +materialized: table
+      +tags: ["core"]
