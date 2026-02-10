@@ -1,15 +1,14 @@
-version: '3.8'
-
 services:
   gcp-proxy:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
     container_name: cityscape-gcp-proxy
-    # Use bridge (default) instead of host for better compatibility in Codespaces
-    environment:
-      - CSQL_PROXY_JSON_CREDENTIALS='${GCP_SERVICE_ACCOUNT_KEY}'
+    volumes:
+      - /tmp:/tmp:ro
+    # We use the file path here because it's more stable than the ENV string
     command:
       - "--address=0.0.0.0"
       - "--port=5432"
+      - "--credentials-file=/tmp/gcp-key.json"
       - "${GCP_SQL_INSTANCE}"
     restart: always
 
@@ -20,7 +19,10 @@ services:
     container_name: cityscape-dev
     depends_on:
       - gcp-proxy
+    entrypoint: >
+      sh -c "echo $$GCP_SERVICE_ACCOUNT_KEY | base64 -d > /tmp/gcp-key.json && sleep infinity"
     environment:
+      - GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY}
       - DOCKER_API_VERSION=1.43
       - DBT_HOST=gcp-proxy
       - DBT_PORT=5432
@@ -30,4 +32,4 @@ services:
     volumes:
       - .:/workspaces/cityscape:cached
       - /var/run/docker.sock:/var/run/docker.sock
-    command: sleep infinity
+      - /tmp:/tmp
