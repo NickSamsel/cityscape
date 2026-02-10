@@ -1,13 +1,13 @@
 services:
-  gcp-proxy:
+gcp-proxy:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
     container_name: cityscape-gcp-proxy
-    network_mode: host
-    environment:
-      - CSQL_PROXY_JSON_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY}
+    volumes:
+      - ~/.config/gcloud/application_default_credentials.json:/config/key.json:ro
     command:
       - "--address=0.0.0.0"
       - "--port=5432"
+      - "--credentials-file=/config/key.json"
       - "${GCP_SQL_INSTANCE}"
     restart: always
 
@@ -16,15 +16,15 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: cityscape-dev
-    network_mode: host
     depends_on:
       - gcp-proxy
     environment:
-      - DBT_HOST=127.0.0.1
+      - DBT_HOST=gcp-proxy
       - DBT_PORT=5432
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
       - DBT_DBNAME=${GCP_DB_NAME}
     volumes:
       - .:/workspaces/cityscape:cached
+      - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
