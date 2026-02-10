@@ -2,12 +2,11 @@ services:
   gcp-proxy:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
     container_name: cityscape-gcp-proxy
-    volumes:
-      - /tmp:/tmp:ro
+    environment:
+      - CSQL_PROXY_JSON_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY}
     command:
       - "--address=0.0.0.0"
       - "--port=5432"
-      - "--credentials-file=/tmp/gcp-key.json"
       - "${GCP_SQL_INSTANCE}"
     restart: always
 
