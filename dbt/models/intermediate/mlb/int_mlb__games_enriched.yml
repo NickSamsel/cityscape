@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: int_mlb__games_enriched
+    description: "MLB games with enriched team information"
+    columns:
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+        tests: [not_null, unique]
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+        tests: [not_null]
+      - name: home_team_id
+        description: "{{ doc('mlb_home_team_id') }}"
+        tests: [not_null]
+      - name: home_team_name
+        description: "{{ doc('mlb_home_team_name') }}"
+      - name: away_team_id
+        description: "{{ doc('mlb_away_team_id') }}"
+        tests: [not_null]
+      - name: away_team_name
+        description: "{{ doc('mlb_away_team_name') }}"

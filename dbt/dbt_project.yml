@@ -8,6 +8,7 @@ model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
+docs-paths: ["docs"]
 
 clean-targets:
   - "target"
@@ -21,12 +22,33 @@ models:
   cityscape:
     +materialized: view
     staging:
-      +schema: stg
       +tags: ["stg"]
+      mlb:
+        +schema: mlb_staging
+      nba:
+        +schema: nba_staging
+      nfl:
+        +schema: nfl_staging
+      nhl:
+        +schema: nhl_staging
     intermediate:
-      +schema: int
       +tags: ["int"]
+      mlb:
+        +schema: mlb_intermediate
+      nba:
+        +schema: nba_intermediate
+      nfl:
+        +schema: nfl_intermediate
+      nhl:
+        +schema: nhl_intermediate
     core:
-      +schema: core
       +materialized: table
       +tags: ["core"]
+      mlb:
+        +schema: mlb_core
+      nba:
+        +schema: nba_core
+      nfl:
+        +schema: nfl_core
+      nhl:
+        +schema: nhl_core

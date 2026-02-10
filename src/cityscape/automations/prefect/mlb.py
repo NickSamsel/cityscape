@@ -4,22 +4,22 @@ from datetime import date, timedelta
 
 from prefect import flow
 
-from cityscape.automations.ingest.mlb import ingest_mlb_season
+from cityscape.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery
 from cityscape.integrations.mlb.statsapi import MlbStatsApi
 from cityscape.utils.logger import get_run_logger
 
 
 @flow(name="mlb-season-ingestion", log_prints=False)
 def mlb_season_ingestion(*, season: int, game_types: str = "R") -> dict[str, int]:
-    """Prefect flow that ingests MLB season data into Postgres.
+    """Prefect flow that ingests MLB season data into BigQuery.
 
-    This wraps `ingest_mlb_season` so logs are attached to the Prefect run.
+    This wraps `ingest_mlb_season_bigquery` so logs are attached to the Prefect run.
     """
 
     logger = get_run_logger()
     logger.info(f"Starting MLB ingestion season={season} game_types={game_types}")
 
-    teams, games = ingest_mlb_season(season=season, game_types=game_types)
+    teams, games = ingest_mlb_season_bigquery(season=season, game_types=game_types)
 
     logger.info(f"Finished MLB ingestion season={season} teams={teams} games={games}")
     return {"teams": teams, "games": games}
@@ -59,7 +59,7 @@ def mlb_daily_ingestion(
         f"Running MLB daily ingest season={season} game_types={game_types} window={window_start}..{window_end}"
     )
 
-    teams, games = ingest_mlb_season(
+    teams, games = ingest_mlb_season_bigquery(
         season=season,
         game_types=game_types,
         start_date=window_start,
