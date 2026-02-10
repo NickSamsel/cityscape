@@ -2,8 +2,7 @@ services:
   gcp-proxy:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
     container_name: cityscape-gcp-proxy
-    # We use environment variables only. 
-    # The proxy can read these natively if we name them exactly like this.
+    network_mode: host
     environment:
       - CSQL_PROXY_JSON_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY}
     command:
@@ -17,10 +16,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: cityscape-dev
+    network_mode: host
     depends_on:
       - gcp-proxy
     environment:
-      - DBT_HOST=gcp-proxy
+      - DBT_HOST=127.0.0.1
       - DBT_PORT=5432
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
