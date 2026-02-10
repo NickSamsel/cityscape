@@ -1,5 +1,17 @@
 services:
-  # 1. REMOVED the local postgres service block entirely
+  # The Secure Tunnel to GCP
+  gcp-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+    container_name: cityscape-gcp-proxy
+    # Decodes the Base64 Secret into a temporary file for authentication
+    entrypoint: ["sh", "-c"]
+    command: >
+      "echo $$GCP_SERVICE_ACCOUNT_KEY | base64 -d > /tmp/key.json && 
+      /cloud-sql-proxy --address 0.0.0.0 --port 5432 --credentials-file /tmp/key.json ${GCP_SQL_INSTANCE}"
+    environment:
+      - GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY}
+      - GCP_SQL_INSTANCE=${GCP_SQL_INSTANCE}
+    restart: always
 
   prefect:
     build:
@@ -25,15 +37,14 @@ services:
     working_dir: /workspaces/cityscape
     env_file:
       - path: .env
-        required: false  # 2. Fixes your "file not found" error
+        required: false
     depends_on:
-      prefect:
-        condition: service_started
+      - gcp-proxy
+      - prefect
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
       - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      # 3. Update these to your GCP Cloud SQL Credentials
-      - DBT_HOST=${GCP_DB_HOST} 
+      - DBT_HOST=gcp-proxy
       - DBT_PORT=5432
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
@@ -50,13 +61,12 @@ services:
     container_name: cityscape-prefect-worker
     working_dir: /workspaces/cityscape
     depends_on:
-      prefect:
-        condition: service_started
-    # No longer depends on a local postgres healthcheck
+      - prefect
+      - gcp-proxy
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
       - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      - DBT_HOST=${GCP_DB_HOST}
+      - DBT_HOST=gcp-proxy
       - DBT_PORT=5432
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
@@ -73,7 +83,6 @@ services:
        uv run prefect worker start --pool cityscape-pool --type process"
 
 volumes:
-  # postgres-data volume removed as it's no longer used
   cityscape-venv:
   cityscape-uv-cache:
   prefect-home:
