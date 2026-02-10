@@ -8,6 +8,26 @@
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "git config --global user.name \"${GIT_USER_NAME}\" && git config --global user.email \"${GIT_USER_EMAIL}\"",
+  // We use postCreateCommand for project-specific setup (like installing dependencies)
+  "postCreateCommand": "uv pip install -e '.[dev]'",
+  
+  // This ensures your GCP secrets are available to the 'dev' container
+  "containerEnv": {
+    "GCP_DB_USER": "${localEnv:GCP_DB_USER}",
+    "GCP_DB_PASSWORD": "${localEnv:GCP_DB_PASSWORD}",
+    "GCP_DB_NAME": "${localEnv:GCP_DB_NAME}",
+    "GCP_SQL_INSTANCE": "${localEnv:GCP_SQL_INSTANCE}",
+    "GCP_SERVICE_ACCOUNT_KEY": "${localEnv:GCP_SERVICE_ACCOUNT_KEY}"
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  },
   "shutdownAction": "stopCompose"
 }
