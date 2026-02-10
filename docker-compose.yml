@@ -9,6 +9,8 @@ services:
         - "--json-credentials=${GCP_SERVICE_ACCOUNT_KEY}"
         - "${GCP_SQL_INSTANCE}"
       restart: always
+      networks:
+        - cityscape-net
 
   prefect:
     build:
@@ -24,6 +26,8 @@ services:
     ports:
       - "4200:4200"
     command: prefect server start --host 0.0.0.0 --port 4200
+    networks:
+      - cityscape-net
 
   dev:
     build:
@@ -52,6 +56,8 @@ services:
       - cityscape-venv:/workspaces/cityscape/.venv
       - cityscape-uv-cache:/root/.cache/uv
     command: sleep infinity
+    networks:
+      - cityscape-net
 
   prefect-worker:
     image: cityscape:dev
@@ -78,8 +84,13 @@ services:
       "uv pip install -e '.[dev]' &&
        uv run prefect work-pool create cityscape-pool --type process --overwrite || true &&
        uv run prefect worker start --pool cityscape-pool --type process"
+    networks:
+      - cityscape-net
 
 volumes:
   cityscape-venv:
   cityscape-uv-cache:
   prefect-home:
+networks:
+  cityscape-net:
+    driver: bridge
