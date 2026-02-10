@@ -1,26 +1,19 @@
-services:
-  gcp-proxy:
-    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
-    container_name: cityscape-gcp-proxy
-    volumes:
-      - /tmp:/tmp:ro
-    # We use the file path here because it's more stable than the ENV string
-    command:
-      - "--address=0.0.0.0"
-      - "--port=5432"
-      - "--credentials-file=/tmp/gcp-key.json"
-      - "${GCP_SQL_INSTANCE}"
-    restart: always
-
-  dev:
+dev:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: cityscape-dev
     depends_on:
       - gcp-proxy
+    # Added checks to prevent the container from exiting if the secret fails
     entrypoint: >
-      sh -c "echo $$GCP_SERVICE_ACCOUNT_KEY | base64 -d > /tmp/gcp-key.json && sleep infinity"
+      bash -c "
+      if [ -z \"$$GCP_SERVICE_ACCOUNT_KEY\" ]; then
+        echo 'WARNING: GCP_SERVICE_ACCOUNT_KEY is empty';
+      else
+        echo \"$$GCP_SERVICE_ACCOUNT_KEY\" | base64 -d > /tmp/gcp-key.json || echo 'ERROR: Base64 decode failed';
+      fi;
+      sleep infinity"
     environment:
       - GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY}
       - DOCKER_API_VERSION=1.43
