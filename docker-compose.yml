@@ -1,20 +1,5 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: cityscape-postgres
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-cityscape}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+  # 1. REMOVED the local postgres service block entirely
 
   prefect:
     build:
@@ -39,20 +24,20 @@ services:
     container_name: cityscape-dev
     working_dir: /workspaces/cityscape
     env_file:
-      - .env
+      - path: .env
+        required: false  # 2. Fixes your "file not found" error
     depends_on:
-      postgres:
-        condition: service_healthy
       prefect:
         condition: service_started
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
       - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      - DBT_HOST=postgres
+      # 3. Update these to your GCP Cloud SQL Credentials
+      - DBT_HOST=${GCP_DB_HOST} 
       - DBT_PORT=5432
-      - DBT_USER=${POSTGRES_USER:-postgres}
-      - DBT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - DBT_DBNAME=${POSTGRES_DB:-cityscape}
+      - DBT_USER=${GCP_DB_USER}
+      - DBT_PASSWORD=${GCP_DB_PASSWORD}
+      - DBT_DBNAME=${GCP_DB_NAME}
       - DBT_SCHEMA=analytics
     volumes:
       - .:/workspaces/cityscape:cached
@@ -67,16 +52,15 @@ services:
     depends_on:
       prefect:
         condition: service_started
-      postgres:
-        condition: service_healthy
+    # No longer depends on a local postgres healthcheck
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
       - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      - DBT_HOST=postgres
+      - DBT_HOST=${GCP_DB_HOST}
       - DBT_PORT=5432
-      - DBT_USER=${POSTGRES_USER:-postgres}
-      - DBT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - DBT_DBNAME=${POSTGRES_DB:-cityscape}
+      - DBT_USER=${GCP_DB_USER}
+      - DBT_PASSWORD=${GCP_DB_PASSWORD}
+      - DBT_DBNAME=${GCP_DB_NAME}
       - DBT_SCHEMA=analytics
     volumes:
       - .:/workspaces/cityscape:cached
@@ -89,8 +73,7 @@ services:
        uv run prefect worker start --pool cityscape-pool --type process"
 
 volumes:
-  postgres-data:
-    name: cityscape-postgres-data
+  # postgres-data volume removed as it's no longer used
   cityscape-venv:
   cityscape-uv-cache:
   prefect-home:
