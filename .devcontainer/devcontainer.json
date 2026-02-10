@@ -6,7 +6,8 @@
   "service": "dev",
   "workspaceFolder": "/workspaces/cityscape",
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   // We use postCreateCommand for project-specific setup (like installing dependencies)
   "postCreateCommand": "uv pip install -e '.[dev]'",
