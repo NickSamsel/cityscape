@@ -1,90 +1,30 @@
 services:
-  # The Secure Tunnel to GCP
   gcp-proxy:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
     container_name: cityscape-gcp-proxy
-    ports:
-      - "5432:5432"
+    # We use environment variables only. 
+    # The proxy can read these natively if we name them exactly like this.
+    environment:
+      - CSQL_PROXY_JSON_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY}
     command:
       - "--address=0.0.0.0"
       - "--port=5432"
-      - "--json-credentials=${GCP_SERVICE_ACCOUNT_KEY}"
       - "${GCP_SQL_INSTANCE}"
     restart: always
-
-  prefect:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: cityscape:dev
-    container_name: cityscape-prefect
-    working_dir: /workspaces/cityscape
-    volumes:
-      - .:/workspaces/cityscape:cached
-      - prefect-home:/root/.prefect
-      - cityscape-uv-cache:/root/.cache/uv
-    ports:
-      - "4200:4200"
-    command: prefect server start --host 0.0.0.0 --port 4200
 
   dev:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cityscape:dev
     container_name: cityscape-dev
-    working_dir: /workspaces/cityscape
-    network_mode: host
-    env_file:
-      - path: .env
-        required: false
     depends_on:
       - gcp-proxy
-      - prefect
     environment:
-      - PREFECT_API_URL=http://127.0.0.1:4200/api
-      - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      - DBT_HOST=127.0.0.1
+      - DBT_HOST=gcp-proxy
       - DBT_PORT=5432
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
       - DBT_DBNAME=${GCP_DB_NAME}
-      - DBT_SCHEMA=analytics
     volumes:
       - .:/workspaces/cityscape:cached
-      - cityscape-venv:/workspaces/cityscape/.venv
-      - cityscape-uv-cache:/root/.cache/uv
     command: sleep infinity
-
-  prefect-worker:
-    image: cityscape:dev
-    container_name: cityscape-prefect-worker
-    working_dir: /workspaces/cityscape
-    # Also using host network for consistent connectivity
-    network_mode: host
-    depends_on:
-      - prefect
-      - gcp-proxy
-    environment:
-      - PREFECT_API_URL=http://127.0.0.1:4200/api
-      - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      - DBT_HOST=127.0.0.1
-      - DBT_PORT=5432
-      - DBT_USER=${GCP_DB_USER}
-      - DBT_PASSWORD=${GCP_DB_PASSWORD}
-      - DBT_DBNAME=${GCP_DB_NAME}
-      - DBT_SCHEMA=analytics
-    volumes:
-      - .:/workspaces/cityscape:cached
-      - cityscape-venv:/workspaces/cityscape/.venv
-      - cityscape-uv-cache:/root/.cache/uv
-    command: >-
-      sh -lc
-      "uv pip install -e '.[dev]' &&
-       uv run prefect work-pool create cityscape-pool --type process --overwrite || true &&
-       uv run prefect worker start --pool cityscape-pool --type process"
-
-volumes:
-  cityscape-venv:
-  cityscape-uv-cache:
-  prefect-home:

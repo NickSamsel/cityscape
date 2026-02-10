@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# Added postgresql-client to the list
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -10,7 +9,8 @@ RUN apt-get update && \
     libpq-dev \
     ca-certificates \
     openssh-client \
-    postgresql-client && \
+    postgresql-client \
+    docker.io && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -Ls https://astral.sh/uv/install.sh | sh
