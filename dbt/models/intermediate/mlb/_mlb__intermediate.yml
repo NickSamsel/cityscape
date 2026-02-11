@@ -194,14 +194,14 @@ models:
         description: "{{ doc('mlb_league_id') }}"
       - name: league_name
         description: "{{ doc('mlb_league_name') }}"
-      - name: league_abbr_name
-        description: "{{ doc('mlb_league_abbr_name') }}"
+      - name: league_abbr
+        description: "{{ doc('mlb_league_abbr') }}"
       - name: division_id
         description: "{{ doc('mlb_division_id') }}"
       - name: division_name
         description: "{{ doc('mlb_division_name') }}"
-      - name: division_abbr_name
-        description: "{{ doc('mlb_division_abbr_name') }}"
+      - name: division_abbr
+        description: "{{ doc('mlb_division_abbr') }}"
       - name: game_date
         description: "{{ doc('mlb_game_date') }}"
       - name: season
