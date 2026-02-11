@@ -1,0 +1,288 @@
+version: 2
+
+models:
+  - name: dim_mlb__leagues
+    description: |
+      Dimension table containing MLB league reference data.
+      Typically contains American League (AL) and National League (NL).
+    columns:
+      - name: league_id
+        description: Unique identifier for the league
+        tests:
+          - not_null
+          - unique
+      - name: league_name
+        description: Full league name (e.g., "American League")
+      - name: league_abbr
+        description: League abbreviation (e.g., "AL", "NL")
+
+  - name: dim_mlb__divisions
+    description: |
+      Dimension table containing MLB division reference data.
+      Each league is divided into three divisions: East, Central, and West.
+    columns:
+      - name: division_id
+        description: Unique identifier for the division
+        tests:
+          - not_null
+          - unique
+      - name: division_name
+        description: Full division name (e.g., "American League East")
+      - name: division_abbr
+        description: Division abbreviation (e.g., "ALE", "NLC")
+      - name: league_id
+        description: Foreign key to dim_mlb__leagues
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_mlb__leagues')
+                field: league_id
+
+  - name: dim_mlb__teams
+    description: |
+      Dimension table containing MLB team information by season.
+      This is a slowly changing dimension where teams can change leagues, divisions, 
+      or even names between seasons.
+    columns:
+      - name: team_id
+        description: Unique identifier for the team
+        tests:
+          - not_null
+      - name: season
+        description: Season year
+        tests:
+          - not_null
+      - name: team_name
+        description: Full team name (e.g., "New York Yankees")
+      - name: team_abbr
+        description: Team abbreviation code (e.g., "NYY")
+      - name: league_id
+        description: League identifier (American League or National League)
+      - name: division_id
+        description: Division identifier within the league
+
+  - name: fct_mlb__games
+    description: |
+      Fact table containing MLB game results with complete team information and outcomes.
+      Each row represents a single completed game.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - game_id
+              - season
+    columns:
+      - name: game_id
+        description: Unique identifier for the game
+        tests:
+          - not_null
+      - name: season
+        description: Season year
+      - name: game_date
+        description: Date the game was played
+      - name: game_type
+        description: Type of game (R=regular season, F=wild card, D=division series, etc.)
+      - name: status
+        description: Game status
+      - name: home_team_id
+        description: Home team identifier
+      - name: home_team_name
+        description: Home team full name
+      - name: home_team_abbr
+        description: Home team abbreviation
+      - name: home_league_id
+        description: Home team league ID
+      - name: home_league_name
+        description: Home team league name (e.g., 'American League')
+      - name: home_league_abbr
+        description: Home team league abbreviation (e.g., 'AL')
+      - name: home_division_id
+        description: Home team division ID
+      - name: home_division_name
+        description: Home team division name (e.g., 'American League East')
+      - name: home_division_abbr
+        description: Home team division abbreviation (e.g., 'ALE')
+      - name: home_score
+        description: Final score for home team
+      - name: away_team_id
+        description: Away team identifier
+      - name: away_team_name
+        description: Away team full name
+      - name: away_team_abbr
+        description: Away team abbreviation
+      - name: away_league_id
+        description: Away team league ID
+      - name: away_league_name
+        description: Away team league name (e.g., 'National League')
+      - name: away_league_abbr
+        description: Away team league abbreviation (e.g., 'NL')
+      - name: away_division_id
+        description: Away team division ID
+      - name: away_division_name
+        description: Away team division name (e.g., 'National League West')
+      - name: away_division_abbr
+        description: Away team division abbreviation (e.g., 'NLW')
+      - name: away_score
+        description: Final score for away team
+      - name: winning_team_id
+        description: Team ID of the winning team (null if tie)
+      - name: losing_team_id
+        description: Team ID of the losing team (null if tie)
+      - name: winner
+        description: Which team won - 'home', 'away', or 'tie'
+      - name: score_differential
+        description: Absolute difference between home and away scores
+      - name: total_runs
+        description: Total runs scored by both teams
+
+  - name: fct_mlb__player_batting_stats
+    description: |
+      Fact table containing player batting statistics for each game.
+      Each row represents a single player's batting performance in a game.
+    columns:
+      - name: game_id
+        description: Foreign key to fct_mlb__games
+        tests:
+          - not_null
+      - name: player_id
+        description: Unique identifier for the player
+        tests:
+          - not_null
+      - name: player_name
+        description: Player's full name
+      - name: team_id
+        description: Foreign key to dim_mlb__teams
+      - name: team_name
+        description: Team full name
+      - name: team_abbr
+        description: Team abbreviation
+      - name: league_id
+        description: League ID
+      - name: league_name
+        description: League name (e.g., 'American League', 'National League')
+      - name: league_abbr_name
+        description: League abbreviation (e.g., 'AL', 'NL')
+      - name: division_id
+        description: Division ID
+      - name: division_name
+        description: Division name (e.g., 'American League East')
+      - name: division_abbr_name
+        description: Division abbreviation (e.g., 'ALE', 'NLW')
+      - name: game_date
+        description: Date of the game
+      - name: season
+        description: Season year
+      - name: at_bats
+        description: Number of official at bats
+      - name: hits
+        description: Total hits
+      - name: singles
+        description: Single base hits (calculated)
+      - name: doubles
+        description: Two-base hits
+      - name: triples
+        description: Three-base hits
+      - name: home_runs
+        description: Home runs
+      - name: total_bases
+        description: Total bases from all hits (1B + 2*2B + 3*3B + 4*HR)
+      - name: avg
+        description: Batting average
+      - name: obp
+        description: On-base percentage
+      - name: slg
+        description: Slugging percentage
+      - name: ops
+        description: On-base plus slugging
+      - name: extra_base_hits
+        description: "Total extra base hits in game (2B + 3B + HR). Measures power hitting and ability to hit for distance"
+      - name: batting_avg_game
+        description: "Single-game batting average (hits / at_bats). Snapshot of performance in this specific game"
+      - name: slugging_pct_game
+        description: "Single-game slugging percentage (total_bases / at_bats). Measures power output for the game"
+      - name: iso
+        description: "Isolated Power (slugging_pct - batting_avg). Measures raw power independent of batting average. ISO > .200 indicates strong power"
+      - name: babip
+        description: "Batting Average on Balls In Play ((H - HR) / (AB - K - HR)). Measures luck and quality of contact. League average ~.300"
+      - name: walk_rate
+        description: "Walk percentage (walks / plate_appearances * 100). Elite hitters maintain BB% > 12%"
+      - name: strikeout_rate
+        description: "Strikeout percentage (strikeouts / plate_appearances * 100). Elite contact hitters keep K% < 15%"
+      - name: bb_k_ratio
+        description: "Walk-to-strikeout ratio (walks / strikeouts). Measures plate discipline. Excellent hitters achieve BB/K > 1.0"
+      - name: power_factor
+        description: "Average bases per hit (total_bases / hits). Perfect contact (all singles) = 1.0, all homers = 4.0. Higher values indicate more power per hit"
+
+  - name: fct_mlb__player_pitching_stats
+    description: |
+      Fact table containing player pitching statistics for each game.
+      Each row represents a single pitcher's performance in a game.
+    columns:
+      - name: game_id
+        description: Foreign key to fct_mlb__games
+        tests:
+          - not_null
+      - name: player_id
+        description: Unique identifier for the player
+        tests:
+          - not_null
+      - name: player_name
+        description: Player's full name
+      - name: team_id
+        description: Foreign key to dim_mlb__teams
+      - name: team_name
+        description: Team full name
+      - name: team_abbr
+        description: Team abbreviation
+      - name: league_id
+        description: League ID
+      - name: league_name
+        description: League name (e.g., 'American League', 'National League')
+      - name: league_abbr_name
+        description: League abbreviation (e.g., 'AL', 'NL')
+      - name: division_id
+        description: Division ID
+      - name: division_name
+        description: Division name (e.g., 'American League East')
+      - name: division_abbr_name
+        description: Division abbreviation (e.g., 'ALE', 'NLW')
+      - name: game_date
+        description: Date of the game
+      - name: season
+        description: Season year
+      - name: innings_pitched
+        description: Innings pitched in X.Y format (e.g., 5.2 = 5 2/3 innings)
+      - name: innings_pitched_decimal
+        description: Innings pitched converted to decimal format
+      - name: strikeouts
+        description: Number of strikeouts recorded
+      - name: walks
+        description: Number of walks issued
+      - name: hits
+        description: Hits allowed
+      - name: earned_runs
+        description: Earned runs allowed
+      - name: strike_percentage
+        description: Percentage of pitches that were strikes
+      - name: whip
+        description: Walks plus hits per inning pitched
+      - name: k_per_nine
+        description: Strikeouts per 9 innings
+      - name: bb_per_nine
+        description: Walks per 9 innings
+      - name: era
+        description: Earned run average
+      - name: k_bb_ratio
+        description: "Strikeout-to-walk ratio (K/BB). Measures command and control. Elite pitchers maintain K/BB > 4.0, with excellent pitchers above 3.0"
+      - name: hr_per_nine
+        description: "Home runs allowed per 9 innings. Measures ability to limit power. Elite pitchers keep HR/9 below 1.0"
+      - name: h_per_nine
+        description: "Hits allowed per 9 innings. Lower is better; dominant pitchers maintain H/9 < 7.0"
+      - name: fip
+        description: "Fielding Independent Pitching ((13*HR + 3*BB - 2*K) / IP + 3.2). Estimates pitcher ERA if they faced league-average defense and luck. FIP < 3.00 = excellent, 3.00-3.75 = above average, 3.75-4.00 = average"
+      - name: pitches_per_inning
+        description: "Average pitches thrown per inning pitched. Efficient pitchers stay below 15 pitches/inning; high counts may indicate control issues or batters working deep counts"
+      - name: k_percentage
+        description: "Strikeout percentage (K / total batters faced * 100). Elite strikeout pitchers achieve K% > 27%, very good is 23-27%"
+      - name: is_quality_start
+        description: "Boolean indicator of quality start (IP >= 6.0 AND ER <= 3). Quality starts represent consistent, effective outings that give the team a chance to win"

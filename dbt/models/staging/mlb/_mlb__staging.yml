@@ -1,0 +1,194 @@
+version: 2
+
+models:
+  - name: stg_mlb__games
+    description: |
+      MLB games staged from raw landing tables.
+      Includes deduplication logic to ensure unique (game_id, season) combinations.
+    columns:
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+        tests: 
+          - not_null
+          - unique
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+        tests:
+          - not_null
+      - name: game_type
+        description: "{{ doc('mlb_game_type') }}"
+      - name: status
+        description: "{{ doc('mlb_game_status') }}"
+      - name: home_team_id
+        description: "{{ doc('mlb_home_team_id') }}"
+        tests:
+          - not_null
+      - name: away_team_id
+        description: "{{ doc('mlb_away_team_id') }}"
+        tests:
+          - not_null
+      - name: home_score
+        description: "{{ doc('mlb_home_score') }}"
+      - name: away_score
+        description: "{{ doc('mlb_away_score') }}"
+
+  - name: stg_mlb__teams
+    description: "MLB teams staged from raw landing tables"
+    columns:
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: team_name
+        description: "{{ doc('mlb_team_name') }}"
+        tests:
+          - not_null
+      - name: team_abbr
+        description: "{{ doc('mlb_team_abbr') }}"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
+
+  - name: stg_mlb__player_batting_stats
+    description: |
+      MLB player batting statistics staged from raw landing tables.
+      Contains game-by-game batting stats for each player.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests:
+          - not_null
+      - name: team_id
+        description: "Unique identifier for the team"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Player's name"
+        tests:
+          - not_null
+      - name: batting_order
+        description: "Batting order position (e.g., '100' for leadoff)"
+      - name: position
+        description: "Defensive position (e.g., 'LF', 'SS', 'C')"
+      - name: at_bats
+        description: "Number of at-bats"
+      - name: runs
+        description: "Number of runs scored"
+      - name: hits
+        description: "Number of hits"
+      - name: doubles
+        description: "Number of doubles (2B)"
+      - name: triples
+        description: "Number of triples (3B)"
+      - name: home_runs
+        description: "Number of home runs (HR)"
+      - name: rbi
+        description: "Runs batted in"
+      - name: stolen_bases
+        description: "Number of stolen bases"
+      - name: walks
+        description: "Number of walks (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: left_on_base
+        description: "Number of runners left on base"
+      - name: avg
+        description: "Season batting average as of this game (from API)"
+      - name: obp
+        description: "Season on-base percentage as of this game (from API)"
+      - name: slg
+        description: "Season slugging percentage as of this game (from API)"
+      - name: ops
+        description: "Season on-base plus slugging as of this game (from API)"
+
+  - name: stg_mlb__player_pitching_stats
+    description: |
+      MLB player pitching statistics staged from raw landing tables.
+      Contains game-by-game pitching stats for each pitcher.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests:
+          - not_null
+      - name: team_id
+        description: "Unique identifier for the team"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Player's name"
+        tests:
+          - not_null
+      - name: innings_pitched
+        description: "Innings pitched (e.g., '5.2' for 5 2/3 innings)"
+      - name: hits
+        description: "Number of hits allowed"
+      - name: runs
+        description: "Number of runs allowed"
+      - name: earned_runs
+        description: "Number of earned runs allowed"
+      - name: walks
+        description: "Number of walks issued (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: home_runs
+        description: "Number of home runs allowed"
+      - name: pitches
+        description: "Total number of pitches thrown"
+      - name: strikes
+        description: "Number of strikes thrown"
+      - name: era
+        description: "Season earned run average as of this game (from API)"
+
+  - name: stg_mlb__leagues
+    description: "MLB leagues staged from raw landing tables"
+    columns:
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: league_name
+        description: "Full league name (e.g., 'American League', 'National League')"
+        tests:
+          - not_null
+      - name: league_abbr
+        description: "League abbreviation (e.g., 'AL', 'NL')"
+
+  - name: stg_mlb__divisions
+    description: "MLB divisions staged from raw landing tables"
+    columns:
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: division_name
+        description: "Full division name (e.g., 'American League East')"
+        tests:
+          - not_null
+      - name: division_abbr
+        description: "Division abbreviation (e.g., 'ALE', 'NLC', 'NLW')"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mlb__leagues')
+                field: league_id

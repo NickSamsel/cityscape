@@ -13,7 +13,7 @@ push: []
 deployments:
   - name: mlb-season-daily
     description: "Ingest MLB season data (Stats API) into Postgres raw tables"
-    entrypoint: src/cityscape/automations/prefect/mlb.py:mlb_daily_ingestion
+    entrypoint: src/automations/prefect/mlb.py:mlb_daily_ingestion
     parameters:
       season: 2026
       game_types: R
@@ -28,7 +28,7 @@ deployments:
       - ingest
   - name: mlb-full-season
     description: "Ingest complete MLB season data"
-    entrypoint: src/cityscape/automations/prefect/mlb.py:mlb_season_ingestion
+    entrypoint: src/automations/prefect/mlb.py:mlb_season_ingestion
     parameters:
       season: 2024
       game_types: R
@@ -40,7 +40,7 @@ deployments:
       - backfill
   - name: mlb-multi-season
     description: "Ingest multiple MLB seasons (backfill)"
-    entrypoint: src/cityscape/automations/prefect/mlb.py:mlb_multi_season_ingestion
+    entrypoint: src/automations/prefect/mlb.py:mlb_multi_season_ingestion
     parameters:
       start_year: 2020
       end_year: 2024

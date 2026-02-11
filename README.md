@@ -90,23 +90,66 @@ Postgres data persists outside the containers via a named Docker volume (`citysc
 
 ## Python package structure
 
-The Python code uses a single installable package under `src/cityscape/`, organized as:
+The Python code uses a single installable package under `src/`, organized as:
 
 - `integrations/` — API clients, database clients, external system adapters
+  - `mlb/` — MLB Stats API client with models, exceptions, and utilities
+  - `http.py` — HTTP utilities
 - `automations/` — orchestration (e.g., Prefect flows/jobs)
-- `utils/` — shared helpers (settings, logging, etc.)
+  - `ingest/mlb/` — MLB-specific ingestion functions
+  - `prefect/` — Prefect flow definitions
+- `utils/` — shared helpers (settings, logging, BigQuery, database utilities)
 
-## MLB ingestion (free)
+## MLB ingestion
 
-This repo can fetch MLB season data from the free MLB Stats API (no API key) using the `MLB-StatsAPI` Python package and land it into Postgres raw tables:
+### Team & Game Data (Postgres)
+
+Fetch MLB season data from the free MLB Stats API and land it into Postgres raw tables:
 
 - `raw.mlb_teams`
 - `raw.mlb_games`
 
 Run inside the dev container (with `postgres` service up):
 
-- `uv run cityscape ingest mlb --season 2024`
+```bash
+uv run cityscape ingest mlb --season 2024
+```
 
 Then build dbt staging models:
 
-- `make dbt-run` (or `cd dbt && uv run dbt run -s tag:mlb`)
+```bash
+make dbt-run  # or: cd dbt && uv run dbt run -s tag:mlb
+```
+
+### Player Stats (BigQuery)
+
+Fetch player game-by-game statistics and land them into BigQuery:
+
+- `raw.mlb_player_batting_stats`
+- `raw.mlb_player_pitching_stats`
+
+**Quick start:**
+
+```bash
+# Ingest last 20 years (parallel, ~60 minutes)
+uv run python scripts/mlb/ingest_historical_player_stats.py
+
+# Specific year range
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2020 --end-year 2024
+
+# Single season
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
+
+# Show all options
+uv run python scripts/mlb/ingest_historical_player_stats.py --help
+```
+
+Then build dbt models:
+
+```bash
+cd dbt
+uv run dbt run --select tag:player_stats
+uv run dbt test --select tag:player_stats
+```
+
+See [MLB_PLAYER_STATS_PIPELINE.md](./MLB_PLAYER_STATS_PIPELINE.md) for detailed documentation.

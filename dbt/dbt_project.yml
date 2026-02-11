@@ -41,9 +41,20 @@ models:
         +schema: nfl_intermediate
       nhl:
         +schema: nhl_intermediate
+    marts:
+      +materialized: table
+      +tags: ["marts"]
+      mlb:
+        +schema: mlb
+      nba:
+        +schema: nba
+      nfl:
+        +schema: nfl
+      nhl:
+        +schema: nhl
     core:
       +materialized: table
-      +tags: ["core"]
+      +tags: ["core", "deprecated"]
       mlb:
         +schema: mlb_core
       nba:
