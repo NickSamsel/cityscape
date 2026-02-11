@@ -15,6 +15,8 @@ from .models import (
     MlbPlayer,
     MlbPlayerBattingStats,
     MlbPlayerPitchingStats,
+    MlbStatcastBattedBall,
+    MlbStatcastPitch,
     MlbTeam,
 )
 from .utils import extract_score, extract_team_id, parse_int_or_none, parse_str_or_none
@@ -397,3 +399,169 @@ class MlbStatsApi:
             active=p.get("active") if isinstance(p.get("active"), bool) else None,
             raw=p,
         )
+
+    def get_game_statcast_data(
+        self, *, game_id: int
+    ) -> tuple[list[MlbStatcastPitch], list[MlbStatcastBattedBall]]:
+        """Fetch Statcast pitch-level and batted ball data for a game.
+        
+        Args:
+            game_id: The MLB game ID (gamePk)
+            
+        Returns:
+            Tuple of (pitch_data, batted_ball_data) lists with Statcast metrics
+        """
+        # Get play-by-play data which includes Statcast metrics
+        try:
+            payload = self._get_json("game_playByPlay", {"gamePk": game_id})
+        except Exception:
+            # If playByPlay not available, return empty data
+            return [], []
+        
+        pitches: list[MlbStatcastPitch] = []
+        batted_balls: list[MlbStatcastBattedBall] = []
+        
+        all_plays = payload.get("allPlays", [])
+        
+        for at_bat_index, play in enumerate(all_plays):
+            if not isinstance(play, dict):
+                continue
+            
+            # Extract matchup info
+            matchup = play.get("matchup", {})
+            if not isinstance(matchup, dict):
+                continue
+            
+            batter = matchup.get("batter", {})
+            pitcher = matchup.get("pitcher", {})
+            
+            batter_id = batter.get("id") if isinstance(batter, dict) else None
+            pitcher_id = pitcher.get("id") if isinstance(pitcher, dict) else None
+            
+            if not batter_id or not pitcher_id:
+                continue
+            
+            # Process each pitch in the at-bat
+            play_events = play.get("playEvents", [])
+            
+            for pitch_num, event in enumerate(play_events, 1):
+                if not isinstance(event, dict):
+                    continue
+                
+                # Process pitch data if available
+                pitch_data = event.get("pitchData", {})
+                if isinstance(pitch_data, dict) and pitch_data:
+                    # Extract pitch metrics
+                    details = event.get("details", {})
+                    if not isinstance(details, dict):
+                        details = {}
+                    
+                    count = event.get("count", {})
+                    if not isinstance(count, dict):
+                        count = {}
+                    
+                    # Create unique play ID
+                    play_id = f"{game_id}_{at_bat_index}_{pitch_num}"
+                    
+                    # Extract Statcast pitch metrics
+                    coordinates = pitch_data.get("coordinates", {})
+                    if not isinstance(coordinates, dict):
+                        coordinates = {}
+                    
+                    breaks = pitch_data.get("breaks", {})
+                    if not isinstance(breaks, dict):
+                        breaks = {}
+                    
+                    # Get pitch type
+                    pitch_type_obj = details.get("type", {})
+                    if isinstance(pitch_type_obj, dict):
+                        pitch_type = pitch_type_obj.get("code")
+                        pitch_type_desc = pitch_type_obj.get("description")
+                    else:
+                        pitch_type = None
+                        pitch_type_desc = None
+                    
+                    # Create Statcast pitch record
+                    statcast_pitch = MlbStatcastPitch(
+                        play_id=play_id,
+                        game_id=game_id,
+                        at_bat_index=at_bat_index,
+                        pitcher_id=pitcher_id,
+                        batter_id=batter_id,
+                        catcher_id=matchup.get("catcher", {}).get("id") if isinstance(matchup.get("catcher"), dict) else None,
+                        umpire_id=None,  # Not always available in play-by-play
+                        pitch_number=pitch_num,
+                        pitch_type=pitch_type,
+                        pitch_type_description=pitch_type_desc,
+                        release_speed=self._safe_float(pitch_data.get("startSpeed")),
+                        release_spin_rate=self._safe_float(breaks.get("spinRate")),
+                        release_extension=self._safe_float(pitch_data.get("extension")),
+                        release_pos_x=self._safe_float(coordinates.get("x")),
+                        release_pos_y=self._safe_float(coordinates.get("y")),
+                        release_pos_z=self._safe_float(pitch_data.get("coordinates", {}).get("pZ")),
+                        zone=parse_int_or_none(pitch_data.get("zone")),
+                        plate_x=self._safe_float(coordinates.get("pX")),
+                        plate_z=self._safe_float(coordinates.get("pZ")),
+                        strikes=parse_int_or_none(count.get("strikes")),
+                        balls=parse_int_or_none(count.get("balls")),
+                        outs=parse_int_or_none(count.get("outs")),
+                        pitch_result=details.get("code"),
+                        pitch_result_description=details.get("description"),
+                        raw=event,
+                    )
+                    pitches.append(statcast_pitch)
+                
+                # Check for batted ball data (separate from pitch data check)
+                hit_data = event.get("hitData", {})
+                if isinstance(hit_data, dict) and hit_data:
+                    # Extract details for context
+                    details = event.get("details", {})
+                    if not isinstance(details, dict):
+                        details = {}
+                    
+                    # Create unique play ID for batted ball
+                    play_id = f"{game_id}_{at_bat_index}_{pitch_num}"
+                    
+                    # Extract batted ball metrics
+                    launch_speed = self._safe_float(hit_data.get("launchSpeed"))
+                    launch_angle = self._safe_float(hit_data.get("launchAngle"))
+                    
+                    # Determine if it's a barrel or hard hit
+                    is_barrel = False
+                    is_hard_hit = False
+                    
+                    if launch_speed and launch_angle:
+                        is_hard_hit = launch_speed >= 95.0
+                        # Barrel definition: 98+ mph exit velo, 26-30 degree launch angle
+                        if launch_speed >= 98.0 and 26.0 <= launch_angle <= 30.0:
+                            is_barrel = True
+                    
+                    batted_ball = MlbStatcastBattedBall(
+                        play_id=play_id,
+                        game_id=game_id,
+                        at_bat_index=at_bat_index,
+                        batter_id=batter_id,
+                        pitcher_id=pitcher_id,
+                        launch_speed=launch_speed,
+                        launch_angle=launch_angle,
+                        launch_distance=self._safe_float(hit_data.get("totalDistance")),
+                        hit_location=parse_int_or_none(hit_data.get("location")),
+                        hit_trajectory=hit_data.get("trajectory"),
+                        hit_result=details.get("event"),
+                        sprint_speed=None,  # Not available in play-by-play
+                        is_barrel=is_barrel if launch_speed and launch_angle else None,
+                        is_hard_hit=is_hard_hit if launch_speed else None,
+                        raw=hit_data,
+                    )
+                    batted_balls.append(batted_ball)
+        
+        return pitches, batted_balls
+    
+    def _safe_float(self, value: Any) -> float | None:
+        """Safely convert value to float, returning None if invalid."""
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None

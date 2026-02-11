@@ -339,3 +339,25 @@ models:
         description: "{{ doc('mlb_active') }}"
       - name: raw
         description: "{{doc('mlb_raw_player') }}"
+
+  - name: core_mlb__statcast_pitches
+    description: |
+      Core fact table for pitch-level Statcast data.
+      Single source of truth for every pitch thrown with velocity, spin, and location metrics.
+    columns:
+      - name: play_id
+        description: "Unique identifier for the pitch"
+        tests:
+          - unique
+          - not_null
+
+  - name: core_mlb__statcast_batted_balls
+    description: |
+      Core fact table for batted ball Statcast data.
+      Single source of truth for every batted ball with exit velocity, launch angle, and outcomes.
+    columns:
+      - name: play_id
+        description: "Unique identifier for the batted ball"
+        tests:
+          - unique
+          - not_null
