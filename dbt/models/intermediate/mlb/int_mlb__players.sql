@@ -1,9 +1,13 @@
-{{ config(
-    tags=["int", "mlb"],
-    materialized='table'
-) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key='player_id',
+    on_schema_change='sync_all_columns',
+    tags=["int", "mlb"]
+  )
+-}}
 
--- Intermediate model for MLB leagues
+-- Intermediate model for MLB players
 -- No additional enrichment needed at intermediate layer for reference data
 
 select
@@ -30,3 +34,7 @@ select
     active,
     raw
 from {{ ref('stg_mlb__players') }}
+
+{% if is_incremental() %}
+  where player_id not in (select player_id from {{ this }})
+{% endif %}

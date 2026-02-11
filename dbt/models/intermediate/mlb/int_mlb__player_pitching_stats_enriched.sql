@@ -1,7 +1,11 @@
-{{ config(
-    tags=["int", "mlb", "player_stats"],
-    materialized='table'
-) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key=['game_id', 'player_id', 'team_id'],
+    on_schema_change='sync_all_columns',
+    tags=["int", "mlb", "player_stats"]
+  )
+-}}
 
 with pitching_stats as (
     select * from {{ ref('stg_mlb__player_pitching_stats') }}
@@ -23,14 +27,18 @@ divisions as (
     select * from {{ ref('stg_mlb__divisions') }}
 ),
 
+players as (
+    select * from {{ ref('stg_mlb__players') }}
+),
+
 final as (
     select
         ps.game_id,
         ps.player_id,
         ps.player_name,
         -- player specific age and career lenght stats
-        date_diff('year', p.birth_date, ps.game_date) as age,
-        date_diff('year', p.mlb_debut_date, ps.game_date) as career_length,
+        date_diff(g.game_date, p.birth_date, YEAR) as age,
+        date_diff(g.game_date, p.mlb_debut_date, YEAR) as career_length,
         ps.team_id,
         t.team_name,
         t.team_abbr,
@@ -239,6 +247,15 @@ final as (
     left join players as p
         on ps.player_id = p.player_id
     where ps.innings_pitched is not null
+    
+    {% if is_incremental() %}
+    and not exists (
+        select 1 from {{ this }} as existing
+        where existing.game_id = ps.game_id
+          and existing.player_id = ps.player_id
+          and existing.team_id = ps.team_id
+    )
+    {% endif %}
 )
 
 select * from final

@@ -1,7 +1,11 @@
-{{ config(
-    tags=["mart", "mlb", "fact"],
-    materialized='table'
-) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key='game_id',
+    on_schema_change='sync_all_columns',
+    tags=["mart", "mlb", "fact"]
+  )
+-}}
 
 -- Mart fact table for MLB games
 -- Analytics-ready view built from core model

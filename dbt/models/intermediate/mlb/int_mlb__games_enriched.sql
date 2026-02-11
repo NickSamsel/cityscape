@@ -1,7 +1,11 @@
-{{ config(
-    tags=["int", "mlb"],
-    materialized='table'
-) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key='game_id',
+    on_schema_change='sync_all_columns',
+    tags=["int", "mlb"]
+  )
+-}}
 
 with games as (
     select * from {{ ref('stg_mlb__games') }}
@@ -92,6 +96,10 @@ final as (
         on home_t.division_id = home_div.division_id
     left join divisions as away_div
         on away_t.division_id = away_div.division_id
+    
+    {% if is_incremental() %}
+    where g.game_id not in (select game_id from {{ this }})
+    {% endif %}
 )
 
 select * from final

@@ -1,7 +1,11 @@
-{{ config(
-  tags=["core", "mlb", "player_stats"],
-  materialized='table'
-) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key=['game_id', 'player_id', 'team_id'],
+    on_schema_change='sync_all_columns',
+    tags=["core", "mlb", "player_stats"]
+  )
+-}}
 
 -- Core fact table for MLB player pitching statistics
 -- Single source of truth for pitcher game-level performance
