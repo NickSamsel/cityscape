@@ -288,6 +288,28 @@ models:
         description: "{{ doc('mlb_league_name') }}"
       - name: league_abbr
         description: "{{ doc('mlb_league_abbr') }}"
+
+  - name: int_mlb__teams
+    description: |
+      MLB teams at intermediate layer.
+      No additional enrichment needed for reference data.
+    columns:
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: team_name
+        description: "{{ doc('mlb_team_name') }}"
+      - name: team_abbr
+        description: "{{ doc('mlb_team_abbr') }}"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
     
   - name: int_mlb__players
     description: |

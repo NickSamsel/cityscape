@@ -3,11 +3,8 @@
     materialized='table'
 ) }}
 
--- Dimension table for MLB divisions
+-- Mart dimension table for MLB divisions
+-- Analytics-ready view built from core model
 
-select
-    division_id,
-    division_name,
-    division_abbr,
-    league_id
-from {{ ref('stg_mlb__divisions') }}
+select *
+from {{ ref('core_mlb__divisions') }}
