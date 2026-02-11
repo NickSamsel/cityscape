@@ -67,7 +67,106 @@ final as (
         
         bs.at_bats + coalesce(bs.walks, 0) as plate_appearances,
         
-        -- Batting average (from API)
+        -- Extra base hits
+        coalesce(bs.doubles, 0) + coalesce(bs.triples, 0) + coalesce(bs.home_runs, 0) as extra_base_hits,
+        
+        -- Advanced rate stats
+        case
+            when bs.at_bats > 0 then round(safe_cast(bs.hits as float64) / bs.at_bats, 3)
+            else null
+        end as batting_avg_game,
+        
+        case
+            when bs.at_bats > 0 then 
+                round(safe_divide(
+                    cast((bs.hits - coalesce(bs.doubles, 0) - coalesce(bs.triples, 0) - coalesce(bs.home_runs, 0))
+                        + (coalesce(bs.doubles, 0) * 2)
+                        + (coalesce(bs.triples, 0) * 3)
+                        + (coalesce(bs.home_runs, 0) * 4) as float64),
+                    cast(bs.at_bats as float64)
+                ), 3)
+            else null
+        end as slugging_pct_game,
+        
+        -- ISO (Isolated Power) = SLG - AVG
+        case
+            when bs.at_bats > 0 then
+                round(
+                    safe_divide(
+                        cast((bs.hits - coalesce(bs.doubles, 0) - coalesce(bs.triples, 0) - coalesce(bs.home_runs, 0))
+                            + (coalesce(bs.doubles, 0) * 2)
+                            + (coalesce(bs.triples, 0) * 3)
+                            + (coalesce(bs.home_runs, 0) * 4) as float64),
+                        cast(bs.at_bats as float64)
+                    ) - safe_divide(cast(bs.hits as float64), cast(bs.at_bats as float64)),
+                3)
+            else null
+        end as iso,
+        
+        -- BABIP (Batting Average on Balls In Play)
+        case
+            when (bs.at_bats - coalesce(bs.strikeouts, 0) - coalesce(bs.home_runs, 0)) > 0 then
+                round(
+                    safe_divide(
+                        cast(bs.hits - coalesce(bs.home_runs, 0) as float64),
+                        cast(bs.at_bats - coalesce(bs.strikeouts, 0) - coalesce(bs.home_runs, 0) as float64)
+                    ),
+                3)
+            else null
+        end as babip,
+        
+        -- Walk rate (BB%)
+        case
+            when (bs.at_bats + coalesce(bs.walks, 0)) > 0 then
+                round(
+                    safe_divide(
+                        cast(coalesce(bs.walks, 0) as float64),
+                        cast(bs.at_bats + coalesce(bs.walks, 0) as float64)
+                    ) * 100,
+                1)
+            else null
+        end as walk_rate,
+        
+        -- Strikeout rate (K%)
+        case
+            when (bs.at_bats + coalesce(bs.walks, 0)) > 0 then
+                round(
+                    safe_divide(
+                        cast(coalesce(bs.strikeouts, 0) as float64),
+                        cast(bs.at_bats + coalesce(bs.walks, 0) as float64)
+                    ) * 100,
+                1)
+            else null
+        end as strikeout_rate,
+        
+        -- BB/K ratio
+        case
+            when coalesce(bs.strikeouts, 0) > 0 then
+                round(
+                    safe_divide(
+                        cast(coalesce(bs.walks, 0) as float64),
+                        cast(bs.strikeouts as float64)
+                    ),
+                2)
+            else null
+        end as bb_k_ratio,
+        
+        -- Power factor (total bases per hit)
+        case
+            when bs.hits > 0 then
+                round(
+                    safe_divide(
+                        cast((bs.hits - coalesce(bs.doubles, 0) - coalesce(bs.triples, 0) - coalesce(bs.home_runs, 0))
+                            + (coalesce(bs.doubles, 0) * 2)
+                            + (coalesce(bs.triples, 0) * 3)
+                            + (coalesce(bs.home_runs, 0) * 4) as float64),
+                        cast(bs.hits as float64)
+                    ),
+                2)
+            else null
+        end as power_factor,
+        
+        -- Season stats from API
         bs.avg,
         bs.obp,
         bs.slg,

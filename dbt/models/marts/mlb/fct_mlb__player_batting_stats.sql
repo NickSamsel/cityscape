@@ -43,8 +43,19 @@ select
     -- Calculated stats
     total_bases,
     plate_appearances,
+    extra_base_hits,
     
-    -- Rate stats
+    -- Advanced metrics
+    batting_avg_game,
+    slugging_pct_game,
+    iso,
+    babip,
+    walk_rate,
+    strikeout_rate,
+    bb_k_ratio,
+    power_factor,
+    
+    -- Season rate stats from API
     avg,
     obp,
     slg,

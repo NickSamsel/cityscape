@@ -151,8 +151,26 @@ models:
         description: "Calculated total bases (1B + 2*2B + 3*3B + 4*HR)"
       - name: plate_appearances
         description: "Calculated plate appearances (AB + BB)"
+      - name: extra_base_hits
+        description: "Extra base hits (2B + 3B + HR)"
+      - name: batting_avg_game
+        description: "Batting average for this game (H/AB)"
+      - name: slugging_pct_game
+        description: "Slugging percentage for this game (TB/AB)"
+      - name: iso
+        description: "Isolated Power (SLG - AVG) - measures raw power"
+      - name: babip
+        description: "Batting Average on Balls In Play ((H-HR)/(AB-K-HR))"
+      - name: walk_rate
+        description: "Walk rate percentage (BB/PA * 100)"
+      - name: strikeout_rate
+        description: "Strikeout rate percentage (K/PA * 100)"
+      - name: bb_k_ratio
+        description: "Walk to strikeout ratio (BB/K) - plate discipline indicator"
+      - name: power_factor
+        description: "Total bases per hit (TB/H) - measures power per hit"
       - name: avg
-        description: "Season batting average as of this game"
+        description: "Season batting average as of this game (from API)"
       - name: obp
         description: "Season on-base percentage as of this game"
       - name: slg
@@ -231,6 +249,20 @@ models:
         description: "Calculated walks per 9 innings"
       - name: era
         description: "Season earned run average as of this game"
+      - name: k_bb_ratio
+        description: "Strikeout-to-walk ratio (strikeouts / walks). Higher values indicate better control. Elite pitchers typically have K/BB > 4.0"
+      - name: hr_per_nine
+        description: "Home runs allowed per 9 innings ((home_runs / innings_pitched_decimal) * 9). Lower is better; elite pitchers maintain HR/9 < 1.0"
+      - name: h_per_nine
+        description: "Hits allowed per 9 innings ((hits / innings_pitched_decimal) * 9). Lower is better; excellent pitchers keep H/9 < 7.0"
+      - name: fip
+        description: "Fielding Independent Pitching: ((13*HR + 3*BB - 2*K) / IP) + 3.2. Measures pitcher performance independent of defense. FIP < 3.00 is excellent, 3.00-3.75 is above average"
+      - name: pitches_per_inning
+        description: "Average pitches thrown per inning (pitches / innings_pitched_decimal). Efficient pitchers maintain < 15 pitches/inning"
+      - name: k_percentage
+        description: "Strikeout percentage (strikeouts / total batters faced * 100). Elite strikeout pitchers achieve K% > 27%"
+      - name: is_quality_start
+        description: "Boolean flag indicating a quality start (IP >= 6.0 AND ER <= 3). Quality starts indicate consistent, effective outings"
 
   - name: int_mlb__leagues
     description: |

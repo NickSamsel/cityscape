@@ -194,6 +194,24 @@ models:
         description: Slugging percentage
       - name: ops
         description: On-base plus slugging
+      - name: extra_base_hits
+        description: "Total extra base hits in game (2B + 3B + HR). Measures power hitting and ability to hit for distance"
+      - name: batting_avg_game
+        description: "Single-game batting average (hits / at_bats). Snapshot of performance in this specific game"
+      - name: slugging_pct_game
+        description: "Single-game slugging percentage (total_bases / at_bats). Measures power output for the game"
+      - name: iso
+        description: "Isolated Power (slugging_pct - batting_avg). Measures raw power independent of batting average. ISO > .200 indicates strong power"
+      - name: babip
+        description: "Batting Average on Balls In Play ((H - HR) / (AB - K - HR)). Measures luck and quality of contact. League average ~.300"
+      - name: walk_rate
+        description: "Walk percentage (walks / plate_appearances * 100). Elite hitters maintain BB% > 12%"
+      - name: strikeout_rate
+        description: "Strikeout percentage (strikeouts / plate_appearances * 100). Elite contact hitters keep K% < 15%"
+      - name: bb_k_ratio
+        description: "Walk-to-strikeout ratio (walks / strikeouts). Measures plate discipline. Excellent hitters achieve BB/K > 1.0"
+      - name: power_factor
+        description: "Average bases per hit (total_bases / hits). Perfect contact (all singles) = 1.0, all homers = 4.0. Higher values indicate more power per hit"
 
   - name: fct_mlb__player_pitching_stats
     description: |
@@ -254,3 +272,17 @@ models:
         description: Walks per 9 innings
       - name: era
         description: Earned run average
+      - name: k_bb_ratio
+        description: "Strikeout-to-walk ratio (K/BB). Measures command and control. Elite pitchers maintain K/BB > 4.0, with excellent pitchers above 3.0"
+      - name: hr_per_nine
+        description: "Home runs allowed per 9 innings. Measures ability to limit power. Elite pitchers keep HR/9 below 1.0"
+      - name: h_per_nine
+        description: "Hits allowed per 9 innings. Lower is better; dominant pitchers maintain H/9 < 7.0"
+      - name: fip
+        description: "Fielding Independent Pitching ((13*HR + 3*BB - 2*K) / IP + 3.2). Estimates pitcher ERA if they faced league-average defense and luck. FIP < 3.00 = excellent, 3.00-3.75 = above average, 3.75-4.00 = average"
+      - name: pitches_per_inning
+        description: "Average pitches thrown per inning pitched. Efficient pitchers stay below 15 pitches/inning; high counts may indicate control issues or batters working deep counts"
+      - name: k_percentage
+        description: "Strikeout percentage (K / total batters faced * 100). Elite strikeout pitchers achieve K% > 27%, very good is 23-27%"
+      - name: is_quality_start
+        description: "Boolean indicator of quality start (IP >= 6.0 AND ER <= 3). Quality starts represent consistent, effective outings that give the team a chance to win"

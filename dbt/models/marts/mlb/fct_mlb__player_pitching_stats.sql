@@ -41,6 +41,15 @@ select
     whip,
     k_per_nine,
     bb_per_nine,
+    k_bb_ratio,
+    hr_per_nine,
+    h_per_nine,
+    fip,
+    pitches_per_inning,
+    k_percentage,
+    is_quality_start,
+    
+    -- Season ERA from API
     era
     
 from {{ ref('int_mlb__player_pitching_stats_enriched') }}
