@@ -28,15 +28,18 @@ final as (
         ps.game_id,
         ps.player_id,
         ps.player_name,
+        -- player specific age and career lenght stats
+        date_diff('year', p.birth_date, ps.game_date) as age,
+        date_diff('year', p.mlb_debut_date, ps.game_date) as career_length,
         ps.team_id,
         t.team_name,
         t.team_abbr,
         t.league_id,
         lg.league_name,
-        lg.league_abbr as league_abbr_name,
+        lg.league_abbr,
         t.division_id,
         div.division_name,
-        div.division_abbr as division_abbr_name,
+        div.division_abbr,
         g.game_date,
         g.season,
         g.game_type,
@@ -233,6 +236,8 @@ final as (
         on t.league_id = lg.league_id
     left join divisions as div
         on t.division_id = div.division_id
+    left join players as p
+        on ps.player_id = p.player_id
     where ps.innings_pitched is not null
 )
 

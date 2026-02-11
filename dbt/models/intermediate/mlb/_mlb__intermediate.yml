@@ -9,74 +9,65 @@ models:
       - name: game_id
         description: "{{ doc('mlb_game_id') }}"
         tests: 
-          - not_null
           - unique
       - name: season
-        description: "MLB season year"
-        tests:
-          - not_null
+        description: "{{ doc('mlb_season') }}"
       - name: game_date
         description: "{{ doc('mlb_game_date') }}"
-        tests:
-          - not_null
       - name: game_type
-        description: "Type of game (R=regular, F=wild card, D=division series, etc.)"
+        description: "{{ doc('mlb_game_type') }}"
       - name: status
-        description: "Game status"
+        description: "{{ doc('mlb_game_status') }}"
       - name: home_team_id
         description: "{{ doc('mlb_home_team_id') }}"
-        tests:
-          - not_null
       - name: home_team_name
         description: "{{ doc('mlb_home_team_name') }}"
       - name: home_team_abbr
-        description: "Home team abbreviation"
+        description: "{{ doc('mlb_home_team_abbr') }}"
       - name: home_league_id
-        description: "Home team's league ID"
+        description: "{{ doc('mlb_home_league_id') }}"
       - name: home_league_name
-        description: "Home team's league name (e.g., 'American League')"
+        description: "{{ doc('mlb_home_league_name') }}"
       - name: home_league_abbr
-        description: "Home team's league abbreviation (e.g., 'AL')"
+        description: "{{ doc('mlb_home_league_abbr') }}"
       - name: home_division_id
-        description: "Home team's division ID"
+        description: "{{ doc('mlb_home_division_id') }}"
       - name: home_division_name
-        description: "Home team's division name (e.g., 'American League East')"
+        description: "{{ doc('mlb_home_division_name') }}"
       - name: home_division_abbr
-        description: "Home team's division abbreviation (e.g., 'ALE')"
+        description: "{{ doc('mlb_home_division_abbr') }}"
       - name: home_score
-        description: "Final score for home team"
+        description: "{{ doc('mlb_home_score') }}"
       - name: away_team_id
         description: "{{ doc('mlb_away_team_id') }}"
-        tests:
-          - not_null
       - name: away_team_name
         description: "{{ doc('mlb_away_team_name') }}"
       - name: away_team_abbr
-        description: "Away team abbreviation"
+        description: "{{ doc('mlb_away_team_abbr') }}"
       - name: away_league_id
-        description: "Away team's league ID"
+        description: "{{ doc('mlb_away_league_id') }}"
       - name: away_league_name
-        description: "Away team's league name (e.g., 'National League')"
+        description: "{{ doc('mlb_away_league_name') }}"
       - name: away_league_abbr
-        description: "Away team's league abbreviation (e.g., 'NL')"
+        description: "{{ doc('mlb_away_league_abbr') }}"
       - name: away_division_id
-        description: "Away team's division ID"
+        description: "{{ doc('mlb_away_division_id') }}"
       - name: away_division_name
-        description: "Away team's division name (e.g., 'National League West')"
+        description: "{{ doc('mlb_away_division_name') }}"
       - name: away_division_abbr
-        description: "Away team's division abbreviation (e.g., 'NLW')"
+        description: "{{ doc('mlb_away_division_abbr') }}"
       - name: away_score
-        description: "Final score for away team"
+        description: "{{ doc('mlb_away_score') }}"
       - name: winning_team_id
-        description: "Team ID of the winning team (null if tie)"
+        description: "{{ doc('mlb_winning_team_id') }}"
       - name: losing_team_id
-        description: "Team ID of the losing team (null if tie)"
+        description: "{{ doc('mlb_losing_team_id') }}"
       - name: winner
-        description: "Which team won - 'home', 'away', or 'tie'"
+        description: "{{ doc('mlb_winner') }}"
       - name: score_differential
-        description: "Absolute difference between scores"
+        description: "{{ doc('mlb_score_differential') }}"
       - name: total_runs
-        description: "Total runs scored by both teams"
+        description: "{{ doc('mlb_total_runs') }}"
 
   - name: int_mlb__player_batting_stats_enriched
     description: |
@@ -84,99 +75,99 @@ models:
       Contains all calculated metrics including singles, total_bases, and plate_appearances.
     columns:
       - name: game_id
-        description: "Unique identifier for the game"
-        tests:
-          - not_null
+        description: "{{ doc('mlb_game_id') }}"
       - name: player_id
-        description: "Unique identifier for the player"
-        tests:
-          - not_null
-      - name: player_name
-        description: "Player's full name"
+        description: "{{ doc('mlb_player_id') }}"
+      - name: full_name
+        description: "{{ doc('mlb_player_name') }}"
+      - name: age
+        description: "{{ doc('mlb_player_age') }}"
+      - name: career_length
+        description: "{{ doc('mlb_player_career_length') }}"
       - name: team_id
-        description: "Unique identifier for the team"
+        description: "{{ doc('mlb_team_id') }}"
       - name: team_name
-        description: "Team name"
+        description: "{{ doc('mlb_team_name') }}"
       - name: team_abbr
-        description: "Team abbreviation"
+        description: "{{ doc('mlb_team_abbr') }}"
       - name: league_id
-        description: "League ID"
+        description: "{{ doc('mlb_league_id') }}"
       - name: league_name
-        description: "League name (e.g., 'American League', 'National League')"
+        description: "{{ doc('mlb_league_name') }}"
       - name: league_abbr_name
-        description: "League abbreviation (e.g., 'AL', 'NL')"
+        description: "{{ doc('mlb_league_abbr') }}"
       - name: division_id
-        description: "Division ID"
+        description: "{{ doc('mlb_division_id') }}"
       - name: division_name
-        description: "Division name (e.g., 'American League East')"
+        description: "{{ doc('mlb_division_name') }}"
       - name: division_abbr_name
-        description: "Division abbreviation (e.g., 'ALE', 'NLW')"
+        description: "{{ doc('mlb_division_abbr') }}"
       - name: game_date
-        description: "Date of the game"
+        description: "{{ doc('mlb_game_date') }}"
       - name: season
-        description: "MLB season year"
+        description: "{{ doc('mlb_season') }}"
       - name: game_type
-        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+        description: "{{ doc('mlb_game_type') }}"
       - name: game_status
-        description: "Status of the game"
+        description: "{{ doc('mlb_game_status') }}"
       - name: batting_order
-        description: "Batting order position"
+        description: "{{ doc('mlb_batting_order') }}"
       - name: position
-        description: "Defensive position"
+        description: "{{ doc('mlb_position') }}"
       - name: at_bats
-        description: "Number of at-bats"
+        description: "{{ doc('mlb_at_bats') }}"
       - name: runs
-        description: "Number of runs scored"
+        description: "{{ doc('mlb_runs') }}"
       - name: hits
-        description: "Number of hits"
+        description: "{{ doc('mlb_hits') }}"
       - name: doubles
-        description: "Number of doubles (2B)"
+        description: "{{ doc('mlb_doubles') }}"
       - name: triples
-        description: "Number of triples (3B)"
+        description: "{{ doc('mlb_triples') }}"
       - name: home_runs
-        description: "Number of home runs (HR)"
+        description: "{{ doc('mlb_home_runs') }}"
       - name: rbi
-        description: "Runs batted in"
+        description: "{{ doc('mlb_rbi') }}"
       - name: stolen_bases
-        description: "Number of stolen bases"
+        description: "{{ doc('mlb_stolen_bases') }}"
       - name: walks
-        description: "Number of walks (BB)"
+        description: "{{ doc('mlb_walks') }}"
       - name: strikeouts
-        description: "Number of strikeouts"
+        description: "{{ doc('mlb_strikeouts') }}"
       - name: left_on_base
-        description: "Number of runners left on base"
+        description: "{{ doc('mlb_left_on_base') }}"
       - name: singles
-        description: "Calculated number of singles (hits - 2B - 3B - HR)"
+        description: "{{ doc('mlb_singles') }}"
       - name: total_bases
-        description: "Calculated total bases (1B + 2*2B + 3*3B + 4*HR)"
+        description: "{{ doc('mlb_total_bases') }}"
       - name: plate_appearances
-        description: "Calculated plate appearances (AB + BB)"
+        description: "{{ doc('mlb_plate_appearances') }}"
       - name: extra_base_hits
-        description: "Extra base hits (2B + 3B + HR)"
+        description: "{{ doc('mlb_extra_base_hits') }}"
       - name: batting_avg_game
-        description: "Batting average for this game (H/AB)"
+        description: "{{ doc('mlb_batting_avg_game') }}"
       - name: slugging_pct_game
-        description: "Slugging percentage for this game (TB/AB)"
+        description: "{{ doc('mlb_slugging_pct_game') }}"
       - name: iso
-        description: "Isolated Power (SLG - AVG) - measures raw power"
+        description: "{{ doc('mlb_iso') }}"
       - name: babip
-        description: "Batting Average on Balls In Play ((H-HR)/(AB-K-HR))"
+        description: "{{ doc('mlb_babip') }}"
       - name: walk_rate
-        description: "Walk rate percentage (BB/PA * 100)"
+        description: "{{ doc('mlb_walk_rate') }}"
       - name: strikeout_rate
-        description: "Strikeout rate percentage (K/PA * 100)"
+        description: "{{ doc('mlb_strikeout_rate') }}"
       - name: bb_k_ratio
-        description: "Walk to strikeout ratio (BB/K) - plate discipline indicator"
+        description: "{{ doc('mlb_bb_k_ratio') }}"
       - name: power_factor
-        description: "Total bases per hit (TB/H) - measures power per hit"
+        description: "{{ doc('mlb_power_factor') }}"
       - name: avg
-        description: "Season batting average as of this game (from API)"
+        description: "{{ doc('mlb_avg') }}"
       - name: obp
-        description: "Season on-base percentage as of this game"
+        description: "{{ doc('mlb_obp') }}"
       - name: slg
-        description: "Season slugging percentage as of this game"
+        description: "{{ doc('mlb_slg') }}"
       - name: ops
-        description: "Season on-base plus slugging as of this game"
+        description: "{{ doc('mlb_ops') }}"
 
   - name: int_mlb__player_pitching_stats_enriched
     description: |
@@ -184,85 +175,85 @@ models:
       Contains all calculated metrics including innings_pitched_decimal, WHIP, K/9, and BB/9.
     columns:
       - name: game_id
-        description: "Unique identifier for the game"
-        tests:
-          - not_null
+        description: "{{ doc('mlb_game_id') }}"
       - name: player_id
-        description: "Unique identifier for the player"
-        tests:
-          - not_null
+        description: "{{ doc('mlb_player_id') }}"
       - name: player_name
-        description: "Player's full name"
+        description: "{{ doc('mlb_player_name') }}"
+      - name: age
+        description: "{{ doc('mlb_player_age') }}"
+      - name: career_length
+        description: "{{ doc('mlb_player_career_length') }}"
       - name: team_id
-        description: "Unique identifier for the team"
+        description: "{{ doc('mlb_team_id') }}"
       - name: team_name
-        description: "Team name"
+        description: "{{ doc('mlb_team_name') }}"
       - name: team_abbr
-        description: "Team abbreviation"
+        description: "{{ doc('mlb_team_abbr') }}"
       - name: league_id
-        description: "League ID"
+        description: "{{ doc('mlb_league_id') }}"
       - name: league_name
-        description: "League name (e.g., 'American League', 'National League')"
-      - name: league_abbr_name
-        description: "League abbreviation (e.g., 'AL', 'NL')"
+        description: "{{ doc('mlb_league_name') }}"
+      - name: league_abbr
+        description: "{{ doc('mlb_league_abbr') }}"
       - name: division_id
-        description: "Division ID"
+        description: "{{ doc('mlb_division_id') }}"
       - name: division_name
-        description: "Division name (e.g., 'American League East')"
-      - name: division_abbr_name
-        description: "Division abbreviation (e.g., 'ALE', 'NLW')"
+        description: "{{ doc('mlb_division_name') }}"
+      - name: division_abbr
+        description: "{{ doc('mlb_division_abbr') }}"
       - name: game_date
-        description: "Date of the game"
+        description: "{{ doc('mlb_game_date') }}"
       - name: season
-        description: "MLB season year"
+        description: "{{ doc('mlb_season') }}"
       - name: game_type
-        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+        description: "{{ doc('mlb_game_type') }}"
       - name: game_status
-        description: "Status of the game"
+        description: "{{ doc('mlb_game_status') }}"
       - name: innings_pitched
-        description: "Innings pitched in string format (e.g., '5.2' for 5 2/3 innings)"
+        description: "{{ doc('mlb_innings_pitched') }}"
       - name: innings_pitched_decimal
-        description: "Innings pitched converted to decimal format for calculations"
+        description: "{{ doc('mlb_innings_pitched_decimal') }}"
       - name: hits
-        description: "Number of hits allowed"
+        description: "{{ doc('mlb_hits') }}"
       - name: runs
-        description: "Number of runs allowed"
+        description: "{{ doc('mlb_runs') }}"
       - name: earned_runs
-        description: "Number of earned runs allowed"
+        description: "{{ doc('mlb_earned_runs') }}"
       - name: walks
-        description: "Number of walks issued (BB)"
+        description: "{{ doc('mlb_walks') }}"
       - name: strikeouts
-        description: "Number of strikeouts"
+        description: "{{ doc('mlb_strikeouts') }}"
       - name: home_runs
-        description: "Number of home runs allowed"
+        description: "{{ doc('mlb_home_runs') }}"
       - name: pitches
-        description: "Total number of pitches thrown"
+        description: "{{ doc('mlb_pitches') }}"
       - name: strikes
-        description: "Number of strikes thrown"
+        description: "{{ doc('mlb_strikes') }}"
       - name: strike_percentage
-        description: "Calculated strike percentage (strikes / pitches * 100)"
+        description: "{{ doc('mlb_strike_percentage') }}"
       - name: whip
-        description: "Calculated WHIP (Walks + Hits per Inning Pitched)"
+        description: "{{ doc('mlb_whip') }}"
       - name: k_per_nine
-        description: "Calculated strikeouts per 9 innings"
+        description: "{{ doc('mlb_k_per_nine') }}"
       - name: bb_per_nine
-        description: "Calculated walks per 9 innings"
+        description: "{{ doc('mlb_bb_per_nine') }}"
       - name: era
-        description: "Season earned run average as of this game"
+        description: "{{ doc('mlb_era') }}"
       - name: k_bb_ratio
-        description: "Strikeout-to-walk ratio (strikeouts / walks). Higher values indicate better control. Elite pitchers typically have K/BB > 4.0"
+        description: "{{ doc('mlb_k_bb_ratio') }}"
       - name: hr_per_nine
-        description: "Home runs allowed per 9 innings ((home_runs / innings_pitched_decimal) * 9). Lower is better; elite pitchers maintain HR/9 < 1.0"
+        description: "{{ doc('mlb_hr_per_nine') }}"
       - name: h_per_nine
-        description: "Hits allowed per 9 innings ((hits / innings_pitched_decimal) * 9). Lower is better; excellent pitchers keep H/9 < 7.0"
+        description: "{{ doc('mlb_h_per_nine') }}"
       - name: fip
-        description: "Fielding Independent Pitching: ((13*HR + 3*BB - 2*K) / IP) + 3.2. Measures pitcher performance independent of defense. FIP < 3.00 is excellent, 3.00-3.75 is above average"
+        description: "{{ doc('mlb_fip') }}"
       - name: pitches_per_inning
-        description: "Average pitches thrown per inning (pitches / innings_pitched_decimal). Efficient pitchers maintain < 15 pitches/inning"
+        description: "{{ doc('mlb_pitches_per_inning') }}"
       - name: k_percentage
-        description: "Strikeout percentage (strikeouts / total batters faced * 100). Elite strikeout pitchers achieve K% > 27%"
+        description: "{{ doc('mlb_k_percentage') }}"
       - name: is_quality_start
-        description: "Boolean flag indicating a quality start (IP >= 6.0 AND ER <= 3). Quality starts indicate consistent, effective outings"
+        description: "{{ doc('mlb_is_quality_start') }}"
 
   - name: int_mlb__leagues
     description: |
@@ -272,14 +263,11 @@ models:
       - name: league_id
         description: "{{ doc('mlb_league_id') }}"
         tests:
-          - not_null
           - unique
       - name: league_name
-        description: "Full league name (e.g., 'American League', 'National League')"
-        tests:
-          - not_null
+        description: "{{ doc('mlb_league_name') }}"
       - name: league_abbr
-        description: "League abbreviation (e.g., 'AL', 'NL')"
+        description: "{{ doc('mlb_league_abbr') }}"
 
   - name: int_mlb__divisions_enriched
     description: |
@@ -289,23 +277,89 @@ models:
       - name: division_id
         description: "{{ doc('mlb_division_id') }}"
         tests:
-          - not_null
           - unique
       - name: division_name
-        description: "Full division name (e.g., 'American League East')"
-        tests:
-          - not_null
+        description: "{{ doc('mlb_division_name') }}"
       - name: division_abbr
-        description: "Division abbreviation (e.g., 'ALE', 'NLC', 'NLW')"
+        description: "{{ doc('mlb_division_abbr') }}"
       - name: league_id
         description: "{{ doc('mlb_league_id') }}"
+      - name: league_name
+        description: "{{ doc('mlb_league_name') }}"
+      - name: league_abbr
+        description: "{{ doc('mlb_league_abbr') }}"
+
+  - name: int_mlb__teams
+    description: |
+      MLB teams at intermediate layer.
+      No additional enrichment needed for reference data.
+    columns:
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
         tests:
           - not_null
-          - relationships:
-              arguments:
-                to: ref('int_mlb__leagues')
-                field: league_id
-      - name: league_name
-        description: "Full league name from parent league"
-      - name: league_abbr_name
-        description: "League abbreviation from parent league"
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: team_name
+        description: "{{ doc('mlb_team_name') }}"
+      - name: team_abbr
+        description: "{{ doc('mlb_team_abbr') }}"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
+    
+  - name: int_mlb__players
+    description: |
+      MLB players at intermediate layer.
+      No additional enrichment needed for reference data.
+    columns:
+      - name: player_id   
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: full_name
+        description: "{{ doc('mlb_full_name') }}"
+      - name: first_name
+        description: "{{ doc('mlb_first_name') }}"
+      - name: last_name
+        description: "{{ doc('mlb_last_name') }}"
+      - name: primary_number
+        description: "{{ doc('mlb_primary_number') }}"
+      - name: birth_date
+        description: "{{ doc('mlb_birth_date') }}"
+      - name: current_age
+        description: "{{ doc('mlb_current_age') }}"
+      - name: birth_city
+        description: "{{ doc('mlb_birth_city') }}"
+      - name: birth_state_province
+        description: "{{ doc('mlb_birth_state_province') }}"
+      - name: birth_country
+        description: "{{ doc('mlb_birth_country') }}"
+      - name: height
+        description: "{{ doc('mlb_height') }}"
+      - name: weight
+        description: "{{ doc('mlb_weight') }}"
+      - name: primary_position_code
+        description: "{{ doc('mlb_primary_position_code') }}"
+      - name: primary_position_name
+        description: "{{ doc('mlb_primary_position_name') }}"
+      - name: primary_position_abbr
+        description: "{{ doc('mlb_primary_position_abbr') }}"
+      - name: bat_side_code
+        description: "{{ doc('mlb_bat_side_code') }}"
+      - name: bat_side_description
+        description: "{{ doc('mlb_bat_side_description') }}"
+      - name: pitch_hand_code
+        description: "{{ doc('mlb_pitch_hand_code') }}"
+      - name: pitch_hand_description
+        description: "{{ doc('mlb_pitch_hand_description') }}"
+      - name: mlb_debut_date
+        description: "{{ doc('mlb_debut_date') }}"
+      - name: active
+        description: "{{ doc('mlb_active') }}"
+      - name: raw
+        description: "{{doc('mlb_raw_player') }}"

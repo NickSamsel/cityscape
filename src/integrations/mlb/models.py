@@ -97,3 +97,30 @@ class MlbPlayerPitchingStats:
     strikes: int | None
     era: str | None
     raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbPlayer:
+    """MLB player dimension information."""
+    player_id: int
+    full_name: str
+    first_name: str | None
+    last_name: str | None
+    primary_number: str | None
+    birth_date: date | None
+    current_age: int | None
+    birth_city: str | None
+    birth_state_province: str | None
+    birth_country: str | None
+    height: str | None
+    weight: int | None
+    primary_position_code: str | None
+    primary_position_name: str | None
+    primary_position_abbr: str | None
+    bat_side_code: str | None
+    bat_side_description: str | None
+    pitch_hand_code: str | None
+    pitch_hand_description: str | None
+    mlb_debut_date: date | None
+    active: bool | None
+    raw: dict[str, Any]

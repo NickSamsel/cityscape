@@ -1,16 +1,11 @@
 {{ config(
   tags=["core", "mlb"],
-  materialized='view'
+  materialized='table'
 ) }}
 
--- Core model for MLB divisions
+-- Core dimension table for MLB divisions
+-- Single source of truth for division reference data
 -- Includes enriched league information
 
-select
-  division_id,
-  division_name,
-  division_abbr,
-  league_id,
-  league_name,
-  league_abbr_name
+select *
 from {{ ref('int_mlb__divisions_enriched') }}

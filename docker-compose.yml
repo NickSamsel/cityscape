@@ -17,23 +17,63 @@ services:
     container_name: cityscape-dev
     depends_on:
       - gcp-proxy
-    # This script decodes your Base64 GitHub secret into a file
-    entrypoint: >
+    user: root  # Running as root initially to ensure we can write files/run installs
+    entrypoint: |
       bash -c "
-      if [ -z \"$$GCP_SERVICE_ACCOUNT_KEY\" ]; then
-        echo 'WARNING: GCP_SERVICE_ACCOUNT_KEY is empty';
-      else
-        echo \"$$GCP_SERVICE_ACCOUNT_KEY\" | base64 -d > /tmp/gcp-key.json || echo 'ERROR: Base64 decode failed';
-      fi;
-      sleep infinity"
+      set -e
+      echo 'Starting setup script...'
+
+      # 1. Write GCP credentials
+      if [ -n \"$$GCP_SERVICE_ACCOUNT_KEY\" ]; then
+        echo \"$$GCP_SERVICE_ACCOUNT_KEY\" > /tmp/gcp-key.json
+        echo 'GCP key written to /tmp/gcp-key.json'
+      fi
+
+      # 2. Setup dbt profiles (Fixed Indentation)
+      mkdir -p /workspaces/cityscape/dbt
+      cat > /workspaces/cityscape/dbt/profiles.yml <<EOF
+      cityscape:
+        outputs:
+          dev:
+            type: bigquery
+            method: service-account
+            keyfile: /tmp/gcp-key.json
+            project: \"$$GCP_PROJECT_ID\"
+            dataset: raw
+            threads: 4
+            timeout_seconds: 300
+            location: US
+            priority: interactive
+        target: dev
+      EOF
+      echo 'dbt profiles.yml created.'
+
+      # 3. Install dependencies (using || true so failures don't kill the container)
+      echo 'Installing dbt packages...'
+      (cd /workspaces/cityscape/dbt && uv run dbt deps) || echo 'dbt deps failed'
+      
+      echo 'Installing project dependencies...'
+      (cd /workspaces/cityscape && uv sync --no-cache) || echo 'uv sync failed'
+
+      # 4. Start Prefect in background
+      echo 'Starting Prefect server...'
+      prefect server start --host 0.0.0.0 > /tmp/prefect-server.log 2>&1 &
+      
+      echo 'Setup complete. Keeping container alive.'
+      tail -f /dev/null"
     environment:
       - GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - DOCKER_API_VERSION=1.43
       - DBT_HOST=gcp-proxy
       - DBT_PORT=5432
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
       - DBT_DBNAME=${GCP_DB_NAME}
+      - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
+      - PREFECT_API_URL=http://localhost:4200/api
+    ports:
+      - "4200:4200"
     volumes:
       - .:/workspaces/cityscape:cached
       - /var/run/docker.sock:/var/run/docker.sock

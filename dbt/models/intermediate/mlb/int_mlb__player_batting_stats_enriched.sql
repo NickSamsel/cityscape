@@ -23,20 +23,27 @@ divisions as (
     select * from {{ ref('stg_mlb__divisions') }}
 ),
 
+players as (
+    select * from {{ ref('stg_mlb__players') }}
+),
+
 final as (
     select
         bs.game_id,
         bs.player_id,
-        bs.player_name,
+        p.full_name,
+        -- player specific age and career lenght stats
+        date_diff('year', p.birth_date, bs.game_date) as age,
+        date_diff('year', p.mlb_debut_date, bs.game_date) as career_length,
         bs.team_id,
         t.team_name,
         t.team_abbr,
         t.league_id,
         lg.league_name,
-        lg.league_abbr as league_abbr_name,
+        lg.league_abbr,
         t.division_id,
         div.division_name,
-        div.division_abbr as division_abbr_name,
+        div.division_abbr,
         g.game_date,
         g.season,
         g.game_type,
@@ -182,6 +189,8 @@ final as (
         on t.league_id = lg.league_id
     left join divisions as div
         on t.division_id = div.division_id
+    left join players as p
+        on bs.player_id = p.player_id
     where bs.at_bats is not null
         or bs.walks is not null
 )

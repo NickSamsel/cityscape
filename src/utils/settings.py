@@ -14,6 +14,7 @@ class Settings:
     postgres_dbname: str | None = None
     gcp_project_id: str | None = None
     gcp_credentials_path: str | None = None
+    gcp_service_account_key: str | None = None
 
 
 def get_settings() -> Settings:
@@ -29,5 +30,6 @@ def get_settings() -> Settings:
         postgres_password=os.getenv("DBT_PASSWORD") or os.getenv("POSTGRES_PASSWORD") or os.getenv("PGPASSWORD"),
         postgres_dbname=os.getenv("DBT_DBNAME") or os.getenv("POSTGRES_DB") or os.getenv("PGDATABASE"),
         gcp_project_id=os.getenv("GCP_PROJECT_ID"),
-        gcp_credentials_path=os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or "/root/.gcp/service-account-key.json",
+        gcp_credentials_path=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+        gcp_service_account_key=os.getenv("GCP_SERVICE_ACCOUNT_KEY"),
     )

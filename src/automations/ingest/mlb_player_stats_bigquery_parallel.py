@@ -5,7 +5,7 @@ from typing import Any
 
 from prefect import task
 
-from src.integrations.mlb.statsapi import MlbStatsApi
+from src.integrations.mlb import MlbStatsApi
 from src.utils.bigquery import (
     BigQueryConfig,
     get_client,

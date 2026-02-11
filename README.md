@@ -72,14 +72,21 @@ SQL portability (ANSI-leaning):
 
 Recommended local setup:
 
-- Keep `profiles.yml` out of git (it’s in `.gitignore`).
-- Copy `dbt/.env.example` → `dbt/.env` and use env vars in your `profiles.yml`.
+**The dev container automatically creates:**
+- `dbt/profiles.yml` (configured for BigQuery with GCP service account)
+- `/tmp/gcp-key.json` (GCP credentials from `GCP_SERVICE_ACCOUNT_KEY` env var)
+- Installs dbt packages via `dbt deps`
+
+**Required environment variables** (see `.env.example`):
+- `GCP_PROJECT_ID` - Your Google Cloud project ID
+- `GCP_SERVICE_ACCOUNT_KEY` - JSON service account key (as string)
 
 Common commands (inside the dev container):
 
-- `make dbt-deps`
-- `make dbt-run`
-- `make dbt-test`
+- `cd dbt && uv run dbt run --profiles-dir .`
+- `cd dbt && uv run dbt test --profiles-dir .`
+- `make dbt-run` (from project root)
+- `make dbt-test` (from project root)
 
 ## Postgres persistence
 

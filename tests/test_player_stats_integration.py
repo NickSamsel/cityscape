@@ -5,7 +5,7 @@ This fetches player stats for a small sample of games to validate the pipeline.
 """
 from datetime import date
 
-from src.integrations.mlb.statsapi import MlbStatsApi
+from src.integrations.mlb import MlbStatsApi
 
 
 def test_player_stats_integration():

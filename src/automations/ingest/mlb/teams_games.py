@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from src.integrations.mlb.statsapi import MlbStatsApi
+from src.integrations.mlb import MlbStatsApi
 from src.utils.db import (
     PostgresConfig,
     connect,

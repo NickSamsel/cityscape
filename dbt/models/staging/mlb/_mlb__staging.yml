@@ -192,3 +192,55 @@ models:
               arguments:
                 to: ref('stg_mlb__leagues')
                 field: league_id
+
+  - name: stg_mlb__players
+    description: "MLB players staged from raw landing tables"
+    columns:
+      - name: player_id   
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: full_name
+        description: "{{ doc('mlb_full_name') }}"
+      - name: first_name
+        description: "{{ doc('mlb_first_name') }}"
+      - name: last_name
+        description: "{{ doc('mlb_last_name') }}"
+      - name: primary_number
+        description: "{{ doc('mlb_primary_number') }}"
+      - name: birth_date
+        description: "{{ doc('mlb_birth_date') }}"
+      - name: current_age
+        description: "{{ doc('mlb_current_age') }}"
+      - name: birth_city
+        description: "{{ doc('mlb_birth_city') }}"
+      - name: birth_state_province
+        description: "{{ doc('mlb_birth_state_province') }}"
+      - name: birth_country
+        description: "{{ doc('mlb_birth_country') }}"
+      - name: height
+        description: "{{ doc('mlb_height') }}"
+      - name: weight
+        description: "{{ doc('mlb_weight') }}"
+      - name: primary_position_code
+        description: "{{ doc('mlb_primary_position_code') }}"
+      - name: primary_position_name
+        description: "{{ doc('mlb_primary_position_name') }}"
+      - name: primary_position_abbr
+        description: "{{ doc('mlb_primary_position_abbr') }}"
+      - name: bat_side_code
+        description: "{{ doc('mlb_bat_side_code') }}"
+      - name: bat_side_description
+        description: "{{ doc('mlb_bat_side_description') }}"
+      - name: pitch_hand_code
+        description: "{{ doc('mlb_pitch_hand_code') }}"
+      - name: pitch_hand_description
+        description: "{{ doc('mlb_pitch_hand_description') }}"
+      - name: mlb_debut_date
+        description: "{{ doc('mlb_debut_date') }}"
+      - name: active
+        description: "{{ doc('mlb_active') }}"
+      - name: raw
+        description: "{{doc('mlb_raw_player') }}"
+

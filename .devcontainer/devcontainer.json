@@ -3,5 +3,15 @@
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "dev",
   "workspaceFolder": "/workspaces/cityscape",
-  "shutdownAction": "stopCompose"
+  "shutdownAction": "stopCompose",
+  "overrideCommand": false,
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbt-labs.dbt-bitbucket-adapter"
+      ]
+    }
+  }
 }
