@@ -11,16 +11,15 @@ RUN apt-get update && \
     ca-certificates \
     openssh-client \
     postgresql-client && \
-    # Official Docker CLI installation script
     curl -fsSL https://get.docker.com -o get-docker.sh && \
     sh get-docker.sh && \
     rm -rf /var/lib/apt/lists/*
 
-# Install uv (Python package installer)
-RUN curl -Ls https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}"
+# Install uv globally so it's accessible to all users
+ENV UV_INSTALL_DIR="/usr/local/bin"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dbt and prefect
+# Install dbt and prefect globally
 RUN uv pip install --system dbt-bigquery prefect
 
 # Install Terraform
@@ -30,4 +29,6 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_li
     rm terraform.zip
 
 WORKDIR /workspaces/cityscape
+
+# Ensure the workspace is owned by the user, but for now, we'll let the container run
 CMD ["sleep", "infinity"]

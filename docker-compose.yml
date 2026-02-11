@@ -17,16 +17,20 @@ services:
     container_name: cityscape-dev
     depends_on:
       - gcp-proxy
-    # Fixed indentation and removed tab-reliant <<-EOF
+    user: root  # Running as root initially to ensure we can write files/run installs
     entrypoint: |
       bash -c "
-      if [ -z \"$$GCP_SERVICE_ACCOUNT_KEY\" ]; then
-        echo 'WARNING: GCP_SERVICE_ACCOUNT_KEY is empty';
-      else
-        echo \"$$GCP_SERVICE_ACCOUNT_KEY\" > /tmp/gcp-key.json;
-        echo 'GCP service account key written to /tmp/gcp-key.json';
-      fi;
-      echo 'Creating dbt profiles.yml...';
+      set -e
+      echo 'Starting setup script...'
+
+      # 1. Write GCP credentials
+      if [ -n \"$$GCP_SERVICE_ACCOUNT_KEY\" ]; then
+        echo \"$$GCP_SERVICE_ACCOUNT_KEY\" > /tmp/gcp-key.json
+        echo 'GCP key written to /tmp/gcp-key.json'
+      fi
+
+      # 2. Setup dbt profiles (Fixed Indentation)
+      mkdir -p /workspaces/cityscape/dbt
       cat > /workspaces/cityscape/dbt/profiles.yml <<EOF
       cityscape:
         outputs:
@@ -42,14 +46,21 @@ services:
             priority: interactive
         target: dev
       EOF
-      echo 'Installing dbt packages...';
-      cd /workspaces/cityscape/dbt && uv run dbt deps --profiles-dir . 2>&1 | grep -E '(Installing|Installed|Up to date)' || true;
-      echo 'Installing project dependencies...';
-      cd /workspaces/cityscape && uv sync --no-cache 2>&1 | grep -E '(Resolved|Installed|error)' || true;
-      echo 'Starting Prefect server on http://localhost:4200...';
+      echo 'dbt profiles.yml created.'
+
+      # 3. Install dependencies (using || true so failures don't kill the container)
+      echo 'Installing dbt packages...'
+      (cd /workspaces/cityscape/dbt && uv run dbt deps) || echo 'dbt deps failed'
+      
+      echo 'Installing project dependencies...'
+      (cd /workspaces/cityscape && uv sync --no-cache) || echo 'uv sync failed'
+
+      # 4. Start Prefect in background
+      echo 'Starting Prefect server...'
       prefect server start --host 0.0.0.0 > /tmp/prefect-server.log 2>&1 &
-      echo 'Prefect server started (logs at /tmp/prefect-server.log)';
-      sleep infinity"
+      
+      echo 'Setup complete. Keeping container alive.'
+      tail -f /dev/null"
     environment:
       - GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
