@@ -59,6 +59,7 @@ EOF
       - DBT_USER=${GCP_DB_USER}
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
       - DBT_DBNAME=${GCP_DB_NAME}
+      - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
       - PREFECT_API_URL=http://localhost:4200/api
     ports:
       - "4200:4200"
