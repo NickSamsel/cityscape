@@ -16,19 +16,19 @@ format:
 	uv run ruff format .
 
 dbt-deps:
-	cd dbt && uv run dbt deps
+	cd dbt && uv run dbt deps --profiles-dir .
 
 dbt-run:
-	cd dbt && uv run dbt run
+	cd dbt && uv run dbt run --profiles-dir .
 
 dbt-test:
-	cd dbt && uv run dbt test
+	cd dbt && uv run dbt test --profiles-dir .
 
 dbt-docs:
-	cd dbt && uv run dbt docs generate
+	cd dbt && uv run dbt docs generate --profiles-dir .
 
 dbt-clean:
-	cd dbt && uv run dbt clean
+	cd dbt && uv run dbt clean --profiles-dir .
 
 prefect-pool:
 	uv run prefect work-pool create cityscape-pool --type process --overwrite

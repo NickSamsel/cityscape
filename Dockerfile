@@ -21,7 +21,7 @@ RUN curl -Ls https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Install dbt and prefect
-RUN uv pip install --system dbt-postgres prefect
+RUN uv pip install --system dbt-bigquery prefect
 
 # Install Terraform
 RUN curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o terraform.zip && \
