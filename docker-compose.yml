@@ -17,8 +17,8 @@ services:
     container_name: cityscape-dev
     depends_on:
       - gcp-proxy
-    # This script sets up GCP credentials, dbt, and starts Prefect server
-    entrypoint: >
+    # Fixed indentation and removed tab-reliant <<-EOF
+    entrypoint: |
       bash -c "
       if [ -z \"$$GCP_SERVICE_ACCOUNT_KEY\" ]; then
         echo 'WARNING: GCP_SERVICE_ACCOUNT_KEY is empty';
@@ -28,20 +28,20 @@ services:
       fi;
       echo 'Creating dbt profiles.yml...';
       cat > /workspaces/cityscape/dbt/profiles.yml <<EOF
-cityscape:
-  outputs:
-    dev:
-      type: bigquery
-      method: service-account
-      keyfile: /tmp/gcp-key.json
-      project: \"$$GCP_PROJECT_ID\"
-      dataset: raw
-      threads: 4
-      timeout_seconds: 300
-      location: US
-      priority: interactive
-  target: dev
-EOF
+      cityscape:
+        outputs:
+          dev:
+            type: bigquery
+            method: service-account
+            keyfile: /tmp/gcp-key.json
+            project: \"$$GCP_PROJECT_ID\"
+            dataset: raw
+            threads: 4
+            timeout_seconds: 300
+            location: US
+            priority: interactive
+        target: dev
+      EOF
       echo 'Installing dbt packages...';
       cd /workspaces/cityscape/dbt && uv run dbt deps --profiles-dir . 2>&1 | grep -E '(Installing|Installed|Up to date)' || true;
       echo 'Installing project dependencies...';
