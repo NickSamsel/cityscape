@@ -132,16 +132,16 @@ Fetch player game-by-game statistics and land them into BigQuery:
 
 ```bash
 # Ingest last 20 years (parallel, ~60 minutes)
-uv run python scripts/ingest_historical_player_stats.py
+uv run python scripts/mlb/ingest_historical_player_stats.py
 
 # Specific year range
-uv run python scripts/ingest_historical_player_stats.py --start-year 2020 --end-year 2024
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2020 --end-year 2024
 
 # Single season
-uv run python scripts/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
 
-# View all options
-uv run python scripts/ingest_historical_player_stats.py --help
+# Show all options
+uv run python scripts/mlb/ingest_historical_player_stats.py --help
 ```
 
 Then build dbt models:

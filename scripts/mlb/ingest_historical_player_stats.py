@@ -18,9 +18,18 @@ Example usage:
 """
 
 import argparse
+import logging
+import warnings
 from datetime import date
 
 from src.automations.prefect.mlb import mlb_player_stats_multi_season_ingestion_parallel
+
+
+# Suppress noisy cleanup warnings
+logging.getLogger("sqlalchemy.pool").setLevel(logging.CRITICAL)
+logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*no active connection.*")
 
 
 def main():
@@ -103,7 +112,9 @@ Examples:
     print(f"Seasons processed: {result['seasons_processed']}")
     print(f"Total batting stats: {result['total_batting_stats']:,}")
     print(f"Total pitching stats: {result['total_pitching_stats']:,}")
-    print(f"{'='*80}\n")
+    print(f"{'='*80}")
+    print(f"Shutting down Prefect server...")
+    print()
 
 
 if __name__ == "__main__":

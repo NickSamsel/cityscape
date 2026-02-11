@@ -157,6 +157,13 @@ def upsert_mlb_teams(client: bigquery.Client, project_id: str, rows: Iterable[di
     
     df = pd.DataFrame(data)
     
+    # Deduplicate by (team_id, season) - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['team_id', 'season'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate team records")
+    
     # Use MERGE strategy: write to temp table, then merge
     table_id = f"{project_id}.raw.mlb_teams"
     
@@ -232,6 +239,13 @@ def upsert_mlb_games(client: bigquery.Client, project_id: str, rows: Iterable[di
         })
     
     df = pd.DataFrame(data)
+    
+    # Deduplicate by (game_id, season) - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['game_id', 'season'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate game records")
     
     table_id = f"{project_id}.raw.mlb_games"
     

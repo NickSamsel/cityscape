@@ -39,19 +39,19 @@ Use the script with command line arguments for easy historical ingestion:
 
 ```bash
 # Default: last 20 years
-uv run python scripts/ingest_historical_player_stats.py
+uv run python scripts/mlb/ingest_historical_player_stats.py
 
 # Specific year range
-uv run python scripts/ingest_historical_player_stats.py --start-year 2010 --end-year 2024
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2010 --end-year 2024
 
 # Single season
-uv run python scripts/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
 
 # Custom workers and game types
-uv run python scripts/ingest_historical_player_stats.py --start-year 2020 --end-year 2024 --max-workers 30 --game-types R
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2020 --end-year 2024 --max-workers 30 --game-types R
 
 # Show all options
-uv run python scripts/ingest_historical_player_stats.py --help
+uv run python scripts/mlb/ingest_historical_player_stats.py --help
 ```
 
 ### 2. Ingest a Single Season (via Prefect)
@@ -194,7 +194,7 @@ ORDER BY game_date
 - **Data Quality**: Player stats are only available for completed games. The API returns empty stats for games that haven't been played yet.
 - **Updates**: Use the daily ingestion with a lookback window to capture late stat corrections/updates.
 - **Game Types**: Default is "R" (regular season). Other options: "S" (spring training), "F" (wild card), "D" (division series), "L" (league championship), "W" (World Series).
-- **Command Line**: The `scripts/ingest_historical_player_stats.py` script provides the easiest interface for backfilling historical data.
+- **Command Line**: The `scripts/mlb/ingest_historical_player_stats.py` script provides the easiest interface for backfilling historical data.
 
 ## Architecture Details
 

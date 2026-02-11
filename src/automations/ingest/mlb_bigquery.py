@@ -15,30 +15,22 @@ from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
 
 
-def ingest_mlb_season_bigquery(
+def fetch_mlb_season_data(
     *,
     season: int,
     game_types: str = "R",
     start_date: date | None = None,
     end_date: date | None = None,
-) -> tuple[int, int]:
-    """Fetch MLB teams + games for a season and land them into BigQuery raw tables.
-
-    Lands into:
-    - raw.mlb_teams
-    - raw.mlb_games
+) -> tuple[list[dict], list[dict]]:
+    """Fetch MLB teams + games data for a season (without writing to BigQuery).
+    
+    Returns raw data dictionaries ready for BigQuery ingestion.
+    
+    Returns:
+        Tuple of (team_rows, game_rows)
     """
-
+    
     logger = get_run_logger()
-    settings = get_settings()
-
-    cfg = BigQueryConfig(
-        project_id=settings.gcp_project_id,
-        location="US",
-        credentials_path=settings.gcp_credentials_path,
-    )
-
-    client = get_client(cfg)
     api = MlbStatsApi()
 
     logger.info(f"Fetching MLB teams season={season}")
@@ -46,7 +38,8 @@ def ingest_mlb_season_bigquery(
 
     if start_date is not None or end_date is not None:
         logger.info(
-            f"Fetching MLB games season={season} game_types={game_types} start_date={start_date} end_date={end_date}"
+            f"Fetching MLB games season={season} game_types={game_types} "
+            f"start_date={start_date} end_date={end_date}"
         )
     else:
         logger.info(f"Fetching MLB games season={season} game_types={game_types}")
@@ -81,6 +74,43 @@ def ingest_mlb_season_bigquery(
         }
         for g in games
     ]
+
+    logger.info(f"Fetched season={season} teams={len(team_rows)} games={len(game_rows)}")
+    return team_rows, game_rows
+
+
+def ingest_mlb_season_bigquery(
+    *,
+    season: int,
+    game_types: str = "R",
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> tuple[int, int]:
+    """Fetch MLB teams + games for a season and land them into BigQuery raw tables.
+
+    Lands into:
+    - raw.mlb_teams
+    - raw.mlb_games
+    """
+
+    logger = get_run_logger()
+    settings = get_settings()
+
+    cfg = BigQueryConfig(
+        project_id=settings.gcp_project_id,
+        location="US",
+        credentials_path=settings.gcp_credentials_path,
+    )
+
+    client = get_client(cfg)
+    
+    # Fetch data
+    team_rows, game_rows = fetch_mlb_season_data(
+        season=season,
+        game_types=game_types,
+        start_date=start_date,
+        end_date=end_date
+    )
 
     logger.info(f"Connecting to BigQuery project={cfg.project_id}")
 
