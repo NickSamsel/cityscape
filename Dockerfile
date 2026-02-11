@@ -28,6 +28,9 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_li
     mv terraform /usr/local/bin/ && \
     rm terraform.zip
 
+# Add shell function to automatically use correct dbt directories
+RUN echo 'dbt() { command dbt --project-dir /workspaces/cityscape/dbt --profiles-dir /workspaces/cityscape/dbt "$@"; }' >> /root/.bashrc
+
 WORKDIR /workspaces/cityscape
 
 # Ensure the workspace is owned by the user, but for now, we'll let the container run
