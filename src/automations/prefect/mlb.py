@@ -14,6 +14,9 @@ from prefect.task_runners import ConcurrentTaskRunner
 from src.automations.ingest.mlb import (
     ingest_player_stats_parallel,
     ingest_player_stats_sequential,
+    ingest_players_from_stats,
+    ingest_players_parallel,
+    get_unique_player_ids_from_bigquery,
 )
 from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery, fetch_mlb_season_data
 from src.integrations.mlb import MlbStatsApi
@@ -527,3 +530,59 @@ def mlb_player_stats_multi_season_ingestion_parallel(
         "total_pitching_stats": total_pitching_stats,
         "results": results,
     }
+
+
+@flow(name="mlb-player-dimension-ingestion", log_prints=False)
+def mlb_player_dimension_ingestion() -> dict[str, int]:
+    """Ingest MLB player dimension data from existing player stats tables.
+
+    This flow queries raw.mlb_player_batting_stats and raw.mlb_player_pitching_stats
+    to find all unique player IDs, then fetches dimension data for each player
+    and loads it into raw.mlb_players.
+
+    Returns:
+        Dictionary with the number of players loaded
+    """
+    logger = get_run_logger()
+    logger.info("Starting MLB player dimension ingestion from stats tables")
+
+    players_loaded = ingest_players_from_stats()
+
+    logger.info(f"Finished MLB player dimension ingestion: {players_loaded} players loaded")
+    return {"players": players_loaded}
+
+
+@flow(
+    name="mlb-player-dimension-ingestion-parallel",
+    log_prints=False,
+)
+def mlb_player_dimension_ingestion_parallel(
+    player_ids: list[int] | None = None,
+    max_workers: int = 3,
+) -> dict[str, int]:
+    """Ingest MLB player dimension data with PARALLEL processing.
+
+    Args:
+        player_ids: Optional list of specific player IDs to fetch. If None, fetches all
+                   unique players from stats tables.
+        max_workers: Number of concurrent workers (default 50)
+
+    Returns:
+        Dictionary with the number of players loaded
+    """
+    logger = get_run_logger()
+    
+    if player_ids is None:
+        logger.info("Querying BigQuery for unique player IDs from stats tables...")
+        settings = get_settings()
+        player_ids = list(get_unique_player_ids_from_bigquery(settings.gcp_project_id))
+        logger.info(f"Found {len(player_ids)} unique players")
+    else:
+        logger.info(f"Processing {len(player_ids)} specified player IDs")
+
+    logger.info(f"Starting PARALLEL MLB player dimension ingestion with {max_workers} workers")
+
+    players_loaded = ingest_players_parallel(player_ids, max_workers=max_workers)
+
+    logger.info(f"Finished PARALLEL MLB player dimension ingestion: {players_loaded} players loaded")
+    return {"players": players_loaded}

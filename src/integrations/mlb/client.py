@@ -12,6 +12,7 @@ from .models import (
     MlbDivision,
     MlbGame,
     MlbLeague,
+    MlbPlayer,
     MlbPlayerBattingStats,
     MlbPlayerPitchingStats,
     MlbTeam,
@@ -320,4 +321,79 @@ class MlbStatsApi:
             strikes=parse_int_or_none(pitcher.get("s")),
             era=parse_str_or_none(pitcher.get("era")),
             raw=pitcher,
+        )
+
+    def get_player_info(self, *, player_id: int) -> MlbPlayer | None:
+        """Get detailed player information.
+        
+        Args:
+            player_id: The MLB player ID
+            
+        Returns:
+            MlbPlayer object with player details, or None if not found
+        """
+        payload = self._get_json("person", {"personId": player_id})
+        people = payload.get("people", [])
+        
+        if not people or not isinstance(people[0], dict):
+            return None
+        
+        p = people[0]
+        
+        # Parse birth date
+        birth_date_str = p.get("birthDate")
+        birth_date: date | None = None
+        if isinstance(birth_date_str, str) and birth_date_str:
+            try:
+                birth_date = date.fromisoformat(birth_date_str)
+            except ValueError:
+                pass
+        
+        # Parse MLB debut date
+        debut_date_str = p.get("mlbDebutDate")
+        debut_date: date | None = None
+        if isinstance(debut_date_str, str) and debut_date_str:
+            try:
+                debut_date = date.fromisoformat(debut_date_str)
+            except ValueError:
+                pass
+        
+        # Extract position info
+        primary_position = p.get("primaryPosition", {})
+        position_code = primary_position.get("code") if isinstance(primary_position, dict) else None
+        position_name = primary_position.get("name") if isinstance(primary_position, dict) else None
+        position_abbr = primary_position.get("abbreviation") if isinstance(primary_position, dict) else None
+        
+        # Extract bat/pitch hand info
+        bat_side = p.get("batSide", {})
+        bat_code = bat_side.get("code") if isinstance(bat_side, dict) else None
+        bat_desc = bat_side.get("description") if isinstance(bat_side, dict) else None
+        
+        pitch_hand = p.get("pitchHand", {})
+        pitch_code = pitch_hand.get("code") if isinstance(pitch_hand, dict) else None
+        pitch_desc = pitch_hand.get("description") if isinstance(pitch_hand, dict) else None
+        
+        return MlbPlayer(
+            player_id=int(p.get("id")),
+            full_name=str(p.get("fullName", "")),
+            first_name=parse_str_or_none(p.get("firstName")),
+            last_name=parse_str_or_none(p.get("lastName")),
+            primary_number=parse_str_or_none(p.get("primaryNumber")),
+            birth_date=birth_date,
+            current_age=parse_int_or_none(p.get("currentAge")),
+            birth_city=parse_str_or_none(p.get("birthCity")),
+            birth_state_province=parse_str_or_none(p.get("birthStateProvince")),
+            birth_country=parse_str_or_none(p.get("birthCountry")),
+            height=parse_str_or_none(p.get("height")),
+            weight=parse_int_or_none(p.get("weight")),
+            primary_position_code=parse_str_or_none(position_code),
+            primary_position_name=parse_str_or_none(position_name),
+            primary_position_abbr=parse_str_or_none(position_abbr),
+            bat_side_code=parse_str_or_none(bat_code),
+            bat_side_description=parse_str_or_none(bat_desc),
+            pitch_hand_code=parse_str_or_none(pitch_code),
+            pitch_hand_description=parse_str_or_none(pitch_desc),
+            mlb_debut_date=debut_date,
+            active=p.get("active") if isinstance(p.get("active"), bool) else None,
+            raw=p,
         )

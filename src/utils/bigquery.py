@@ -14,13 +14,48 @@ class BigQueryConfig:
     project_id: str
     location: str = "US"
     credentials_path: str | None = None
+    service_account_key: str | None = None
 
 
 def get_client(cfg: BigQueryConfig) -> bigquery.Client:
-    """Create BigQuery client with optional credentials."""
-    if cfg.credentials_path:
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cfg.credentials_path
-    return bigquery.Client(project=cfg.project_id, location=cfg.location)
+    """Create BigQuery client with optional credentials.
+    
+    Supports credentials from:
+    1. Base64-encoded service account JSON (cfg.service_account_key)
+    2. File path (cfg.credentials_path)
+    3. Application Default Credentials (fallback)
+    """
+    import base64
+    import json
+    from google.oauth2 import service_account
+    
+    credentials = None
+    
+    # Option 1: Use base64-encoded service account key from env variable
+    if cfg.service_account_key:
+        try:
+            # Decode base64 to get JSON string
+            decoded = base64.b64decode(cfg.service_account_key)
+            service_account_info = json.loads(decoded)
+            credentials = service_account.Credentials.from_service_account_info(service_account_info)
+        except Exception as e:
+            # If decode fails, try using it as plain JSON
+            try:
+                service_account_info = json.loads(cfg.service_account_key)
+                credentials = service_account.Credentials.from_service_account_info(service_account_info)
+            except Exception:
+                pass  # Fall through to other options
+    
+    # Option 2: Use file path
+    if credentials is None and cfg.credentials_path:
+        if os.path.exists(cfg.credentials_path):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cfg.credentials_path
+    
+    # Create client with credentials or fall back to application default
+    if credentials:
+        return bigquery.Client(project=cfg.project_id, location=cfg.location, credentials=credentials)
+    else:
+        return bigquery.Client(project=cfg.project_id, location=cfg.location)
 
 
 def ensure_raw_dataset(client: bigquery.Client, project_id: str) -> None:
@@ -158,6 +193,37 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
     divisions_table_id = f"{project_id}.raw.mlb_divisions"
     divisions_table = bigquery.Table(divisions_table_id, schema=divisions_schema)
     client.create_table(divisions_table, exists_ok=True)
+    
+    # Define schema for mlb_players
+    players_schema = [
+        bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("full_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("first_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("last_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("primary_number", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("birth_date", "DATE", mode="NULLABLE"),
+        bigquery.SchemaField("current_age", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("birth_city", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("birth_state_province", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("birth_country", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("height", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("weight", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("primary_position_code", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("primary_position_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("primary_position_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("bat_side_code", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("bat_side_description", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_hand_code", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_hand_description", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("mlb_debut_date", "DATE", mode="NULLABLE"),
+        bigquery.SchemaField("active", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+    
+    players_table_id = f"{project_id}.raw.mlb_players"
+    players_table = bigquery.Table(players_table_id, schema=players_schema)
+    client.create_table(players_table, exists_ok=True)
 
 
 def upsert_mlb_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
@@ -694,3 +760,138 @@ def upsert_mlb_divisions(client: bigquery.Client, project_id: str, rows: Iterabl
     client.delete_table(temp_table, not_found_ok=True)
     
     return len(data)
+
+
+def upsert_mlb_players(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB players data to BigQuery."""
+    if not rows:
+        return 0
+    
+    import json
+    from datetime import datetime
+    
+    data = []
+    for r in rows:
+        data.append({
+            "player_id": str(r["player_id"]),
+            "full_name": r["full_name"],
+            "first_name": r.get("first_name"),
+            "last_name": r.get("last_name"),
+            "primary_number": r.get("primary_number"),
+            "birth_date": r.get("birth_date"),
+            "current_age": r.get("current_age"),
+            "birth_city": r.get("birth_city"),
+            "birth_state_province": r.get("birth_state_province"),
+            "birth_country": r.get("birth_country"),
+            "height": r.get("height"),
+            "weight": r.get("weight"),
+            "primary_position_code": r.get("primary_position_code"),
+            "primary_position_name": r.get("primary_position_name"),
+            "primary_position_abbr": r.get("primary_position_abbr"),
+            "bat_side_code": r.get("bat_side_code"),
+            "bat_side_description": r.get("bat_side_description"),
+            "pitch_hand_code": r.get("pitch_hand_code"),
+            "pitch_hand_description": r.get("pitch_hand_description"),
+            "mlb_debut_date": r.get("mlb_debut_date"),
+            "active": r.get("active"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Deduplicate by player_id - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['player_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate player records")
+    
+    table_id = f"{project_id}.raw.mlb_players"
+    
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=[
+            bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("full_name", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("first_name", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("last_name", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("primary_number", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("birth_date", "DATE", mode="NULLABLE"),
+            bigquery.SchemaField("current_age", "INT64", mode="NULLABLE"),
+            bigquery.SchemaField("birth_city", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("birth_state_province", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("birth_country", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("height", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("weight", "INT64", mode="NULLABLE"),
+            bigquery.SchemaField("primary_position_code", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("primary_position_name", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("primary_position_abbr", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("bat_side_code", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("bat_side_description", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("pitch_hand_code", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("pitch_hand_description", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("mlb_debut_date", "DATE", mode="NULLABLE"),
+            bigquery.SchemaField("active", "BOOL", mode="NULLABLE"),
+            bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+        ]
+    )
+    
+    temp_table = f"{project_id}.raw._temp_mlb_players"
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+    
+    # Merge into main table
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.player_id = S.player_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        full_name = S.full_name,
+        first_name = S.first_name,
+        last_name = S.last_name,
+        primary_number = S.primary_number,
+        birth_date = S.birth_date,
+        current_age = S.current_age,
+        birth_city = S.birth_city,
+        birth_state_province = S.birth_state_province,
+        birth_country = S.birth_country,
+        height = S.height,
+        weight = S.weight,
+        primary_position_code = S.primary_position_code,
+        primary_position_name = S.primary_position_name,
+        primary_position_abbr = S.primary_position_abbr,
+        bat_side_code = S.bat_side_code,
+        bat_side_description = S.bat_side_description,
+        pitch_hand_code = S.pitch_hand_code,
+        pitch_hand_description = S.pitch_hand_description,
+        mlb_debut_date = S.mlb_debut_date,
+        active = S.active,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (
+        player_id, full_name, first_name, last_name, primary_number, 
+        birth_date, current_age, birth_city, birth_state_province, birth_country,
+        height, weight, primary_position_code, primary_position_name, primary_position_abbr,
+        bat_side_code, bat_side_description, pitch_hand_code, pitch_hand_description,
+        mlb_debut_date, active, raw, loaded_at
+      )
+      VALUES (
+        S.player_id, S.full_name, S.first_name, S.last_name, S.primary_number,
+        S.birth_date, S.current_age, S.birth_city, S.birth_state_province, S.birth_country,
+        S.height, S.weight, S.primary_position_code, S.primary_position_name, S.primary_position_abbr,
+        S.bat_side_code, S.bat_side_description, S.pitch_hand_code, S.pitch_hand_description,
+        S.mlb_debut_date, S.active, S.raw, S.loaded_at
+      )
+    """
+    
+    query_job = client.query(merge_sql)
+    query_job.result()
+    
+    # Clean up temp table
+    client.delete_table(temp_table, not_found_ok=True)
+    
+    return len(df)
