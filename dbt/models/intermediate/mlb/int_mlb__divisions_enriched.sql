@@ -1,7 +1,11 @@
-{{ config(
-    tags=["int", "mlb"],
-    materialized='table'
-) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key='division_id',
+    on_schema_change='sync_all_columns',
+    tags=["int", "mlb"]
+  )
+-}}
 
 -- Intermediate model for MLB divisions enriched with league information
 
@@ -24,6 +28,10 @@ final as (
     from divisions d
     left join leagues l
         on d.league_id = l.league_id
+    
+    {% if is_incremental() %}
+    where d.division_id not in (select division_id from {{ this }})
+    {% endif %}
 )
 
 select * from final

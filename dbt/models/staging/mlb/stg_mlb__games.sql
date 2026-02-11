@@ -1,4 +1,11 @@
-{{ config(tags=["stg", "mlb"]) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key='game_id',
+    on_schema_change='sync_all_columns',
+    tags=["stg", "mlb"]
+  )
+-}}
 
 with source as (
     select
@@ -11,19 +18,17 @@ with source as (
         cast(away_team_id as string) as away_team_id,
         cast(home_score as int64) as home_score,
         cast(away_score as int64) as away_score,
-        row_number() over (partition by game_id, season order by game_date desc) as row_num
+        row_number() over (
+          partition by cast(game_id as string), cast(season as int64)
+          order by cast(game_date as date) desc
+        ) as row_num
     from {{ source('raw', 'mlb_games') }}
+    
+    {% if is_incremental() %}
+    where game_id not in (select game_id from {{ this }})
+    {% endif %}
 )
 
-select
-    game_id,
-    season,
-    game_date,
-    game_type,
-    status,
-    home_team_id,
-    away_team_id,
-    home_score,
-    away_score
+select * except(row_num)
 from source
 where row_num = 1

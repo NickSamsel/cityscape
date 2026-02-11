@@ -1,6 +1,14 @@
-{{ config(tags=["stg", "mlb"]) }}
+{{-
+  config(
+    materialized='incremental',
+    unique_key='player_id',
+    on_schema_change='sync_all_columns',
+    tags=["stg", "mlb"]
+  )
+-}}
 
-select
+with source as (
+  select
     cast(player_id as string) as player_id,
     cast(full_name as string) as full_name,
     cast(first_name as string) as first_name,
@@ -22,5 +30,18 @@ select
     cast(pitch_hand_description as string) as pitch_hand_description,
     cast(mlb_debut_date as date) as mlb_debut_date,
     cast(active as boolean) as active,
-    cast(raw as string) as raw
-from {{ source('raw', 'mlb_players') }}
+    cast(raw as string) as raw,
+    row_number() over (
+      partition by cast(player_id as string)
+      order by cast(mlb_debut_date as date) desc nulls last, cast(full_name as string)
+    ) as row_num
+  from {{ source('raw', 'mlb_players') }}
+
+  {% if is_incremental() %}
+  where player_id not in (select player_id from {{ this }})
+  {% endif %}
+)
+
+select * except(row_num)
+from source
+where row_num = 1
