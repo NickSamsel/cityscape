@@ -6,6 +6,7 @@ from typing import Any, Iterable
 
 from google.cloud import bigquery
 import pandas as pd
+from prefect import get_run_logger
 
 
 @dataclass(frozen=True, slots=True)
@@ -323,6 +324,13 @@ def upsert_mlb_player_batting_stats(client: bigquery.Client, project_id: str, ro
     
     df = pd.DataFrame(data)
     
+    # Deduplicate by (game_id, player_id) - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['game_id', 'player_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate batting stat records")
+    
     table_id = f"{project_id}.raw.mlb_player_batting_stats"
     
     job_config = bigquery.LoadJobConfig(
@@ -433,6 +441,13 @@ def upsert_mlb_player_pitching_stats(client: bigquery.Client, project_id: str, r
         })
     
     df = pd.DataFrame(data)
+    
+    # Deduplicate by (game_id, player_id) - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['game_id', 'player_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate pitching stat records")
     
     table_id = f"{project_id}.raw.mlb_player_pitching_stats"
     
