@@ -18,7 +18,11 @@ select
     home_team_name,
     home_team_abbr,
     home_league_id,
+    home_league_name,
+    home_league_abbr,
     home_division_id,
+    home_division_name,
+    home_division_abbr,
     home_score,
     
     -- Away team
@@ -26,7 +30,11 @@ select
     away_team_name,
     away_team_abbr,
     away_league_id,
+    away_league_name,
+    away_league_abbr,
     away_division_id,
+    away_division_name,
+    away_division_abbr,
     away_score,
     
     -- Game outcomes

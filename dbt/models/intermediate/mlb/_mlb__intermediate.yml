@@ -32,9 +32,17 @@ models:
       - name: home_team_abbr
         description: "Home team abbreviation"
       - name: home_league_id
-        description: "Home team's league (AL or NL)"
+        description: "Home team's league ID"
+      - name: home_league_name
+        description: "Home team's league name (e.g., 'American League')"
+      - name: home_league_abbr
+        description: "Home team's league abbreviation (e.g., 'AL')"
       - name: home_division_id
-        description: "Home team's division"
+        description: "Home team's division ID"
+      - name: home_division_name
+        description: "Home team's division name (e.g., 'American League East')"
+      - name: home_division_abbr
+        description: "Home team's division abbreviation (e.g., 'ALE')"
       - name: home_score
         description: "Final score for home team"
       - name: away_team_id
@@ -46,9 +54,17 @@ models:
       - name: away_team_abbr
         description: "Away team abbreviation"
       - name: away_league_id
-        description: "Away team's league (AL or NL)"
+        description: "Away team's league ID"
+      - name: away_league_name
+        description: "Away team's league name (e.g., 'National League')"
+      - name: away_league_abbr
+        description: "Away team's league abbreviation (e.g., 'NL')"
       - name: away_division_id
-        description: "Away team's division"
+        description: "Away team's division ID"
+      - name: away_division_name
+        description: "Away team's division name (e.g., 'National League West')"
+      - name: away_division_abbr
+        description: "Away team's division abbreviation (e.g., 'NLW')"
       - name: away_score
         description: "Final score for away team"
       - name: winning_team_id
@@ -84,9 +100,17 @@ models:
       - name: team_abbr
         description: "Team abbreviation"
       - name: league_id
-        description: "League identifier (AL or NL)"
+        description: "League ID"
+      - name: league_name
+        description: "League name (e.g., 'American League', 'National League')"
+      - name: league_abbr_name
+        description: "League abbreviation (e.g., 'AL', 'NL')"
       - name: division_id
-        description: "Division identifier"
+        description: "Division ID"
+      - name: division_name
+        description: "Division name (e.g., 'American League East')"
+      - name: division_abbr_name
+        description: "Division abbreviation (e.g., 'ALE', 'NLW')"
       - name: game_date
         description: "Date of the game"
       - name: season
@@ -158,9 +182,17 @@ models:
       - name: team_abbr
         description: "Team abbreviation"
       - name: league_id
-        description: "League identifier (AL or NL)"
+        description: "League ID"
+      - name: league_name
+        description: "League name (e.g., 'American League', 'National League')"
+      - name: league_abbr_name
+        description: "League abbreviation (e.g., 'AL', 'NL')"
       - name: division_id
-        description: "Division identifier"
+        description: "Division ID"
+      - name: division_name
+        description: "Division name (e.g., 'American League East')"
+      - name: division_abbr_name
+        description: "Division abbreviation (e.g., 'ALE', 'NLW')"
       - name: game_date
         description: "Date of the game"
       - name: season

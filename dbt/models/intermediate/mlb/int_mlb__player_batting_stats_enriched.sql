@@ -15,6 +15,14 @@ teams as (
     select * from {{ ref('stg_mlb__teams') }}
 ),
 
+leagues as (
+    select * from {{ ref('stg_mlb__leagues') }}
+),
+
+divisions as (
+    select * from {{ ref('stg_mlb__divisions') }}
+),
+
 final as (
     select
         bs.game_id,
@@ -24,7 +32,11 @@ final as (
         t.team_name,
         t.team_abbr,
         t.league_id,
+        lg.league_name,
+        lg.league_abbr as league_abbr_name,
         t.division_id,
+        div.division_name,
+        div.division_abbr as division_abbr_name,
         g.game_date,
         g.season,
         g.game_type,
@@ -67,6 +79,10 @@ final as (
     left join teams as t
         on bs.team_id = t.team_id
         and g.season = t.season
+    left join leagues as lg
+        on t.league_id = lg.league_id
+    left join divisions as div
+        on t.division_id = div.division_id
     where bs.at_bats is not null
         or bs.walks is not null
 )
