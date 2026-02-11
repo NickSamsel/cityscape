@@ -25,3 +25,11 @@ The full name of the home team in the game (e.g., "New York Yankees", "Los Angel
 {% docs mlb_away_team_name %}
 The full name of the away team in the game (e.g., "New York Yankees", "Los Angeles Dodgers"). This is enriched from the teams dimension.
 {% enddocs %}
+
+{% docs mlb_home_team_abbr %}
+The abbreviated name or code for the home team in the game (e.g., "NYY", "LAD"). This is enriched from the teams dimension.
+{% enddocs %}
+
+{% docs mlb_away_team_abbr %}
+The abbreviated name or code for the away team in the game (e.g., "NYY", "LAD"). This is enriched from the teams dimension.
+{% enddocs %}

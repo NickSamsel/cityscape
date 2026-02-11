@@ -20,7 +20,7 @@ final as (
         d.division_abbr,
         d.league_id,
         l.league_name,
-        l.league_abbr as league_abbr_name
+        l.league_abbr
     from divisions d
     left join leagues l
         on d.league_id = l.league_id
