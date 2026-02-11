@@ -1,34 +1,74 @@
-{{ config(tags=["int", "mlb", "player_stats"]) }}
+{{ config(
+    tags=["int", "mlb", "player_stats"],
+    materialized='table'
+) }}
 
-select
-  bs.game_id,
-  bs.player_id,
-  bs.player_name,
-  bs.team_id,
-  t.team_name,
-  t.team_abbr,
-  g.game_date,
-  g.season,
-  g.game_type,
-  bs.batting_order,
-  bs.position,
-  bs.at_bats,
-  bs.runs,
-  bs.hits,
-  bs.doubles,
-  bs.triples,
-  bs.home_runs,
-  bs.rbi,
-  bs.stolen_bases,
-  bs.walks,
-  bs.strikeouts,
-  bs.left_on_base,
-  bs.avg,
-  bs.obp,
-  bs.slg,
-  bs.ops
-from {{ ref('stg_mlb__player_batting_stats') }} as bs
-left join {{ ref('stg_mlb__games') }} as g
-  on bs.game_id = cast(g.game_id as string)
-left join {{ ref('stg_mlb__teams') }} as t
-  on bs.team_id = t.team_id and g.season = t.season
+with batting_stats as (
+    select * from {{ ref('stg_mlb__player_batting_stats') }}
+),
+
+games as (
+    select * from {{ ref('stg_mlb__games') }}
+),
+
+teams as (
+    select * from {{ ref('stg_mlb__teams') }}
+),
+
+final as (
+    select
+        bs.game_id,
+        bs.player_id,
+        bs.player_name,
+        bs.team_id,
+        t.team_name,
+        t.team_abbr,
+        t.league_id,
+        t.division_id,
+        g.game_date,
+        g.season,
+        g.game_type,
+        g.status as game_status,
+        bs.batting_order,
+        bs.position,
+        
+        -- Raw counting stats
+        bs.at_bats,
+        bs.runs,
+        bs.hits,
+        bs.doubles,
+        bs.triples,
+        bs.home_runs,
+        bs.rbi,
+        bs.stolen_bases,
+        bs.walks,
+        bs.strikeouts,
+        bs.left_on_base,
+        
+        -- Calculated stats
+        bs.hits - coalesce(bs.doubles, 0) - coalesce(bs.triples, 0) - coalesce(bs.home_runs, 0) as singles,
+        
+        (bs.hits - coalesce(bs.doubles, 0) - coalesce(bs.triples, 0) - coalesce(bs.home_runs, 0))
+            + (coalesce(bs.doubles, 0) * 2)
+            + (coalesce(bs.triples, 0) * 3)
+            + (coalesce(bs.home_runs, 0) * 4) as total_bases,
+        
+        bs.at_bats + coalesce(bs.walks, 0) as plate_appearances,
+        
+        -- Batting average (from API)
+        bs.avg,
+        bs.obp,
+        bs.slg,
+        bs.ops
+        
+    from batting_stats as bs
+    left join games as g
+        on bs.game_id = cast(g.game_id as string)
+    left join teams as t
+        on bs.team_id = t.team_id
+        and g.season = t.season
+    where bs.at_bats is not null
+        or bs.walks is not null
+)
+
+select * from final

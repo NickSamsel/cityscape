@@ -1,0 +1,247 @@
+version: 2
+
+models:
+  - name: int_mlb__games_enriched
+    description: |
+      MLB games joined with team information and enriched with game outcome calculations.
+      This intermediate model contains all business logic for determining winners, losers, and score metrics.
+    columns:
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+        tests: 
+          - not_null
+          - unique
+      - name: season
+        description: "MLB season year"
+        tests:
+          - not_null
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+        tests:
+          - not_null
+      - name: game_type
+        description: "Type of game (R=regular, F=wild card, D=division series, etc.)"
+      - name: status
+        description: "Game status"
+      - name: home_team_id
+        description: "{{ doc('mlb_home_team_id') }}"
+        tests:
+          - not_null
+      - name: home_team_name
+        description: "{{ doc('mlb_home_team_name') }}"
+      - name: home_team_abbr
+        description: "Home team abbreviation"
+      - name: home_league_id
+        description: "Home team's league (AL or NL)"
+      - name: home_division_id
+        description: "Home team's division"
+      - name: home_score
+        description: "Final score for home team"
+      - name: away_team_id
+        description: "{{ doc('mlb_away_team_id') }}"
+        tests:
+          - not_null
+      - name: away_team_name
+        description: "{{ doc('mlb_away_team_name') }}"
+      - name: away_team_abbr
+        description: "Away team abbreviation"
+      - name: away_league_id
+        description: "Away team's league (AL or NL)"
+      - name: away_division_id
+        description: "Away team's division"
+      - name: away_score
+        description: "Final score for away team"
+      - name: winning_team_id
+        description: "Team ID of the winning team (null if tie)"
+      - name: losing_team_id
+        description: "Team ID of the losing team (null if tie)"
+      - name: winner
+        description: "Which team won - 'home', 'away', or 'tie'"
+      - name: score_differential
+        description: "Absolute difference between scores"
+      - name: total_runs
+        description: "Total runs scored by both teams"
+
+  - name: int_mlb__player_batting_stats_enriched
+    description: |
+      MLB player batting statistics enriched with game and team details.
+      Contains all calculated metrics including singles, total_bases, and plate_appearances.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Player's full name"
+      - name: team_id
+        description: "Unique identifier for the team"
+      - name: team_name
+        description: "Team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: league_id
+        description: "League identifier (AL or NL)"
+      - name: division_id
+        description: "Division identifier"
+      - name: game_date
+        description: "Date of the game"
+      - name: season
+        description: "MLB season year"
+      - name: game_type
+        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+      - name: game_status
+        description: "Status of the game"
+      - name: batting_order
+        description: "Batting order position"
+      - name: position
+        description: "Defensive position"
+      - name: at_bats
+        description: "Number of at-bats"
+      - name: runs
+        description: "Number of runs scored"
+      - name: hits
+        description: "Number of hits"
+      - name: doubles
+        description: "Number of doubles (2B)"
+      - name: triples
+        description: "Number of triples (3B)"
+      - name: home_runs
+        description: "Number of home runs (HR)"
+      - name: rbi
+        description: "Runs batted in"
+      - name: stolen_bases
+        description: "Number of stolen bases"
+      - name: walks
+        description: "Number of walks (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: left_on_base
+        description: "Number of runners left on base"
+      - name: singles
+        description: "Calculated number of singles (hits - 2B - 3B - HR)"
+      - name: total_bases
+        description: "Calculated total bases (1B + 2*2B + 3*3B + 4*HR)"
+      - name: plate_appearances
+        description: "Calculated plate appearances (AB + BB)"
+      - name: avg
+        description: "Season batting average as of this game"
+      - name: obp
+        description: "Season on-base percentage as of this game"
+      - name: slg
+        description: "Season slugging percentage as of this game"
+      - name: ops
+        description: "Season on-base plus slugging as of this game"
+
+  - name: int_mlb__player_pitching_stats_enriched
+    description: |
+      MLB player pitching statistics enriched with game and team details.
+      Contains all calculated metrics including innings_pitched_decimal, WHIP, K/9, and BB/9.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Player's full name"
+      - name: team_id
+        description: "Unique identifier for the team"
+      - name: team_name
+        description: "Team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: league_id
+        description: "League identifier (AL or NL)"
+      - name: division_id
+        description: "Division identifier"
+      - name: game_date
+        description: "Date of the game"
+      - name: season
+        description: "MLB season year"
+      - name: game_type
+        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+      - name: game_status
+        description: "Status of the game"
+      - name: innings_pitched
+        description: "Innings pitched in string format (e.g., '5.2' for 5 2/3 innings)"
+      - name: innings_pitched_decimal
+        description: "Innings pitched converted to decimal format for calculations"
+      - name: hits
+        description: "Number of hits allowed"
+      - name: runs
+        description: "Number of runs allowed"
+      - name: earned_runs
+        description: "Number of earned runs allowed"
+      - name: walks
+        description: "Number of walks issued (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: home_runs
+        description: "Number of home runs allowed"
+      - name: pitches
+        description: "Total number of pitches thrown"
+      - name: strikes
+        description: "Number of strikes thrown"
+      - name: strike_percentage
+        description: "Calculated strike percentage (strikes / pitches * 100)"
+      - name: whip
+        description: "Calculated WHIP (Walks + Hits per Inning Pitched)"
+      - name: k_per_nine
+        description: "Calculated strikeouts per 9 innings"
+      - name: bb_per_nine
+        description: "Calculated walks per 9 innings"
+      - name: era
+        description: "Season earned run average as of this game"
+
+  - name: int_mlb__leagues
+    description: |
+      MLB leagues at intermediate layer.
+      No additional enrichment needed for reference data.
+    columns:
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: league_name
+        description: "Full league name (e.g., 'American League', 'National League')"
+        tests:
+          - not_null
+      - name: league_abbr
+        description: "League abbreviation (e.g., 'AL', 'NL')"
+
+  - name: int_mlb__divisions_enriched
+    description: |
+      MLB divisions enriched with league information.
+      Provides division details with their parent league context.
+    columns:
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: division_name
+        description: "Full division name (e.g., 'American League East')"
+        tests:
+          - not_null
+      - name: division_abbr
+        description: "Division abbreviation (e.g., 'ALE', 'NLC', 'NLW')"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_mlb__leagues')
+                field: league_id
+      - name: league_name
+        description: "Full league name from parent league"
+      - name: league_abbr_name
+        description: "League abbreviation from parent league"

@@ -1,4 +1,13 @@
-{{ config(tags=["core", "mlb"]) }}
+{{ config(
+  tags=["core", "mlb", "deprecated"],
+  materialized='view'
+) }}
+
+/*
+ * DEPRECATED: This model has been replaced by fct_mlb__games in marts/mlb/
+ * Please use {{ ref('fct_mlb__games') }} instead.
+ * This model will be removed in a future version.
+ */
 
 select
   game_id,

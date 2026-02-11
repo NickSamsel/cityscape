@@ -1,0 +1,198 @@
+version: 2
+
+models:
+  - name: core_mlb__games
+    description: |
+      DEPRECATED: This model has been replaced by fct_mlb__games in marts/mlb/.
+      Please use ref('fct_mlb__games') instead.
+      This model will be removed in a future version.
+    columns:
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+        tests: 
+          - not_null
+          - unique
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+        tests:
+          - not_null
+      - name: home_team_id
+        description: "{{ doc('mlb_home_team_id') }}"
+        tests:
+          - not_null
+      - name: home_team_name
+        description: "{{ doc('mlb_home_team_name') }}"
+      - name: away_team_id
+        description: "{{ doc('mlb_away_team_id') }}"
+        tests:
+          - not_null
+      - name: away_team_name
+        description: "{{ doc('mlb_away_team_name') }}"
+
+  - name: core_mlb__player_batting_stats
+    description: |
+      DEPRECATED: This model has been replaced by fct_mlb__player_batting_stats in marts/mlb/.
+      Please use ref('fct_mlb__player_batting_stats') instead.
+      This model will be removed in a future version.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Player's name"
+      - name: team_id
+        description: "Unique identifier for the team"
+      - name: team_name
+        description: "Team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: game_date
+        description: "Date of the game"
+      - name: season
+        description: "MLB season year"
+      - name: game_type
+        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+      - name: batting_order
+        description: "Batting order position"
+      - name: position
+        description: "Defensive position"
+      - name: at_bats
+        description: "Number of at-bats"
+      - name: runs
+        description: "Number of runs scored"
+      - name: hits
+        description: "Number of hits"
+      - name: doubles
+        description: "Number of doubles (2B)"
+      - name: triples
+        description: "Number of triples (3B)"
+      - name: home_runs
+        description: "Number of home runs (HR)"
+      - name: rbi
+        description: "Runs batted in"
+      - name: stolen_bases
+        description: "Number of stolen bases"
+      - name: walks
+        description: "Number of walks (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: left_on_base
+        description: "Number of runners left on base"
+      - name: singles
+        description: "Calculated number of singles (1B)"
+      - name: total_bases
+        description: "Calculated total bases (1B + 2*2B + 3*3B + 4*HR)"
+      - name: avg
+        description: "Season batting average as of this game"
+      - name: obp
+        description: "Season on-base percentage as of this game"
+      - name: slg
+        description: "Season slugging percentage as of this game"
+      - name: ops
+        description: "Season on-base plus slugging as of this game"
+
+  - name: core_mlb__player_pitching_stats
+    description: |
+      DEPRECATED: This model has been replaced by fct_mlb__player_pitching_stats in marts/mlb/.
+      Please use ref('fct_mlb__player_pitching_stats') instead.
+      This model will be removed in a future version.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Player's name"
+      - name: team_id
+        description: "Unique identifier for the team"
+      - name: team_name
+        description: "Team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: game_date
+        description: "Date of the game"
+      - name: season
+        description: "MLB season year"
+      - name: game_type
+        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+      - name: innings_pitched
+        description: "Innings pitched string format (e.g., '5.2' for 5 2/3 innings)"
+      - name: innings_pitched_decimal
+        description: "Innings pitched in decimal format for calculations"
+      - name: hits
+        description: "Number of hits allowed"
+      - name: runs
+        description: "Number of runs allowed"
+      - name: earned_runs
+        description: "Number of earned runs allowed"
+      - name: walks
+        description: "Number of walks issued (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: home_runs
+        description: "Number of home runs allowed"
+      - name: pitches
+        description: "Total number of pitches thrown"
+      - name: strikes
+        description: "Number of strikes thrown"
+      - name: strike_percentage
+        description: "Calculated strike percentage for this game"
+      - name: whip
+        description: "Calculated WHIP (Walks + Hits per Inning Pitched) for this game"
+      - name: era
+        description: "Season earned run average as of this game"
+
+  - name: core_mlb__leagues
+    description: |
+      Core model for MLB leagues.
+      Contains American League (AL) and National League (NL) reference data.
+    columns:
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: league_name
+        description: "Full league name (e.g., 'American League', 'National League')"
+        tests:
+          - not_null
+      - name: league_abbr
+        description: "League abbreviation (e.g., 'AL', 'NL')"
+
+  - name: core_mlb__divisions
+    description: |
+      Core model for MLB divisions with league information.
+      Contains East, Central, and West divisions for both leagues.
+    columns:
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: division_name
+        description: "Full division name (e.g., 'American League East')"
+        tests:
+          - not_null
+      - name: division_abbr
+        description: "Division abbreviation (e.g., 'ALE', 'NLC', 'NLW')"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('core_mlb__leagues')
+                field: league_id
+      - name: league_name
+        description: "Full league name from parent league"
+      - name: league_abbr_name
+        description: "League abbreviation from parent league"

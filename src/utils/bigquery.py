@@ -131,6 +131,33 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
     pitching_stats_table_id = f"{project_id}.raw.mlb_player_pitching_stats"
     pitching_stats_table = bigquery.Table(pitching_stats_table_id, schema=pitching_stats_schema)
     client.create_table(pitching_stats_table, exists_ok=True)
+    
+    # Define schema for mlb_leagues
+    leagues_schema = [
+        bigquery.SchemaField("league_id", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("league_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("league_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+    
+    leagues_table_id = f"{project_id}.raw.mlb_leagues"
+    leagues_table = bigquery.Table(leagues_table_id, schema=leagues_schema)
+    client.create_table(leagues_table, exists_ok=True)
+    
+    # Define schema for mlb_divisions
+    divisions_schema = [
+        bigquery.SchemaField("division_id", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("division_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("division_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("league_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+    
+    divisions_table_id = f"{project_id}.raw.mlb_divisions"
+    divisions_table = bigquery.Table(divisions_table_id, schema=divisions_schema)
+    client.create_table(divisions_table, exists_ok=True)
 
 
 def upsert_mlb_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
@@ -517,6 +544,147 @@ def upsert_mlb_player_pitching_stats(client: bigquery.Client, project_id: str, r
               strikeouts, home_runs, pitches, strikes, era, raw, loaded_at)
       VALUES (S.game_id, S.player_id, S.team_id, S.player_name, S.innings_pitched, S.hits, S.runs, 
               S.earned_runs, S.walks, S.strikeouts, S.home_runs, S.pitches, S.strikes, S.era, S.raw, S.loaded_at)
+    """
+    
+    query_job = client.query(merge_sql)
+    query_job.result()
+    
+    # Clean up temp table
+    client.delete_table(temp_table, not_found_ok=True)
+    
+    return len(data)
+
+
+def upsert_mlb_leagues(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB leagues data to BigQuery."""
+    if not rows:
+        return 0
+    
+    import json
+    from datetime import datetime
+    
+    data = []
+    for r in rows:
+        data.append({
+            "league_id": r["league_id"],
+            "league_name": r["league_name"],
+            "league_abbr": r.get("league_abbr"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Deduplicate by league_id - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['league_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate league records")
+    
+    table_id = f"{project_id}.raw.mlb_leagues"
+    
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=[
+            bigquery.SchemaField("league_id", "INT64", mode="REQUIRED"),
+            bigquery.SchemaField("league_name", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("league_abbr", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+        ]
+    )
+    
+    temp_table = f"{project_id}.raw._temp_mlb_leagues"
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+    
+    # Merge into main table
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.league_id = S.league_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        league_name = S.league_name,
+        league_abbr = S.league_abbr,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (league_id, league_name, league_abbr, raw, loaded_at)
+      VALUES (S.league_id, S.league_name, S.league_abbr, S.raw, S.loaded_at)
+    """
+    
+    query_job = client.query(merge_sql)
+    query_job.result()
+    
+    # Clean up temp table
+    client.delete_table(temp_table, not_found_ok=True)
+    
+    return len(data)
+
+
+def upsert_mlb_divisions(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB divisions data to BigQuery."""
+    if not rows:
+        return 0
+    
+    import json
+    from datetime import datetime
+    
+    data = []
+    for r in rows:
+        data.append({
+            "division_id": r["division_id"],
+            "division_name": r["division_name"],
+            "division_abbr": r.get("division_abbr"),
+            "league_id": r.get("league_id"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Deduplicate by division_id - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['division_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate division records")
+    
+    table_id = f"{project_id}.raw.mlb_divisions"
+    
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=[
+            bigquery.SchemaField("division_id", "INT64", mode="REQUIRED"),
+            bigquery.SchemaField("division_name", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("division_abbr", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("league_id", "INT64", mode="NULLABLE"),
+            bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+        ]
+    )
+    
+    temp_table = f"{project_id}.raw._temp_mlb_divisions"
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+    
+    # Merge into main table
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.division_id = S.division_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        division_name = S.division_name,
+        division_abbr = S.division_abbr,
+        league_id = S.league_id,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (division_id, division_name, division_abbr, league_id, raw, loaded_at)
+      VALUES (S.division_id, S.division_name, S.division_abbr, S.league_id, S.raw, S.loaded_at)
     """
     
     query_job = client.query(merge_sql)

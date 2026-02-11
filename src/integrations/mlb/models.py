@@ -8,6 +8,25 @@ from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
+class MlbLeague:
+    """MLB league information."""
+    league_id: int
+    league_name: str
+    league_abbr: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbDivision:
+    """MLB division information."""
+    division_id: int
+    division_name: str
+    division_abbr: str | None
+    league_id: int | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
 class MlbTeam:
     """MLB team information."""
     team_id: int

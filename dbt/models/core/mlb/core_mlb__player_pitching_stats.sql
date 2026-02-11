@@ -1,4 +1,13 @@
-{{ config(tags=["core", "mlb", "player_stats"]) }}
+{{ config(
+  tags=["core", "mlb", "player_stats", "deprecated"],
+  materialized='view'
+) }}
+
+/*
+ * DEPRECATED: This model has been replaced by fct_mlb__player_pitching_stats in marts/mlb/
+ * Please use {{ ref('fct_mlb__player_pitching_stats') }} instead.
+ * This model will be removed in a future version.
+ */
 
 select
   game_id,

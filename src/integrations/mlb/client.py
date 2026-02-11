@@ -8,7 +8,14 @@ from typing import Any
 import statsapi as mlb_statsapi
 
 from .exceptions import MlbApiResponseError
-from .models import MlbGame, MlbPlayerBattingStats, MlbPlayerPitchingStats, MlbTeam
+from .models import (
+    MlbDivision,
+    MlbGame,
+    MlbLeague,
+    MlbPlayerBattingStats,
+    MlbPlayerPitchingStats,
+    MlbTeam,
+)
 from .utils import extract_score, extract_team_id, parse_int_or_none, parse_str_or_none
 
 
@@ -27,6 +34,59 @@ class MlbStatsApi:
                 f"Expected dict from statsapi.get({endpoint!r}, ...), got {type(payload)}"
             )
         return payload
+
+    def list_leagues(self) -> list[MlbLeague]:
+        """List all MLB leagues.
+        
+        Returns:
+            List of MlbLeague objects containing league information
+        """
+        payload = self._get_json("league", {"sportId": 1})
+        leagues = payload.get("leagues", [])
+        out: list[MlbLeague] = []
+        
+        for lg in leagues:
+            if not isinstance(lg, dict):
+                continue
+            league_id = int(lg.get("id"))
+            out.append(
+                MlbLeague(
+                    league_id=league_id,
+                    league_name=str(lg.get("name") or ""),
+                    league_abbr=(lg.get("abbreviation") if isinstance(lg.get("abbreviation"), str) else None),
+                    raw=lg,
+                )
+            )
+        return out
+
+    def list_divisions(self) -> list[MlbDivision]:
+        """List all MLB divisions.
+        
+        Returns:
+            List of MlbDivision objects containing division information
+        """
+        payload = self._get_json("divisions", {"sportId": 1})
+        divisions = payload.get("divisions", [])
+        out: list[MlbDivision] = []
+        
+        for d in divisions:
+            if not isinstance(d, dict):
+                continue
+            division_id = int(d.get("id"))
+            out.append(
+                MlbDivision(
+                    division_id=division_id,
+                    division_name=str(d.get("name") or ""),
+                    division_abbr=(d.get("abbreviation") if isinstance(d.get("abbreviation"), str) else None),
+                    league_id=(
+                        int(d["league"]["id"])
+                        if isinstance(d.get("league"), dict) and d["league"].get("id") is not None
+                        else None
+                    ),
+                    raw=d,
+                )
+            )
+        return out
 
     def list_teams(self, *, season: int) -> list[MlbTeam]:
         """List all MLB teams for a given season.

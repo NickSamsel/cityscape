@@ -183,6 +183,8 @@ Examples:
         print(f"Seasons processed: {len(result['seasons'])}")
         print(f"Total teams: {result['total_teams']:,}")
         print(f"Total games: {result['total_games']:,}")
+        print(f"Total leagues: {result.get('total_leagues', 0):,}")
+        print(f"Total divisions: {result.get('total_divisions', 0):,}")
         if args.parallel:
             print(f"\n💡 Parallel mode processed {num_seasons} seasons concurrently!")
             print(f"   Sequential would take ~{num_seasons * 7} seconds")
@@ -208,13 +210,13 @@ Examples:
         if start_date or end_date:
             print("⚠️  Note: Date filtering requires calling the function directly")
             from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery
-            teams, games = ingest_mlb_season_bigquery(
+            teams, games, leagues, divisions = ingest_mlb_season_bigquery(
                 season=season,
                 game_types=args.game_types,
                 start_date=start_date,
                 end_date=end_date
             )
-            result = {"teams": teams, "games": games}
+            result = {"teams": teams, "games": games, "leagues": leagues, "divisions": divisions}
         else:
             result = mlb_season_ingestion(season=season, game_types=args.game_types)
         
@@ -223,6 +225,8 @@ Examples:
         print(f"{'='*80}")
         print(f"Teams: {result['teams']:,}")
         print(f"Games: {result['games']:,}")
+        print(f"Leagues: {result.get('leagues', 0):,}")
+        print(f"Divisions: {result.get('divisions', 0):,}")
         print(f"{'='*80}")
         print(f"Shutting down Prefect server...")
         print()

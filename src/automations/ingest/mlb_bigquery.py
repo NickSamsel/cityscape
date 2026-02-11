@@ -10,6 +10,8 @@ from src.utils.bigquery import (
     ensure_mlb_tables,
     upsert_mlb_games,
     upsert_mlb_teams,
+    upsert_mlb_leagues,
+    upsert_mlb_divisions,
 )
 from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
@@ -79,18 +81,64 @@ def fetch_mlb_season_data(
     return team_rows, game_rows
 
 
+def fetch_mlb_reference_data() -> tuple[list[dict], list[dict]]:
+    """Fetch MLB reference data (leagues and divisions).
+    
+    Returns raw data dictionaries ready for BigQuery ingestion.
+    
+    Returns:
+        Tuple of (league_rows, division_rows)
+    """
+    
+    logger = get_run_logger()
+    api = MlbStatsApi()
+
+    logger.info("Fetching MLB leagues and divisions")
+    leagues = api.list_leagues()
+    divisions = api.list_divisions()
+
+    league_rows = [
+        {
+            "league_id": lg.league_id,
+            "league_name": lg.league_name,
+            "league_abbr": lg.league_abbr,
+            "raw": lg.raw,
+        }
+        for lg in leagues
+    ]
+
+    division_rows = [
+        {
+            "division_id": d.division_id,
+            "division_name": d.division_name,
+            "division_abbr": d.division_abbr,
+            "league_id": d.league_id,
+            "raw": d.raw,
+        }
+        for d in divisions
+    ]
+
+    logger.info(f"Fetched leagues={len(league_rows)} divisions={len(division_rows)}")
+    return league_rows, division_rows
+
+
 def ingest_mlb_season_bigquery(
     *,
     season: int,
     game_types: str = "R",
     start_date: date | None = None,
     end_date: date | None = None,
-) -> tuple[int, int]:
-    """Fetch MLB teams + games for a season and land them into BigQuery raw tables.
+) -> tuple[int, int, int, int]:
+    """Fetch MLB teams + games + reference data for a season and land them into BigQuery raw tables.
 
     Lands into:
     - raw.mlb_teams
     - raw.mlb_games
+    - raw.mlb_leagues
+    - raw.mlb_divisions
+    
+    Returns:
+        Tuple of (teams_count, games_count, leagues_count, divisions_count)
     """
 
     logger = get_run_logger()
@@ -104,13 +152,16 @@ def ingest_mlb_season_bigquery(
 
     client = get_client(cfg)
     
-    # Fetch data
+    # Fetch season data
     team_rows, game_rows = fetch_mlb_season_data(
         season=season,
         game_types=game_types,
         start_date=start_date,
         end_date=end_date
     )
+    
+    # Fetch reference data (leagues and divisions)
+    league_rows, division_rows = fetch_mlb_reference_data()
 
     logger.info(f"Connecting to BigQuery project={cfg.project_id}")
 
@@ -119,6 +170,11 @@ def ingest_mlb_season_bigquery(
 
     inserted_teams = upsert_mlb_teams(client, cfg.project_id, team_rows)
     inserted_games = upsert_mlb_games(client, cfg.project_id, game_rows)
+    inserted_leagues = upsert_mlb_leagues(client, cfg.project_id, league_rows)
+    inserted_divisions = upsert_mlb_divisions(client, cfg.project_id, division_rows)
 
-    logger.info(f"Ingest complete season={season} teams={inserted_teams} games={inserted_games}")
-    return inserted_teams, inserted_games
+    logger.info(
+        f"Ingest complete season={season} teams={inserted_teams} games={inserted_games} "
+        f"leagues={inserted_leagues} divisions={inserted_divisions}"
+    )
+    return inserted_teams, inserted_games, inserted_leagues, inserted_divisions

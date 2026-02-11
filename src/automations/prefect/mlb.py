@@ -25,6 +25,8 @@ from src.utils.bigquery import (
     ensure_mlb_tables,
     upsert_mlb_teams,
     upsert_mlb_games,
+    upsert_mlb_leagues,
+    upsert_mlb_divisions,
 )
 from src.utils.settings import get_settings
 
@@ -39,10 +41,13 @@ def mlb_season_ingestion(*, season: int, game_types: str = "R") -> dict[str, int
     logger = get_run_logger()
     logger.info(f"Starting MLB ingestion season={season} game_types={game_types}")
 
-    teams, games = ingest_mlb_season_bigquery(season=season, game_types=game_types)
+    teams, games, leagues, divisions = ingest_mlb_season_bigquery(season=season, game_types=game_types)
 
-    logger.info(f"Finished MLB ingestion season={season} teams={teams} games={games}")
-    return {"teams": teams, "games": games}
+    logger.info(
+        f"Finished MLB ingestion season={season} teams={teams} games={games} "
+        f"leagues={leagues} divisions={divisions}"
+    )
+    return {"teams": teams, "games": games, "leagues": leagues, "divisions": divisions}
 
 
 @flow(name="mlb-daily-ingestion", log_prints=False)
@@ -79,7 +84,7 @@ def mlb_daily_ingestion(
         f"Running MLB daily ingest season={season} game_types={game_types} window={window_start}..{window_end}"
     )
 
-    teams, games = ingest_mlb_season_bigquery(
+    teams, games, leagues, divisions = ingest_mlb_season_bigquery(
         season=season,
         game_types=game_types,
         start_date=window_start,
@@ -90,6 +95,8 @@ def mlb_daily_ingestion(
         "status": "ok",
         "teams": teams,
         "games": games,
+        "leagues": leagues,
+        "divisions": divisions,
         "season": season,
         "window_start": window_start.isoformat(),
         "window_end": window_end.isoformat(),
@@ -214,6 +221,11 @@ def mlb_multi_season_ingestion_parallel(
         f"{len(all_team_rows)} team records, {len(all_game_rows)} game records"
     )
     
+    # Fetch reference data (leagues and divisions) - only need to do this once
+    logger.info("Fetching reference data (leagues and divisions)...")
+    from src.automations.ingest.mlb_bigquery import fetch_mlb_reference_data
+    league_rows, division_rows = fetch_mlb_reference_data()
+    
     # Now write all data to BigQuery in a single batch operation
     logger.info("Writing all data to BigQuery in batch...")
     settings = get_settings()
@@ -229,16 +241,21 @@ def mlb_multi_season_ingestion_parallel(
     
     inserted_teams = upsert_mlb_teams(client, cfg.project_id, all_team_rows)
     inserted_games = upsert_mlb_games(client, cfg.project_id, all_game_rows)
+    inserted_leagues = upsert_mlb_leagues(client, cfg.project_id, league_rows)
+    inserted_divisions = upsert_mlb_divisions(client, cfg.project_id, division_rows)
     
     logger.info(
         f"Completed PARALLEL multi-season ingestion: {len(seasons_processed)} seasons, "
-        f"{inserted_teams} teams, {inserted_games} games written to BigQuery"
+        f"{inserted_teams} teams, {inserted_games} games, "
+        f"{inserted_leagues} leagues, {inserted_divisions} divisions written to BigQuery"
     )
 
     return {
         "seasons_processed": len(seasons_processed),
         "total_teams": inserted_teams,
         "total_games": inserted_games,
+        "total_leagues": inserted_leagues,
+        "total_divisions": inserted_divisions,
         "seasons": sorted(seasons_processed),
     }
 
