@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: int_mlb__player_pitching_stats_enriched
+    description: "Enriched MLB player pitching statistics with game and team details"
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+      - name: player_id
+        description: "Unique identifier for the player"
+      - name: player_name
+        description: "Player's name"
+      - name: team_id
+        description: "Unique identifier for the team"
+      - name: team_name
+        description: "Team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: game_date
+        description: "Date of the game"
+      - name: season
+        description: "MLB season year"
+      - name: game_type
+        description: "Type of game (R=regular, S=spring, F=wild card, etc.)"
+      - name: innings_pitched
+        description: "Innings pitched (e.g., '5.2' for 5 2/3 innings)"
+      - name: hits
+        description: "Number of hits allowed"
+      - name: runs
+        description: "Number of runs allowed"
+      - name: earned_runs
+        description: "Number of earned runs allowed"
+      - name: walks
+        description: "Number of walks issued"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: home_runs
+        description: "Number of home runs allowed"
+      - name: pitches
+        description: "Total number of pitches thrown"
+      - name: strikes
+        description: "Number of strikes thrown"
+      - name: era
+        description: "Season earned run average"

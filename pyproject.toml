@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cityscape = "cityscape.cli:main"
+cityscape = "src.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -29,7 +29,7 @@ dev = [
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cityscape"]
+packages = ["src"]
 
 
 [tool.pytest.ini_options]

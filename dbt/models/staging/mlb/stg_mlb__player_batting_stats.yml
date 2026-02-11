@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_mlb__player_batting_stats
+    description: "MLB player batting statistics staged from raw landing tables, game-by-game stats"
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests: [not_null]
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests: [not_null]
+      - name: team_id
+        description: "Unique identifier for the team"
+        tests: [not_null]
+      - name: player_name
+        description: "Player's name"
+        tests: [not_null]
+      - name: batting_order
+        description: "Batting order position (e.g., '100' for leadoff)"
+      - name: position
+        description: "Defensive position (e.g., 'LF', 'SS', 'C')"
+      - name: at_bats
+        description: "Number of at-bats"
+      - name: runs
+        description: "Number of runs scored"
+      - name: hits
+        description: "Number of hits"
+      - name: doubles
+        description: "Number of doubles (2B)"
+      - name: triples
+        description: "Number of triples (3B)"
+      - name: home_runs
+        description: "Number of home runs (HR)"
+      - name: rbi
+        description: "Runs batted in"
+      - name: stolen_bases
+        description: "Number of stolen bases"
+      - name: walks
+        description: "Number of walks (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: left_on_base
+        description: "Number of runners left on base"
+      - name: avg
+        description: "Season batting average as of this game"
+      - name: obp
+        description: "Season on-base percentage as of this game"
+      - name: slg
+        description: "Season slugging percentage as of this game"
+      - name: ops
+        description: "Season on-base plus slugging as of this game"

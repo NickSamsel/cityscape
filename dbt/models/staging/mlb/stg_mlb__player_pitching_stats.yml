@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: stg_mlb__player_pitching_stats
+    description: "MLB player pitching statistics staged from raw landing tables, game-by-game stats"
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests: [not_null]
+      - name: player_id
+        description: "Unique identifier for the player"
+        tests: [not_null]
+      - name: team_id
+        description: "Unique identifier for the team"
+        tests: [not_null]
+      - name: player_name
+        description: "Player's name"
+        tests: [not_null]
+      - name: innings_pitched
+        description: "Innings pitched (e.g., '5.2' for 5 2/3 innings)"
+      - name: hits
+        description: "Number of hits allowed"
+      - name: runs
+        description: "Number of runs allowed"
+      - name: earned_runs
+        description: "Number of earned runs allowed"
+      - name: walks
+        description: "Number of walks issued (BB)"
+      - name: strikeouts
+        description: "Number of strikeouts"
+      - name: home_runs
+        description: "Number of home runs allowed"
+      - name: pitches
+        description: "Total number of pitches thrown"
+      - name: strikes
+        description: "Number of strikes thrown"
+      - name: era
+        description: "Season earned run average as of this game"

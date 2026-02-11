@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from cityscape.integrations.mlb.statsapi import MlbStatsApi
-from cityscape.utils.bigquery import (
+from src.integrations.mlb.statsapi import MlbStatsApi
+from src.utils.bigquery import (
     BigQueryConfig,
     get_client,
     ensure_raw_dataset,
@@ -11,8 +11,8 @@ from cityscape.utils.bigquery import (
     upsert_mlb_games,
     upsert_mlb_teams,
 )
-from cityscape.utils.logger import get_run_logger
-from cityscape.utils.settings import get_settings
+from src.utils.logger import get_run_logger
+from src.utils.settings import get_settings
 
 
 def ingest_mlb_season_bigquery(

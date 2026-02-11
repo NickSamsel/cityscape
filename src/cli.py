@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-from cityscape import __version__
-from cityscape.automations.ingest.mlb import ingest_mlb_season
+from src import __version__
+from src.automations.ingest.mlb import ingest_mlb_season
 
 
 def _build_parser() -> argparse.ArgumentParser:

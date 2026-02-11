@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import cityscape
+import src
 
 
 def test_version_is_defined() -> None:
