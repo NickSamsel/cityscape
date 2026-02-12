@@ -31,6 +31,32 @@ players as (
     select * from {{ ref('stg_mlb__players') }}
 ),
 
+-- Aggregate Statcast pitch metrics by game + pitcher
+game_statcast_pitching as (
+    select
+        cast(game_id as string) as game_id,
+        cast(pitcher_id as string) as player_id,
+        count(*) as pitches_thrown,
+        avg(release_speed) as avg_pitch_velocity,
+        max(release_speed) as max_pitch_velocity,
+        min(release_speed) as min_pitch_velocity,
+        avg(release_spin_rate) as avg_spin_rate,
+        max(release_spin_rate) as max_spin_rate,
+        avg(release_extension) as avg_extension,
+        -- Zone control
+        countif(zone between 1 and 9) as pitches_in_zone,
+        safe_divide(countif(zone between 1 and 9), count(*)) as zone_rate,
+        -- Pitch results
+        countif(pitch_result = 'S') as called_strikes,
+        countif(pitch_result = 'W') as swinging_strikes,
+        countif(pitch_result = 'X') as balls_in_play,
+        countif(pitch_result = 'B') as balls,
+        -- Primary pitch type (most common)
+        approx_top_count(pitch_type, 1)[offset(0)].value as primary_pitch_type
+    from {{ ref('stg_mlb__statcast_pitches') }}
+    group by 1, 2
+),
+
 final as (
     select
         ps.game_id,
@@ -232,7 +258,23 @@ final as (
                     else false
                 end
             else null
-        end as is_quality_start
+        end as is_quality_start,
+        
+        -- Statcast pitch metrics (game-level)
+        sc.pitches_thrown as statcast_pitches,
+        sc.avg_pitch_velocity,
+        sc.max_pitch_velocity,
+        sc.min_pitch_velocity,
+        sc.avg_spin_rate,
+        sc.max_spin_rate,
+        sc.avg_extension,
+        sc.pitches_in_zone,
+        sc.zone_rate,
+        sc.called_strikes,
+        sc.swinging_strikes,
+        sc.balls_in_play,
+        sc.balls as balls_thrown,
+        sc.primary_pitch_type as statcast_primary_pitch
         
     from pitching_stats as ps
     left join games as g
@@ -246,6 +288,9 @@ final as (
         on t.division_id = div.division_id
     left join players as p
         on ps.player_id = p.player_id
+    left join game_statcast_pitching as sc
+        on ps.game_id = sc.game_id
+        and ps.player_id = sc.player_id
     where ps.innings_pitched is not null
     
     {% if is_incremental() %}

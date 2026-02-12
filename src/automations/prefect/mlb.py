@@ -19,6 +19,7 @@ from src.automations.ingest.mlb import (
     get_unique_player_ids_from_bigquery,
 )
 from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery, fetch_mlb_season_data
+from src.automations.ingest.mlb_statcast import ingest_mlb_statcast_data_bigquery
 from src.integrations.mlb import MlbStatsApi
 from src.utils.logger import get_run_logger
 from src.utils.bigquery import (
@@ -586,3 +587,55 @@ def mlb_player_dimension_ingestion_parallel(
 
     logger.info(f"Finished PARALLEL MLB player dimension ingestion: {players_loaded} players loaded")
     return {"players": players_loaded}
+
+
+@flow(name="mlb-statcast-ingestion", log_prints=False)
+def mlb_statcast_ingestion(
+    *,
+    season: int | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    game_ids: list[int] | None = None,
+    batch_size: int = 100,
+    max_workers: int = 5,
+) -> dict[str, int]:
+    """Prefect flow that ingests MLB Statcast data into BigQuery with parallel processing.
+    
+    Args:
+        season: MLB season year (used if game_ids not provided)
+        start_date: Optional start date filter
+        end_date: Optional end date filter
+        game_ids: Specific game IDs to fetch Statcast data for
+        batch_size: Number of games to process per batch (default: 100)
+        max_workers: Number of concurrent threads for API calls (default: 5)
+    
+    Returns:
+        Dictionary with counts of pitches and batted balls processed
+    """
+    
+    logger = get_run_logger()
+    logger.info(
+        f"Starting MLB Statcast ingestion: season={season} "
+        f"start_date={start_date} end_date={end_date} game_ids={game_ids} "
+        f"batch_size={batch_size} max_workers={max_workers}"
+    )
+
+    pitches, batted_balls = ingest_mlb_statcast_data_bigquery(
+        season=season,
+        start_date=start_date,
+        end_date=end_date,
+        game_ids=game_ids,
+        batch_size=batch_size,
+        max_workers=max_workers,
+    )
+    
+    logger.info(
+        f"Finished MLB Statcast ingestion: "
+        f"pitches={pitches:,} batted_balls={batted_balls:,}"
+    )
+    
+    return {
+        "pitches": pitches,
+        "batted_balls": batted_balls,
+    }
+

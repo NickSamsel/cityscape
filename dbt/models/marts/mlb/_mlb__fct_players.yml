@@ -1,0 +1,115 @@
+version: 2
+
+models:
+  - name: fct_mlb__players
+    description: >
+      Comprehensive player fact table integrating player dimensions, career statistics, 
+      and Statcast metrics. This mart provides a complete analytical view of each MLB player's 
+      profile and performance, including:
+      
+      - Biographical and physical attributes
+      - Career batting statistics (games, at-bats, hits, home runs, etc.)
+      - Advanced batting metrics (AVG, OBP, SLG, OPS)
+      - Career pitching statistics (games, innings, ERA, WHIP, K/9, etc.)
+      - Statcast batting metrics (exit velocity, launch angle, barrel rate, hard-hit rate)
+      - Statcast pitching metrics (pitch velocity, spin rate, pitch types)
+      - Player classification flags (batter, pitcher, two-way player)
+      
+    columns:
+      - name: player_id
+        description: Unique identifier for the player (primary key)
+        tests:
+          - unique
+          - not_null
+      
+      - name: full_name
+        description: Player's full name
+      
+      - name: primary_position_name
+        description: Player's primary position (e.g., First Baseman, Starting Pitcher)
+      
+      - name: mlb_debut_date
+        description: Date of player's MLB debut
+      
+      - name: years_experience
+        description: Years since MLB debut
+      
+      - name: active
+        description: Whether player is currently active
+      
+      # Career Batting Stats
+      - name: career_games_batted
+        description: Total games with batting appearances
+      
+      - name: career_home_runs
+        description: Career home runs
+      
+      - name: career_batting_avg
+        description: Career batting average (hits / at-bats)
+      
+      - name: career_ops
+        description: Career OPS (on-base plus slugging percentage)
+      
+      # Career Pitching Stats
+      - name: career_games_pitched
+        description: Total games with pitching appearances
+      
+      - name: career_era
+        description: Career earned run average
+      
+      - name: career_whip
+        description: Career walks plus hits per inning pitched
+      
+      - name: career_k_per_9
+        description: Career strikeouts per 9 innings
+      
+      # Statcast Batting Metrics
+      - name: avg_exit_velocity
+        description: Average exit velocity (launch speed) in mph
+      
+      - name: max_exit_velocity
+        description: Maximum recorded exit velocity in mph
+      
+      - name: barrel_rate
+        description: Percentage of batted balls that are barrels (optimal contact)
+      
+      - name: hard_hit_rate
+        description: Percentage of batted balls hit 95+ mph
+      
+      - name: avg_sprint_speed
+        description: Average sprint speed in feet per second
+      
+      # Statcast Pitching Metrics
+      - name: avg_release_speed
+        description: Average pitch velocity in mph
+      
+      - name: max_release_speed
+        description: Maximum pitch velocity in mph
+      
+      - name: avg_spin_rate
+        description: Average pitch spin rate in RPM
+      
+      - name: primary_pitch_type
+        description: Most frequently thrown pitch type code
+      
+      - name: primary_pitch_description
+        description: Description of primary pitch type
+      
+      - name: primary_pitch_avg_speed
+        description: Average velocity of primary pitch in mph
+      
+      # Player Type Flags
+      - name: is_batter
+        description: Flag indicating player has significant batting experience (10+ games)
+      
+      - name: is_pitcher
+        description: Flag indicating player has significant pitching experience (5+ games)
+      
+      - name: is_two_way_player
+        description: Flag indicating player excels at both batting and pitching
+      
+      - name: last_game_date
+        description: Most recent game date (batting or pitching)
+      
+      - name: dbt_updated_at
+        description: Timestamp when record was last updated by dbt

@@ -124,3 +124,53 @@ class MlbPlayer:
     mlb_debut_date: date | None
     active: bool | None
     raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbStatcastPitch:
+    """Statcast pitch-level data with tracking metrics."""
+    play_id: str
+    game_id: int
+    at_bat_index: int | None
+    pitcher_id: int
+    batter_id: int
+    catcher_id: int | None
+    umpire_id: int | None
+    pitch_number: int | None
+    pitch_type: str | None
+    pitch_type_description: str | None
+    release_speed: float | None  # mph
+    release_spin_rate: float | None  # rpm
+    release_extension: float | None  # feet
+    release_pos_x: float | None  # feet
+    release_pos_y: float | None  # feet
+    release_pos_z: float | None  # feet
+    zone: int | None
+    plate_x: float | None  # feet
+    plate_z: float | None  # feet
+    strikes: int | None
+    balls: int | None
+    outs: int | None
+    pitch_result: str | None
+    pitch_result_description: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbStatcastBattedBall:
+    """Statcast batted ball data with exit velocity and launch angle."""
+    play_id: str
+    game_id: int
+    at_bat_index: int | None
+    batter_id: int
+    pitcher_id: int
+    launch_speed: float | None  # mph (exit velocity)
+    launch_angle: float | None  # degrees
+    launch_distance: float | None  # feet (projected)
+    hit_location: int | None
+    hit_trajectory: str | None
+    hit_result: str | None
+    sprint_speed: float | None  # ft/sec
+    is_barrel: bool | None
+    is_hard_hit: bool | None  # 95+ mph exit velo
+    raw: dict[str, Any]

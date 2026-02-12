@@ -363,3 +363,141 @@ models:
         description: "{{ doc('mlb_active') }}"
       - name: raw
         description: "{{doc('mlb_raw_player') }}"
+
+  - name: int_mlb__statcast_pitches_enriched
+    description: |
+      Enriched pitch-level Statcast data with complete game, player, and team context.
+      Each row represents a single pitch with velocity, spin rate, location, and outcome.
+    columns:
+      - name: play_id
+        description: "Unique identifier for the pitch (game_id_atbat_pitchnum)"
+        tests:
+          - unique
+          - not_null
+      - name: game_id
+        description: "MLB game identifier"
+      - name: at_bat_index
+        description: "Sequential at-bat number within the game"
+      - name: pitch_number
+        description: "Sequential pitch number within the at-bat"
+      - name: season
+        description: "MLB season year"
+      - name: game_date
+        description: "Date the game was played"
+      - name: pitcher_id
+        description: "MLB player ID for the pitcher"
+      - name: pitcher_name
+        description: "Full name of the pitcher"
+      - name: pitcher_hand
+        description: "Pitcher throwing hand (L/R)"
+      - name: pitcher_age
+        description: "Pitcher age on game date"
+      - name: batter_id
+        description: "MLB player ID for the batter"
+      - name: batter_name
+        description: "Full name of the batter"
+      - name: batter_hand
+        description: "Batter hitting hand (L/R)"
+      - name: batter_age
+        description: "Batter age on game date"
+      - name: pitcher_batter_handedness
+        description: "Matchup type (Same/Opposite)"
+      - name: pitch_type
+        description: "Pitch type code (FF, CU, SL, etc.)"
+      - name: pitch_type_description
+        description: "Full pitch type description"
+      - name: release_speed
+        description: "Pitch velocity in mph"
+      - name: release_spin_rate
+        description: "Pitch spin rate in rpm"
+      - name: release_extension
+        description: "Release point extension in feet"
+      - name: zone
+        description: "Strike zone location (1-9 in zone, 11+ out of zone)"
+      - name: in_strike_zone
+        description: "Boolean flag if pitch was in strike zone"
+      - name: plate_x
+        description: "Horizontal plate location in feet from center"
+      - name: plate_z
+        description: "Vertical plate location in feet from ground"
+      - name: strikes
+        description: "Strike count when pitch was thrown"
+      - name: balls
+        description: "Ball count when pitch was thrown"
+      - name: outs
+        description: "Number of outs when pitch was thrown"
+      - name: count_description
+        description: "Count as string (e.g., '2-1')"
+      - name: pitch_result
+        description: "Pitch result code (S, X, B, F, W)"
+      - name: velocity_tier
+        description: "Velocity classification (Elite/Above Average/Average/Below Average/Soft)"
+      - name: spin_tier
+        description: "Spin rate classification (High/Average/Low)"
+
+  - name: int_mlb__statcast_batted_balls_enriched
+    description: |
+      Enriched batted ball Statcast data with complete game, player, and team context.
+      Each row represents a single batted ball with exit velocity, launch angle, and outcomes.
+    columns:
+      - name: play_id
+        description: "Unique identifier for the batted ball (game_id_atbat_pitchnum)"
+        tests:
+          - unique
+          - not_null
+      - name: game_id
+        description: "MLB game identifier"
+      - name: at_bat_index
+        description: "Sequential at-bat number within the game"
+      - name: season
+        description: "MLB season year"
+      - name: game_date
+        description: "Date the game was played"
+      - name: batter_id
+        description: "MLB player ID for the batter"
+      - name: batter_name
+        description: "Full name of the batter"
+      - name: batter_hand
+        description: "Batter hitting hand (L/R)"
+      - name: batter_age
+        description: "Batter age on game date"
+      - name: pitcher_id
+        description: "MLB player ID for the pitcher"
+      - name: pitcher_name
+        description: "Full name of the pitcher"
+      - name: pitcher_hand
+        description: "Pitcher throwing hand (L/R)"
+      - name: pitcher_age
+        description: "Pitcher age on game date"
+      - name: pitcher_batter_handedness
+        description: "Matchup type (Same/Opposite)"
+      - name: launch_speed
+        description: "Exit velocity in mph"
+      - name: launch_angle
+        description: "Launch angle in degrees"
+      - name: launch_distance
+        description: "Projected distance in feet"
+      - name: hit_location
+        description: "Field location code"
+      - name: hit_trajectory
+        description: "Batted ball trajectory (fly_ball, line_drive, ground_ball, popup)"
+      - name: hit_result
+        description: "Play outcome (Single, Double, Home Run, etc.)"
+      - name: sprint_speed
+        description: "Runner sprint speed in ft/sec"
+      - name: is_barrel
+        description: "Boolean flag for barrel (98+ mph, 26-30° launch angle)"
+      - name: is_hard_hit
+        description: "Boolean flag for hard hit (95+ mph exit velocity)"
+      - name: exit_velo_tier
+        description: "Exit velocity classification (Elite/Great/Good/Average/Below Average/Weak)"
+      - name: trajectory_bucket
+        description: "Trajectory classification (Pop Up/Fly Ball/Line Drive/Ground Ball/Topped)"
+      - name: quality_contact_tier
+        description: "Contact quality (Barrel/Hard Hit/Not Hard Hit)"
+      - name: distance_bucket
+        description: "Distance classification (400+ ft/350-399 ft/etc.)"
+      - name: is_home_run
+        description: "Boolean flag for home run"
+      - name: is_hit
+        description: "Boolean flag for any hit (single/double/triple/HR)"

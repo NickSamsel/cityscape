@@ -286,3 +286,84 @@ models:
         description: "Strikeout percentage (K / total batters faced * 100). Elite strikeout pitchers achieve K% > 27%, very good is 23-27%"
       - name: is_quality_start
         description: "Boolean indicator of quality start (IP >= 6.0 AND ER <= 3). Quality starts represent consistent, effective outings that give the team a chance to win"
+
+  - name: fct_mlb__statcast_pitches
+    description: |
+      Analytics-ready fact table for pitch-level Statcast data.
+      Each row represents a single pitch with complete context including pitcher, batter, game details, 
+      velocity, spin rate, and pitch location. Essential for pitch arsenal analysis, sequencing studies,
+      and pitcher effectiveness evaluation.
+    columns:
+      - name: play_id
+        description: "Unique identifier for the pitch (game_id_atbat_pitchnum)"
+        tests:
+          - unique
+          - not_null
+      - name: game_id
+        description: "MLB game identifier"
+        tests:
+          - not_null
+      - name: pitcher_id
+        description: "MLB player ID for the pitcher"
+        tests:
+          - not_null
+      - name: batter_id
+        description: "MLB player ID for the batter"
+        tests:
+          - not_null
+      - name: release_speed
+        description: "Pitch velocity in mph. Fastballs typically 90-100+ mph, breaking balls 70-85 mph"
+      - name: release_spin_rate
+        description: "Pitch spin rate in rpm. Higher spin creates more movement. Fastballs: 2200-2800 rpm, curves: 2500-3000 rpm"
+      - name: zone
+        description: "Strike zone location (1-9 in zone, 11+ out of zone). Zones 1-9 map to a 3x3 grid over home plate"
+      - name: pitch_type
+        description: "Pitch type code (FF=four-seam, SI=sinker, SL=slider, CU=curveball, CH=changeup, etc.)"
+      - name: velocity_tier
+        description: "Velocity classification bucket (Elite 98+/Above Average 95-97/Average 92-94/Below Average 88-91/Soft <88)"
+      - name: pitcher_batter_handedness
+        description: "Handedness matchup (Same/Opposite). Opposite-handed matchups generally favor the batter"
+    
+  - name: fct_mlb__statcast_batted_balls
+    description: |
+      Analytics-ready fact table for batted ball Statcast data.
+      Each row represents a single batted ball with exit velocity, launch angle, distance, and outcome.
+      Critical for evaluating batter quality of contact, expected outcomes, and defensive positioning.
+    columns:
+      - name: play_id
+        description: "Unique identifier for the batted ball (game_id_atbat_pitchnum)"
+        tests:
+          - unique
+          - not_null
+      - name: game_id
+        description: "MLB game identifier"
+        tests:
+          - not_null
+      - name: batter_id
+        description: "MLB player ID for the batter"
+        tests:
+          - not_null
+      - name: pitcher_id
+        description: "MLB player ID for the pitcher"
+        tests:
+          - not_null
+      - name: launch_speed
+        description: "Exit velocity in mph. Elite contact: 110+, hard hit: 95+, average: 85-95, weak: <85"
+      - name: launch_angle
+        description: "Launch angle in degrees. Optimal for power: 25-35°, line drives: 10-25°, ground balls: <10°"
+      - name: launch_distance
+        description: "Projected carry distance in feet. Home run distance typically 350-450+ feet"
+      - name: is_barrel
+        description: "Boolean for barrel (98+ mph exit velo AND 26-30° launch angle). Barrels have .500 BA, 1.500 SLG"
+      - name: is_hard_hit
+        description: "Boolean for hard hit (95+ mph exit velocity). Hard-hit rate is strong predictor of offensive production"
+      - name: exit_velo_tier
+        description: "Exit velocity bucket (Elite 110+/Great 100-109/Good 95-99/Average 90-94/Below Average 80-89/Weak <80)"
+      - name: trajectory_bucket
+        description: "Batted ball type (Pop Up 50+/Fly Ball 25-49/Line Drive 10-24/Ground Ball -10 to 9/Topped < -10)"
+      - name: quality_contact_tier
+        description: "Contact quality classification (Barrel/Hard Hit Non-Barrel/Not Hard Hit)"
+      - name: is_home_run
+        description: "Boolean flag indicating if the batted ball resulted in a home run"
+      - name: is_hit
+        description: "Boolean flag indicating if the batted ball resulted in any hit (single/double/triple/HR)"

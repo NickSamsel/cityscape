@@ -224,6 +224,64 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
     players_table_id = f"{project_id}.raw.mlb_players"
     players_table = bigquery.Table(players_table_id, schema=players_schema)
     client.create_table(players_table, exists_ok=True)
+    
+    # Define schema for mlb_statcast_pitches
+    statcast_pitches_schema = [
+        bigquery.SchemaField("play_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("at_bat_index", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("pitcher_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("batter_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("catcher_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("umpire_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_number", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_type_description", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("release_speed", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("release_spin_rate", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("release_extension", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("release_pos_x", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("release_pos_y", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("release_pos_z", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("zone", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("plate_x", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("plate_z", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("strikes", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("balls", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("outs", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_result", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("pitch_result_description", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+    
+    statcast_pitches_table_id = f"{project_id}.raw.mlb_statcast_pitches"
+    statcast_pitches_table = bigquery.Table(statcast_pitches_table_id, schema=statcast_pitches_schema)
+    client.create_table(statcast_pitches_table, exists_ok=True)
+    
+    # Define schema for mlb_statcast_batted_balls
+    statcast_batted_balls_schema = [
+        bigquery.SchemaField("play_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("at_bat_index", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("batter_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("pitcher_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("launch_speed", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("launch_angle", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("launch_distance", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("hit_location", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("hit_trajectory", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("hit_result", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("sprint_speed", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("is_barrel", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("is_hard_hit", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+    
+    statcast_batted_balls_table_id = f"{project_id}.raw.mlb_statcast_batted_balls"
+    statcast_batted_balls_table = bigquery.Table(statcast_batted_balls_table_id, schema=statcast_batted_balls_schema)
+    client.create_table(statcast_batted_balls_table, exists_ok=True)
 
 
 def upsert_mlb_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
@@ -893,5 +951,203 @@ def upsert_mlb_players(client: bigquery.Client, project_id: str, rows: Iterable[
     
     # Clean up temp table
     client.delete_table(temp_table, not_found_ok=True)
+    
+    return len(df)
+
+
+def upsert_mlb_statcast_pitches(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB Statcast pitch data to BigQuery."""
+    if not rows:
+        return 0
+    
+    import json
+    from datetime import datetime
+    
+    data = []
+    for r in rows:
+        data.append({
+            "play_id": r["play_id"],
+            "game_id": str(r["game_id"]),
+            "at_bat_index": r.get("at_bat_index"),
+            "pitcher_id": str(r["pitcher_id"]),
+            "batter_id": str(r["batter_id"]),
+            "catcher_id": str(r["catcher_id"]) if r.get("catcher_id") else None,
+            "umpire_id": str(r["umpire_id"]) if r.get("umpire_id") else None,
+            "pitch_number": r.get("pitch_number"),
+            "pitch_type": r.get("pitch_type"),
+            "pitch_type_description": r.get("pitch_type_description"),
+            "release_speed": r.get("release_speed"),
+            "release_spin_rate": r.get("release_spin_rate"),
+            "release_extension": r.get("release_extension"),
+            "release_pos_x": r.get("release_pos_x"),
+            "release_pos_y": r.get("release_pos_y"),
+            "release_pos_z": r.get("release_pos_z"),
+            "zone": r.get("zone"),
+            "plate_x": r.get("plate_x"),
+            "plate_z": r.get("plate_z"),
+            "strikes": r.get("strikes"),
+            "balls": r.get("balls"),
+            "outs": r.get("outs"),
+            "pitch_result": r.get("pitch_result"),
+            "pitch_result_description": r.get("pitch_result_description"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Deduplicate by play_id - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['play_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate pitch records")
+    
+    table_id = f"{project_id}.raw.mlb_statcast_pitches"
+    temp_table_id = f"{table_id}_temp"
+    
+    # Load to temp table
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+    
+    # Use MERGE to upsert (avoid duplicates)
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.play_id = S.play_id
+    WHEN MATCHED THEN
+        UPDATE SET
+            game_id = S.game_id,
+            at_bat_index = CAST(S.at_bat_index AS INT64),
+            pitcher_id = S.pitcher_id,
+            batter_id = S.batter_id,
+            catcher_id = S.catcher_id,
+            umpire_id = S.umpire_id,
+            pitch_number = CAST(S.pitch_number AS INT64),
+            pitch_type = S.pitch_type,
+            pitch_type_description = S.pitch_type_description,
+            release_speed = CAST(S.release_speed AS FLOAT64),
+            release_spin_rate = CAST(S.release_spin_rate AS FLOAT64),
+            release_extension = CAST(S.release_extension AS FLOAT64),
+            release_pos_x = CAST(S.release_pos_x AS FLOAT64),
+            release_pos_y = CAST(S.release_pos_y AS FLOAT64),
+            release_pos_z = CAST(S.release_pos_z AS FLOAT64),
+            zone = CAST(S.zone AS INT64),
+            plate_x = CAST(S.plate_x AS FLOAT64),
+            plate_z = CAST(S.plate_z AS FLOAT64),
+            strikes = CAST(S.strikes AS INT64),
+            balls = CAST(S.balls AS INT64),
+            outs = CAST(S.outs AS INT64),
+            pitch_result = S.pitch_result,
+            pitch_result_description = S.pitch_result_description,
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (play_id, game_id, at_bat_index, pitcher_id, batter_id, catcher_id, umpire_id, pitch_number,
+                pitch_type, pitch_type_description, release_speed, release_spin_rate, release_extension,
+                release_pos_x, release_pos_y, release_pos_z, zone, plate_x, plate_z, strikes, balls, outs,
+                pitch_result, pitch_result_description, raw, loaded_at)
+        VALUES (S.play_id, S.game_id, CAST(S.at_bat_index AS INT64), S.pitcher_id, S.batter_id, S.catcher_id,
+                S.umpire_id, CAST(S.pitch_number AS INT64), S.pitch_type, S.pitch_type_description, 
+                CAST(S.release_speed AS FLOAT64), CAST(S.release_spin_rate AS FLOAT64), CAST(S.release_extension AS FLOAT64),
+                CAST(S.release_pos_x AS FLOAT64), CAST(S.release_pos_y AS FLOAT64), CAST(S.release_pos_z AS FLOAT64),
+                CAST(S.zone AS INT64), CAST(S.plate_x AS FLOAT64), CAST(S.plate_z AS FLOAT64), 
+                CAST(S.strikes AS INT64), CAST(S.balls AS INT64), CAST(S.outs AS INT64), 
+                S.pitch_result, S.pitch_result_description, S.raw, TIMESTAMP(S.loaded_at))
+    """
+    
+    query_job = client.query(merge_query)
+    query_job.result()
+    
+    # Clean up temp table
+    client.delete_table(temp_table_id, not_found_ok=True)
+    
+    return len(df)
+
+
+def upsert_mlb_statcast_batted_balls(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB Statcast batted ball data to BigQuery."""
+    if not rows:
+        return 0
+    
+    import json
+    from datetime import datetime
+    
+    data = []
+    for r in rows:
+        data.append({
+            "play_id": r["play_id"],
+            "game_id": str(r["game_id"]),
+            "at_bat_index": r.get("at_bat_index"),
+            "batter_id": str(r["batter_id"]),
+            "pitcher_id": str(r["pitcher_id"]),
+            "launch_speed": r.get("launch_speed"),
+            "launch_angle": r.get("launch_angle"),
+            "launch_distance": r.get("launch_distance"),
+            "hit_location": r.get("hit_location"),
+            "hit_trajectory": r.get("hit_trajectory"),
+            "hit_result": r.get("hit_result"),
+            "sprint_speed": r.get("sprint_speed"),
+            "is_barrel": r.get("is_barrel"),
+            "is_hard_hit": r.get("is_hard_hit"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Deduplicate by play_id - keep last occurrence
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['play_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate batted ball records")
+    
+    table_id = f"{project_id}.raw.mlb_statcast_batted_balls"
+    temp_table_id = f"{table_id}_temp"
+    
+    # Load to temp table
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+    
+    # Use MERGE to upsert (avoid duplicates)
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.play_id = S.play_id
+    WHEN MATCHED THEN
+        UPDATE SET
+            game_id = S.game_id,
+            at_bat_index = CAST(S.at_bat_index AS INT64),
+            batter_id = S.batter_id,
+            pitcher_id = S.pitcher_id,
+            launch_speed = CAST(S.launch_speed AS FLOAT64),
+            launch_angle = CAST(S.launch_angle AS FLOAT64),
+            launch_distance = CAST(S.launch_distance AS FLOAT64),
+            hit_location = CAST(S.hit_location AS INT64),
+            hit_trajectory = S.hit_trajectory,
+            hit_result = S.hit_result,
+            sprint_speed = CAST(S.sprint_speed AS FLOAT64),
+            is_barrel = S.is_barrel,
+            is_hard_hit = S.is_hard_hit,
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (play_id, game_id, at_bat_index, batter_id, pitcher_id, launch_speed, launch_angle,
+                launch_distance, hit_location, hit_trajectory, hit_result, sprint_speed, is_barrel,
+                is_hard_hit, raw, loaded_at)
+        VALUES (S.play_id, S.game_id, CAST(S.at_bat_index AS INT64), S.batter_id, S.pitcher_id, 
+                CAST(S.launch_speed AS FLOAT64), CAST(S.launch_angle AS FLOAT64), CAST(S.launch_distance AS FLOAT64),
+                CAST(S.hit_location AS INT64), S.hit_trajectory, S.hit_result, CAST(S.sprint_speed AS FLOAT64),
+                S.is_barrel, S.is_hard_hit, S.raw, TIMESTAMP(S.loaded_at))
+    """
+    
+    query_job = client.query(merge_query)
+    query_job.result()
+    
+    # Clean up temp table
+    client.delete_table(temp_table_id, not_found_ok=True)
     
     return len(df)

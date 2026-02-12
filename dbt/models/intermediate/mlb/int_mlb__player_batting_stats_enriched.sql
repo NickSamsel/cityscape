@@ -31,6 +31,34 @@ players as (
     select * from {{ ref('stg_mlb__players') }}
 ),
 
+-- Aggregate Statcast batted ball metrics by game + batter
+game_statcast_batting as (
+    select
+        cast(game_id as string) as game_id,
+        cast(batter_id as string) as player_id,
+        count(*) as batted_balls,
+        avg(launch_speed) as avg_exit_velocity,
+        max(launch_speed) as max_exit_velocity,
+        avg(launch_angle) as avg_launch_angle,
+        avg(launch_distance) as avg_distance,
+        max(launch_distance) as max_distance,
+        countif(is_barrel) as barrels,
+        countif(is_hard_hit) as hard_hits,
+        -- Calculate home runs and hits from hit_result
+        countif(hit_result in ('Home Run', 'homeRun')) as statcast_home_runs,
+        countif(hit_result in ('Single', 'Double', 'Triple', 'Home Run', 'homeRun')) as statcast_hits,
+        -- Calculate rates
+        safe_divide(countif(is_barrel), count(*)) as barrel_rate,
+        safe_divide(countif(is_hard_hit), count(*)) as hard_hit_rate,
+        -- Trajectory breakdown
+        countif(hit_trajectory = 'fly_ball') as fly_balls,
+        countif(hit_trajectory = 'line_drive') as line_drives,
+        countif(hit_trajectory = 'ground_ball') as ground_balls,
+        countif(hit_trajectory = 'popup') as pop_ups
+    from {{ ref('stg_mlb__statcast_batted_balls') }}
+    group by 1, 2
+),
+
 final as (
     select
         bs.game_id,
@@ -181,7 +209,25 @@ final as (
         bs.avg,
         bs.obp,
         bs.slg,
-        bs.ops
+        bs.ops,
+        
+        -- Statcast batted ball metrics (game-level)
+        sc.batted_balls,
+        sc.avg_exit_velocity,
+        sc.max_exit_velocity,
+        sc.avg_launch_angle,
+        sc.avg_distance,
+        sc.max_distance,
+        sc.barrels,
+        sc.hard_hits,
+        sc.barrel_rate,
+        sc.hard_hit_rate,
+        sc.fly_balls,
+        sc.line_drives,
+        sc.ground_balls,
+        sc.pop_ups,
+        sc.statcast_home_runs,
+        sc.statcast_hits
         
     from batting_stats as bs
     left join games as g
@@ -195,6 +241,9 @@ final as (
         on t.division_id = div.division_id
     left join players as p
         on bs.player_id = p.player_id
+    left join game_statcast_batting as sc
+        on bs.game_id = sc.game_id
+        and bs.player_id = sc.player_id
     where (bs.at_bats is not null or bs.walks is not null)
     
     {% if is_incremental() %}

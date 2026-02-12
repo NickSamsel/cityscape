@@ -19,6 +19,8 @@ sources:
       - name: mlb_players
       - name: mlb_player_batting_stats
       - name: mlb_player_pitching_stats
+      - name: mlb_statcast_pitches
+      - name: mlb_statcast_batted_balls
 
       # NHL
       - name: nhl_games
