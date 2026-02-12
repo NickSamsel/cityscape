@@ -46,12 +46,6 @@ models:
       +tags: ["marts"]
       mlb:
         +schema: mlb
-      nba:
-        +schema: nba
-      nfl:
-        +schema: nfl
-      nhl:
-        +schema: nhl
     core:
       +materialized: table
       +tags: ["core", "deprecated"]

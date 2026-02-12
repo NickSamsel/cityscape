@@ -1,5 +1,5 @@
 models:
-  - name: core_mlb__games_enriched
+  - name: core_mlb__games
     description: |
       MLB games joined with team information and enriched with game outcome calculations.
       This intermediate model contains all business logic for determining winners, losers, and score metrics.
@@ -67,7 +67,7 @@ models:
       - name: total_runs
         description: "{{ doc('mlb_total_runs') }}"
 
-  - name: core_mlb__player_batting_stats_enriched
+  - name: core_mlb__player_batting_stats
     description: |
       MLB player batting statistics enriched with game and team details.
       Contains all calculated metrics including singles, total_bases, and plate_appearances.
@@ -167,7 +167,7 @@ models:
       - name: ops
         description: "{{ doc('mlb_ops') }}"
 
-  - name: core_mlb__player_pitching_stats_enriched
+  - name: core_mlb__player_pitching_stats
     description: |
       MLB player pitching statistics enriched with game and team details.
       Contains all calculated metrics including innings_pitched_decimal, WHIP, K/9, and BB/9.
@@ -267,7 +267,7 @@ models:
       - name: league_abbr
         description: "{{ doc('mlb_league_abbr') }}"
 
-  - name: core_mlb__divisions_enriched
+  - name: core_mlb__divisions
     description: |
       MLB divisions enriched with league information.
       Provides division details with their parent league context.
