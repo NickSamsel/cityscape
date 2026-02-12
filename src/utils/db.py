@@ -66,6 +66,35 @@ def ensure_mlb_tables(conn) -> None:
             );
             """
         )
+        cur.execute(
+            """
+            create table if not exists raw.mlb_standings (
+              team_id integer not null,
+              season integer not null,
+              standings_date date not null,
+              league_id integer null,
+              division_id integer null,
+              division_rank integer null,
+              wins integer null,
+              losses integer null,
+              win_pct float null,
+              games_back float null,
+              wildcard_games_back float null,
+              streak varchar null,
+              last_ten_record varchar null,
+              runs_scored integer null,
+              runs_allowed integer null,
+              run_differential integer null,
+              home_wins integer null,
+              home_losses integer null,
+              away_wins integer null,
+              away_losses integer null,
+              raw jsonb not null,
+              loaded_at timestamptz not null default now(),
+              primary key (team_id, season, standings_date)
+            );
+            """
+        )
 
 
 def upsert_mlb_teams(conn, rows: Iterable[dict[str, Any]]) -> int:
@@ -118,6 +147,58 @@ def upsert_mlb_games(conn, rows: Iterable[dict[str, Any]]) -> int:
       away_team_id = excluded.away_team_id,
       home_score = excluded.home_score,
       away_score = excluded.away_score,
+      raw = excluded.raw,
+      loaded_at = now()
+    """
+
+    payload = []
+    for r in rows:
+        payload.append(
+            {
+                **r,
+                "raw": psycopg2.extras.Json(r["raw"]),
+            }
+        )
+
+    if not payload:
+        return 0
+
+    with conn.cursor() as cur:
+        psycopg2.extras.execute_batch(cur, sql, payload, page_size=500)
+    return len(payload)
+
+
+def upsert_mlb_standings(conn, rows: Iterable[dict[str, Any]]) -> int:
+    sql = """
+    insert into raw.mlb_standings (
+      team_id, season, standings_date, league_id, division_id, division_rank,
+      wins, losses, win_pct, games_back, wildcard_games_back,
+      streak, last_ten_record, runs_scored, runs_allowed, run_differential,
+      home_wins, home_losses, away_wins, away_losses, raw
+    ) values (
+      %(team_id)s, %(season)s, %(standings_date)s, %(league_id)s, %(division_id)s, %(division_rank)s,
+      %(wins)s, %(losses)s, %(win_pct)s, %(games_back)s, %(wildcard_games_back)s,
+      %(streak)s, %(last_ten_record)s, %(runs_scored)s, %(runs_allowed)s, %(run_differential)s,
+      %(home_wins)s, %(home_losses)s, %(away_wins)s, %(away_losses)s, %(raw)s
+    )
+    on conflict (team_id, season, standings_date) do update set
+      league_id = excluded.league_id,
+      division_id = excluded.division_id,
+      division_rank = excluded.division_rank,
+      wins = excluded.wins,
+      losses = excluded.losses,
+      win_pct = excluded.win_pct,
+      games_back = excluded.games_back,
+      wildcard_games_back = excluded.wildcard_games_back,
+      streak = excluded.streak,
+      last_ten_record = excluded.last_ten_record,
+      runs_scored = excluded.runs_scored,
+      runs_allowed = excluded.runs_allowed,
+      run_differential = excluded.run_differential,
+      home_wins = excluded.home_wins,
+      home_losses = excluded.home_losses,
+      away_wins = excluded.away_wins,
+      away_losses = excluded.away_losses,
       raw = excluded.raw,
       loaded_at = now()
     """

@@ -12,6 +12,12 @@ from .players import (
     ingest_players_from_stats,
     ingest_players_parallel,
 )
+from .standings import (
+    ingest_standings_snapshot,
+    ingest_standings_historical,
+    ingest_standings_historical_parallel,
+    ingest_standings_bulk_historical,
+)
 
 __all__ = [
     "fetch_game_player_stats",
@@ -22,4 +28,8 @@ __all__ = [
     "get_unique_player_ids_from_bigquery",
     "ingest_players_from_stats",
     "ingest_players_parallel",
+    "ingest_standings_snapshot",
+    "ingest_standings_historical",
+    "ingest_standings_historical_parallel",
+    "ingest_standings_bulk_historical",
 ]

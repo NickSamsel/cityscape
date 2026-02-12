@@ -156,7 +156,7 @@ player_enriched as (
         end as is_pitcher,
         
         case
-            when cb.career_games_batted >= 10 and cp.career_games_pitched >= 5 then true
+            when cb.career_at_bats >= 100 and cp.career_games_pitched >= 5 then true
             else false
         end as is_two_way_player,
         
@@ -179,9 +179,147 @@ player_enriched as (
     left join pitcher_statcast as ps
         on p.player_id = ps.pitcher_id
 
+),
+
+-- Add percentile rankings for career metrics among active players
+player_with_percentiles as (
+
+    select
+        *,
+
+        -- Batting percentiles (for batters only)
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by career_home_runs
+                ) * 100
+            else null
+        end as career_hr_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by career_batting_avg
+                ) * 100
+            else null
+        end as career_avg_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by career_ops
+                ) * 100
+            else null
+        end as career_ops_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by career_obp
+                ) * 100
+            else null
+        end as career_obp_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by career_slugging_pct
+                ) * 100
+            else null
+        end as career_slg_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by avg_exit_velocity
+                ) * 100
+            else null
+        end as career_exit_velo_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by barrel_rate
+                ) * 100
+            else null
+        end as career_barrel_rate_percentile,
+
+        case
+            when is_batter then
+                percent_rank() over (
+                    partition by is_batter
+                    order by hard_hit_rate
+                ) * 100
+            else null
+        end as career_hard_hit_rate_percentile,
+
+        -- Pitching percentiles (for pitchers only, lower is better for ERA/WHIP)
+        case
+            when is_pitcher then
+                (100 - percent_rank() over (
+                    partition by is_pitcher
+                    order by career_era
+                ) * 100)
+            else null
+        end as career_era_percentile,
+
+        case
+            when is_pitcher then
+                (100 - percent_rank() over (
+                    partition by is_pitcher
+                    order by career_whip
+                ) * 100)
+            else null
+        end as career_whip_percentile,
+
+        case
+            when is_pitcher then
+                percent_rank() over (
+                    partition by is_pitcher
+                    order by career_k_per_9
+                ) * 100
+            else null
+        end as career_k_per_9_percentile,
+
+        case
+            when is_pitcher then
+                percent_rank() over (
+                    partition by is_pitcher
+                    order by career_k_bb_ratio
+                ) * 100
+            else null
+        end as career_k_bb_ratio_percentile,
+
+        case
+            when is_pitcher then
+                percent_rank() over (
+                    partition by is_pitcher
+                    order by avg_release_speed
+                ) * 100
+            else null
+        end as career_velocity_percentile,
+
+        case
+            when is_pitcher then
+                percent_rank() over (
+                    partition by is_pitcher
+                    order by career_strike_pct
+                ) * 100
+            else null
+        end as career_strike_pct_percentile
+
+    from player_enriched
+
 )
 
-select * from player_enriched
+select * from player_with_percentiles
 {% if is_incremental() %}
 where dbt_updated_at > (select max(dbt_updated_at) from {{ this }})
 {% endif %}

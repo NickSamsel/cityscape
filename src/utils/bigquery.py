@@ -283,6 +283,36 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
     statcast_batted_balls_table = bigquery.Table(statcast_batted_balls_table_id, schema=statcast_batted_balls_schema)
     client.create_table(statcast_batted_balls_table, exists_ok=True)
 
+    # Define schema for mlb_standings
+    standings_schema = [
+        bigquery.SchemaField("team_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("season", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("standings_date", "DATE", mode="REQUIRED"),
+        bigquery.SchemaField("league_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("division_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("division_rank", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("wins", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("losses", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("win_pct", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("games_back", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("wildcard_games_back", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("streak", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("last_ten_record", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("runs_scored", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("runs_allowed", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("run_differential", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("home_wins", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("home_losses", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("away_wins", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("away_losses", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    standings_table_id = f"{project_id}.raw.mlb_standings"
+    standings_table = bigquery.Table(standings_table_id, schema=standings_schema)
+    client.create_table(standings_table, exists_ok=True)
+
 
 def upsert_mlb_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
     """Upsert MLB teams data to BigQuery."""
@@ -1143,11 +1173,111 @@ def upsert_mlb_statcast_batted_balls(client: bigquery.Client, project_id: str, r
                 CAST(S.hit_location AS INT64), S.hit_trajectory, S.hit_result, CAST(S.sprint_speed AS FLOAT64),
                 S.is_barrel, S.is_hard_hit, S.raw, TIMESTAMP(S.loaded_at))
     """
-    
+
     query_job = client.query(merge_query)
     query_job.result()
-    
+
     # Clean up temp table
     client.delete_table(temp_table_id, not_found_ok=True)
-    
+
+    return len(df)
+
+
+def upsert_mlb_standings(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB standings data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime
+
+    data = []
+    for r in rows:
+        data.append({
+            "team_id": str(r["team_id"]),
+            "season": r["season"],
+            "standings_date": r["standings_date"],
+            "league_id": r.get("league_id"),
+            "division_id": r.get("division_id"),
+            "division_rank": r.get("division_rank"),
+            "wins": r.get("wins"),
+            "losses": r.get("losses"),
+            "win_pct": r.get("win_pct"),
+            "games_back": r.get("games_back"),
+            "wildcard_games_back": r.get("wildcard_games_back"),
+            "streak": r.get("streak"),
+            "last_ten_record": r.get("last_ten_record"),
+            "runs_scored": r.get("runs_scored"),
+            "runs_allowed": r.get("runs_allowed"),
+            "run_differential": r.get("run_differential"),
+            "home_wins": r.get("home_wins"),
+            "home_losses": r.get("home_losses"),
+            "away_wins": r.get("away_wins"),
+            "away_losses": r.get("away_losses"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+
+    # Deduplicate by (team_id, season, standings_date)
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=["team_id", "season", "standings_date"], keep="last")
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate standings records")
+
+    table_id = f"{project_id}.raw.mlb_standings"
+    temp_table_id = f"{table_id}_temp"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.team_id = S.team_id AND T.season = S.season AND T.standings_date = S.standings_date
+    WHEN MATCHED THEN
+        UPDATE SET
+            league_id = CAST(S.league_id AS INT64),
+            division_id = CAST(S.division_id AS INT64),
+            division_rank = CAST(S.division_rank AS INT64),
+            wins = CAST(S.wins AS INT64),
+            losses = CAST(S.losses AS INT64),
+            win_pct = CAST(S.win_pct AS FLOAT64),
+            games_back = CAST(S.games_back AS FLOAT64),
+            wildcard_games_back = CAST(S.wildcard_games_back AS FLOAT64),
+            streak = S.streak,
+            last_ten_record = S.last_ten_record,
+            runs_scored = CAST(S.runs_scored AS INT64),
+            runs_allowed = CAST(S.runs_allowed AS INT64),
+            run_differential = CAST(S.run_differential AS INT64),
+            home_wins = CAST(S.home_wins AS INT64),
+            home_losses = CAST(S.home_losses AS INT64),
+            away_wins = CAST(S.away_wins AS INT64),
+            away_losses = CAST(S.away_losses AS INT64),
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (team_id, season, standings_date, league_id, division_id, division_rank,
+                wins, losses, win_pct, games_back, wildcard_games_back,
+                streak, last_ten_record, runs_scored, runs_allowed, run_differential,
+                home_wins, home_losses, away_wins, away_losses, raw, loaded_at)
+        VALUES (S.team_id, S.season, S.standings_date,
+                CAST(S.league_id AS INT64), CAST(S.division_id AS INT64), CAST(S.division_rank AS INT64),
+                CAST(S.wins AS INT64), CAST(S.losses AS INT64), CAST(S.win_pct AS FLOAT64),
+                CAST(S.games_back AS FLOAT64), CAST(S.wildcard_games_back AS FLOAT64),
+                S.streak, S.last_ten_record,
+                CAST(S.runs_scored AS INT64), CAST(S.runs_allowed AS INT64), CAST(S.run_differential AS INT64),
+                CAST(S.home_wins AS INT64), CAST(S.home_losses AS INT64),
+                CAST(S.away_wins AS INT64), CAST(S.away_losses AS INT64),
+                S.raw, TIMESTAMP(S.loaded_at))
+    """
+
+    query_job = client.query(merge_query)
+    query_job.result()
+
+    client.delete_table(temp_table_id, not_found_ok=True)
+
     return len(df)

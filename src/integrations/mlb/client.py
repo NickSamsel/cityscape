@@ -15,6 +15,7 @@ from .models import (
     MlbPlayer,
     MlbPlayerBattingStats,
     MlbPlayerPitchingStats,
+    MlbStandingsRecord,
     MlbStatcastBattedBall,
     MlbStatcastPitch,
     MlbTeam,
@@ -150,6 +151,145 @@ class MlbStatsApi:
         start_d = date.fromisoformat(start_s) if isinstance(start_s, str) and start_s else None
         end_d = date.fromisoformat(end_s) if isinstance(end_s, str) and end_s else None
         return start_d, end_d
+
+    def list_standings(
+        self,
+        *,
+        season: int,
+        standings_date: date | None = None,
+    ) -> list[MlbStandingsRecord]:
+        """Fetch MLB standings for a season, optionally as of a specific date.
+
+        Args:
+            season: The MLB season year (e.g., 2024)
+            standings_date: Optional date to get historical standings snapshot.
+                            If None, returns end-of-season standings.
+
+        Returns:
+            List of MlbStandingsRecord objects, one per team.
+        """
+        params: dict[str, Any] = {
+            "leagueId": "103,104",  # AL + NL
+            "season": season,
+            "standingsTypes": "regularSeason",
+        }
+        if standings_date is not None:
+            params["date"] = standings_date.isoformat()
+
+        payload = self._get_json("standings", params)
+
+        out: list[MlbStandingsRecord] = []
+        records = payload.get("records", [])
+
+        for division_record in records:
+            if not isinstance(division_record, dict):
+                continue
+
+            division_info = division_record.get("division", {})
+            division_id = (
+                int(division_info["id"])
+                if isinstance(division_info, dict) and division_info.get("id") is not None
+                else None
+            )
+
+            league_info = division_record.get("league", {})
+            league_id = (
+                int(league_info["id"])
+                if isinstance(league_info, dict) and league_info.get("id") is not None
+                else None
+            )
+
+            team_records = division_record.get("teamRecords", [])
+            for tr in team_records:
+                if not isinstance(tr, dict):
+                    continue
+
+                team_info = tr.get("team", {})
+                team_id = int(team_info["id"]) if isinstance(team_info, dict) and team_info.get("id") is not None else None
+                if team_id is None:
+                    continue
+
+                # Parse streak
+                streak_obj = tr.get("streak", {})
+                streak_str = None
+                if isinstance(streak_obj, dict) and streak_obj.get("streakCode"):
+                    streak_str = str(streak_obj["streakCode"])
+
+                # Parse last 10 record from records.splitRecords
+                last_ten = None
+                split_records = tr.get("records", {}).get("splitRecords", []) if isinstance(tr.get("records"), dict) else []
+                for sr in split_records:
+                    if isinstance(sr, dict) and sr.get("type") == "lastTen":
+                        last_ten = f"{sr.get('wins', 0)}-{sr.get('losses', 0)}"
+                        break
+
+                # Parse home/away records
+                home_wins = None
+                home_losses = None
+                away_wins = None
+                away_losses = None
+                for sr in split_records:
+                    if isinstance(sr, dict):
+                        if sr.get("type") == "home":
+                            home_wins = parse_int_or_none(sr.get("wins"))
+                            home_losses = parse_int_or_none(sr.get("losses"))
+                        elif sr.get("type") == "away":
+                            away_wins = parse_int_or_none(sr.get("wins"))
+                            away_losses = parse_int_or_none(sr.get("losses"))
+
+                # Parse games back
+                gb_str = tr.get("gamesBack")
+                games_back: float | None = None
+                if gb_str is not None and gb_str != "-":
+                    try:
+                        games_back = float(gb_str)
+                    except (ValueError, TypeError):
+                        pass
+                elif gb_str == "-":
+                    games_back = 0.0
+
+                wc_gb_str = tr.get("wildCardGamesBack")
+                wc_games_back: float | None = None
+                if wc_gb_str is not None and wc_gb_str != "-":
+                    try:
+                        wc_games_back = float(wc_gb_str)
+                    except (ValueError, TypeError):
+                        pass
+                elif wc_gb_str == "-":
+                    wc_games_back = 0.0
+
+                wins = parse_int_or_none(tr.get("wins"))
+                losses = parse_int_or_none(tr.get("losses"))
+                rs = parse_int_or_none(tr.get("runsScored"))
+                ra = parse_int_or_none(tr.get("runsAllowed"))
+
+                out.append(
+                    MlbStandingsRecord(
+                        team_id=team_id,
+                        season=season,
+                        standings_date=standings_date,
+                        league_id=league_id,
+                        division_id=division_id,
+                        division_rank=parse_int_or_none(tr.get("divisionRank")),
+                        wins=wins,
+                        losses=losses,
+                        win_pct=self._safe_float(tr.get("winningPercentage")),
+                        games_back=games_back,
+                        wildcard_games_back=wc_games_back,
+                        streak=streak_str,
+                        last_ten_record=last_ten,
+                        runs_scored=rs,
+                        runs_allowed=ra,
+                        run_differential=rs - ra if rs is not None and ra is not None else None,
+                        home_wins=home_wins,
+                        home_losses=home_losses,
+                        away_wins=away_wins,
+                        away_losses=away_losses,
+                        raw=tr,
+                    )
+                )
+
+        return out
 
     def list_games(
         self,

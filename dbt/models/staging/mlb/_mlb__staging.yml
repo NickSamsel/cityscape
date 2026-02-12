@@ -193,6 +193,45 @@ models:
                 to: ref('stg_mlb__leagues')
                 field: league_id
 
+  - name: stg_mlb__standings
+    description: |
+      MLB standings staged from raw landing tables.
+      Each row represents a team's standings record on a specific date within a season.
+      Supports weekly historical snapshots for division race tracking.
+    columns:
+      - name: team_id
+        description: "Team identifier"
+        tests:
+          - not_null
+      - name: season
+        description: "Season year"
+        tests:
+          - not_null
+      - name: standings_date
+        description: "Date of the standings snapshot"
+        tests:
+          - not_null
+      - name: league_id
+        description: "League identifier (AL or NL)"
+      - name: division_id
+        description: "Division identifier"
+      - name: division_rank
+        description: "Team's rank within their division"
+      - name: wins
+        description: "Total wins as of this date"
+      - name: losses
+        description: "Total losses as of this date"
+      - name: win_pct
+        description: "Winning percentage"
+      - name: games_back
+        description: "Games behind division leader (0 = leader)"
+      - name: wildcard_games_back
+        description: "Games behind wild card cutoff"
+      - name: streak
+        description: "Current winning/losing streak code (e.g., 'W5', 'L3')"
+      - name: last_ten_record
+        description: "Record in last 10 games (e.g., '7-3')"
+
   - name: stg_mlb__players
     description: "MLB players staged from raw landing tables"
     columns:

@@ -127,6 +127,32 @@ class MlbPlayer:
 
 
 @dataclass(frozen=True, slots=True)
+class MlbStandingsRecord:
+    """MLB standings record for a single team on a given date."""
+    team_id: int
+    season: int
+    standings_date: date | None
+    league_id: int | None
+    division_id: int | None
+    division_rank: int | None
+    wins: int | None
+    losses: int | None
+    win_pct: float | None
+    games_back: float | None
+    wildcard_games_back: float | None
+    streak: str | None
+    last_ten_record: str | None
+    runs_scored: int | None
+    runs_allowed: int | None
+    run_differential: int | None
+    home_wins: int | None
+    home_losses: int | None
+    away_wins: int | None
+    away_losses: int | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
 class MlbStatcastPitch:
     """Statcast pitch-level data with tracking metrics."""
     play_id: str

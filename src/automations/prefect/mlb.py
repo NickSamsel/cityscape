@@ -18,6 +18,11 @@ from src.automations.ingest.mlb import (
     ingest_players_parallel,
     get_unique_player_ids_from_bigquery,
 )
+from src.automations.ingest.mlb.standings import (
+    ingest_standings_snapshot,
+    ingest_standings_historical,
+    ingest_standings_historical_parallel,
+)
 from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery, fetch_mlb_season_data
 from src.automations.ingest.mlb_statcast import ingest_mlb_statcast_data_bigquery
 from src.integrations.mlb import MlbStatsApi
@@ -637,5 +642,136 @@ def mlb_statcast_ingestion(
     return {
         "pitches": pitches,
         "batted_balls": batted_balls,
+    }
+
+
+@flow(name="mlb-standings-season-ingestion", log_prints=False)
+def mlb_standings_season_ingestion(
+    *,
+    season: int,
+    standings_date: date | None = None,
+) -> dict[str, int]:
+    """Prefect flow that ingests MLB standings for a single season.
+    
+    Args:
+        season: The MLB season year (e.g., 2024)
+        standings_date: Optional date for historical snapshot. If None, fetches
+                        end-of-season standings.
+    
+    Returns:
+        Dictionary with count of standings records inserted
+    """
+    logger = get_run_logger()
+    logger.info(f"Starting MLB standings ingestion: season={season} date={standings_date}")
+    
+    records = ingest_standings_snapshot(season=season, standings_date=standings_date)
+    
+    logger.info(f"Finished MLB standings ingestion: season={season} records={records}")
+    return {"records": records, "season": season}
+
+
+@flow(name="mlb-standings-historical-ingestion", log_prints=False)
+def mlb_standings_historical_ingestion(
+    *,
+    season: int,
+    interval_days: int = 7,
+    delay_seconds: float = 0.5,
+    parallel: bool = True,
+    max_workers: int = 10,
+) -> dict[str, int]:
+    """Prefect flow that ingests weekly MLB standings snapshots for a season.
+    
+    Args:
+        season: The MLB season year
+        interval_days: Days between snapshots (default: 7 = weekly)
+        delay_seconds: Delay between API calls (only used if parallel=False)
+        parallel: Use parallel processing (default: True, much faster)
+        max_workers: Max concurrent workers for parallel mode (default: 10)
+    
+    Returns:
+        Dictionary with total records inserted
+    """
+    logger = get_run_logger()
+    logger.info(
+        f"Starting MLB historical standings ingestion: season={season} "
+        f"interval_days={interval_days} parallel={parallel}"
+    )
+    
+    if parallel:
+        records = ingest_standings_historical_parallel(
+            season=season,
+            interval_days=interval_days,
+            max_workers=max_workers,
+        )
+    else:
+        records = ingest_standings_historical(
+            season=season,
+            interval_days=interval_days,
+            delay_seconds=delay_seconds,
+        )
+    
+    logger.info(f"Finished MLB historical standings ingestion: season={season} records={records}")
+    return {"records": records, "season": season}
+
+
+@flow(name="mlb-standings-multi-season-ingestion", log_prints=False)
+def mlb_standings_multi_season_ingestion(
+    *,
+    start_season: int,
+    end_season: int,
+    interval_days: int = 7,
+    delay_seconds: float = 0.5,
+    parallel: bool = True,
+    max_workers: int = 10,
+) -> dict[str, int | list]:
+    """Prefect flow that backfills standings for multiple seasons.
+    
+    Args:
+        start_season: First season to backfill
+        end_season: Last season to backfill (inclusive)
+        interval_days: Days between snapshots per season
+        delay_seconds: Delay between API calls (only used if parallel=False)
+        parallel: Use parallel processing (default: True)
+        max_workers: Max concurrent workers for parallel mode (default: 10)
+    
+    Returns:
+        Dictionary with summary of seasons processed and total records
+    """
+    logger = get_run_logger()
+    mode_str = "parallel" if parallel else "sequential"
+    logger.info(
+        f"Starting multi-season standings ingestion: {start_season} to {end_season} "
+        f"(interval={interval_days} days, {mode_str})"
+    )
+    
+    results = []
+    total_records = 0
+    
+    for season in range(start_season, end_season + 1):
+        logger.info(f"Processing season {season}...")
+        try:
+            result = mlb_standings_historical_ingestion(
+                season=season,
+                interval_days=interval_days,
+                delay_seconds=delay_seconds,
+                parallel=parallel,
+                max_workers=max_workers,
+            )
+            total_records += result["records"]
+            results.append({"season": season, "records": result["records"]})
+        except Exception as e:
+            logger.error(f"Season {season} failed: {e}")
+            results.append({"season": season, "records": 0, "error": str(e)})
+    
+    logger.info(
+        f"Completed multi-season standings ingestion: {len(results)} seasons, "
+        f"{total_records} total records"
+    )
+    
+    return {
+        "seasons_processed": len(results),
+        "total_records": total_records,
+        "seasons": [r["season"] for r in results],
+        "details": results,
     }
 

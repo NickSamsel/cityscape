@@ -13,7 +13,7 @@ from .exceptions import (
     MlbGameNotFoundError,
     MlbSeasonNotFoundError,
 )
-from .models import MlbGame, MlbPlayerBattingStats, MlbPlayerPitchingStats, MlbTeam
+from .models import MlbGame, MlbPlayerBattingStats, MlbPlayerPitchingStats, MlbStandingsRecord, MlbTeam
 
 __all__ = [
     # Client
@@ -36,6 +36,7 @@ __all__ = [
     "MlbGame",
     "MlbPlayerBattingStats",
     "MlbPlayerPitchingStats",
+    "MlbStandingsRecord",
     "MlbStatsApi",
     "MlbTeam",
 ]

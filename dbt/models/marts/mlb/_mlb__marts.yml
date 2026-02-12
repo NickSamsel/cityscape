@@ -475,3 +475,256 @@ models:
         description: "Percentile rank (0-100) for max launch distance within season"
       - name: sprint_speed_percentile
         description: "Percentile rank (0-100) for avg sprint speed within season"
+
+  - name: fct_mlb__team_game_stats
+    description: |
+      Fact table containing team-level statistics for each game.
+      Aggregates player batting and pitching stats to the team level.
+      Each row represents a single team's performance in a game (two rows per game).
+      Includes traditional counting stats, rate stats, and game-level Statcast metrics.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - game_id
+              - team_id
+    columns:
+      - name: game_id
+        description: "Unique identifier for the game"
+        tests:
+          - not_null
+      - name: team_id
+        description: "Team identifier"
+        tests:
+          - not_null
+      - name: team_name
+        description: "Full team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: season
+        description: "Season year"
+      - name: game_date
+        description: "Date the game was played"
+      - name: game_type
+        description: "Type of game (R=regular, F=wild card, D=division series, etc.)"
+      - name: home_away
+        description: "Whether the team was home or away"
+      - name: opponent_team_id
+        description: "Opposing team identifier"
+      - name: opponent_team_name
+        description: "Opposing team full name"
+      - name: runs_scored
+        description: "Runs scored by this team"
+      - name: runs_allowed
+        description: "Runs allowed by this team"
+      - name: run_differential
+        description: "Runs scored minus runs allowed (positive = win margin)"
+      - name: is_win
+        description: "Whether this team won the game"
+      - name: is_loss
+        description: "Whether this team lost the game"
+      - name: team_batting_avg
+        description: "Team batting average for the game"
+      - name: team_ops
+        description: "Team OPS (on-base plus slugging) for the game"
+      - name: team_era
+        description: "Team ERA for the game"
+      - name: team_whip
+        description: "Team WHIP for the game"
+      - name: team_avg_exit_velocity
+        description: "Team average exit velocity (Statcast) for the game"
+      - name: team_barrel_rate
+        description: "Team barrel rate (Statcast) for the game"
+
+  - name: fct_mlb__team_season_stats
+    description: |
+      Fact table containing team season-level statistics.
+      Aggregates game-level team stats into season totals and averages.
+      Regular season games only. Each row represents a team's full season performance.
+      Includes W-L record, Pythagorean expectation, batting, pitching, and Statcast metrics.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - team_id
+              - season
+    columns:
+      - name: team_id
+        description: "Team identifier"
+        tests:
+          - not_null
+      - name: season
+        description: "Season year"
+        tests:
+          - not_null
+      - name: team_name
+        description: "Full team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: games_played
+        description: "Total regular season games played"
+      - name: wins
+        description: "Total wins"
+      - name: losses
+        description: "Total losses"
+      - name: win_pct
+        description: "Winning percentage (wins / games played)"
+      - name: home_wins
+        description: "Wins at home"
+      - name: home_losses
+        description: "Losses at home"
+      - name: away_wins
+        description: "Wins on the road"
+      - name: away_losses
+        description: "Losses on the road"
+      - name: total_runs_scored
+        description: "Total runs scored in the season"
+      - name: total_runs_allowed
+        description: "Total runs allowed in the season"
+      - name: total_run_differential
+        description: "Season run differential (scored minus allowed)"
+      - name: pythagorean_win_pct
+        description: "Expected win% based on runs scored/allowed: RS^2 / (RS^2 + RA^2)"
+      - name: luck_factor
+        description: "Actual win% minus Pythagorean win%. Positive = outperforming run differential"
+      - name: season_batting_avg
+        description: "Team season batting average"
+      - name: season_ops
+        description: "Team season OPS"
+      - name: season_era
+        description: "Team season ERA"
+      - name: season_whip
+        description: "Team season WHIP"
+      - name: season_barrel_rate
+        description: "Team season barrel rate (Statcast)"
+      - name: season_hard_hit_rate
+        description: "Team season hard-hit rate (Statcast)"
+
+  - name: fct_mlb__team_statcast_metrics
+    description: |
+      Fact table for granular team-level Statcast metrics by season.
+      Aggregates pitch-level and batted-ball-level Statcast data to the team level.
+      Provides deeper Statcast analytics than the season stats table, including
+      velocity distributions, batted ball profiles, whiff rates, and contact quality.
+      Each row represents a team's Statcast profile for a season.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - team_id
+              - season
+    columns:
+      - name: team_id
+        description: "Team identifier"
+        tests:
+          - not_null
+      - name: season
+        description: "Season year"
+        tests:
+          - not_null
+      - name: team_name
+        description: "Full team name"
+      - name: avg_exit_velocity
+        description: "Team average exit velocity (mph) on batted balls"
+      - name: max_exit_velocity
+        description: "Team max exit velocity (mph) on batted balls"
+      - name: p90_exit_velocity
+        description: "90th percentile exit velocity (mph)"
+      - name: barrel_rate
+        description: "Team barrel rate (barrels / batted balls)"
+      - name: hard_hit_rate
+        description: "Team hard-hit rate (95+ mph / batted balls)"
+      - name: fly_ball_rate
+        description: "Fly ball rate (fly balls / batted balls)"
+      - name: line_drive_rate
+        description: "Line drive rate (line drives / batted balls)"
+      - name: ground_ball_rate
+        description: "Ground ball rate (ground balls / batted balls)"
+      - name: avg_sprint_speed
+        description: "Team average sprint speed (ft/sec)"
+      - name: staff_avg_velocity
+        description: "Pitching staff average velocity (mph)"
+      - name: staff_max_velocity
+        description: "Pitching staff max velocity (mph)"
+      - name: staff_avg_spin_rate
+        description: "Pitching staff average spin rate (rpm)"
+      - name: staff_zone_rate
+        description: "Rate of pitches thrown in the strike zone"
+      - name: staff_strike_rate
+        description: "Rate of pitches resulting in strikes (called, swinging, foul)"
+      - name: staff_whiff_rate
+        description: "Rate of pitches resulting in swinging strikes"
+      - name: elite_velocity_pct
+        description: "Percentage of pitches at 98+ mph"
+      - name: staff_unique_pitch_types
+        description: "Number of distinct pitch types used by the staff"
+
+  - name: fct_mlb__standings
+    description: |
+      Fact table containing MLB standings snapshots over time.
+      Each row represents a team's standings record on a specific date.
+      Supports weekly historical data back to 2000 for division race tracking,
+      playoff positioning analysis, and momentum trends.
+      Includes Pythagorean win expectation, luck factor, and inter-snapshot momentum.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - team_id
+              - season
+              - standings_date
+    columns:
+      - name: team_id
+        description: "Team identifier"
+        tests:
+          - not_null
+      - name: season
+        description: "Season year"
+        tests:
+          - not_null
+      - name: standings_date
+        description: "Date of the standings snapshot"
+        tests:
+          - not_null
+      - name: team_name
+        description: "Full team name"
+      - name: team_abbr
+        description: "Team abbreviation"
+      - name: division_rank
+        description: "Team's rank within their division (1 = leader)"
+      - name: wins
+        description: "Total wins as of this date"
+      - name: losses
+        description: "Total losses as of this date"
+      - name: games_played
+        description: "Total games played (wins + losses)"
+      - name: win_pct
+        description: "Winning percentage"
+      - name: games_back
+        description: "Games behind division leader (0.0 = leading)"
+      - name: wildcard_games_back
+        description: "Games behind wild card cutoff (0.0 = in position)"
+      - name: streak
+        description: "Current streak code (e.g., 'W5', 'L3')"
+      - name: last_ten_record
+        description: "Record in last 10 games (e.g., '7-3')"
+      - name: home_win_pct
+        description: "Home winning percentage"
+      - name: away_win_pct
+        description: "Away winning percentage"
+      - name: run_differential
+        description: "Season run differential (scored - allowed)"
+      - name: pythagorean_win_pct
+        description: "Expected win% from Pythagorean formula: RS^2 / (RS^2 + RA^2)"
+      - name: luck_factor
+        description: "Actual win% minus Pythagorean. Positive = outperforming run differential"
+      - name: wins_since_last
+        description: "Wins gained since previous standings snapshot"
+      - name: losses_since_last
+        description: "Losses gained since previous standings snapshot"
+      - name: win_pct_since_last
+        description: "Win percentage in the interval since previous snapshot"
+      - name: is_division_leader
+        description: "Whether the team leads their division"
+      - name: is_in_playoff_position
+        description: "Whether the team is in a playoff spot (division leader or wild card)"

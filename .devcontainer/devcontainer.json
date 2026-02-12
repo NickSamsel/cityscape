@@ -10,7 +10,8 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "dbt-labs.dbt-bitbucket-adapter"
+        "dbt-labs.dbt-bitbucket-adapter",
+        "Anthropic.claude-code"
       ]
     }
   }
