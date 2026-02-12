@@ -501,3 +501,99 @@ models:
         description: "Boolean flag for home run"
       - name: is_hit
         description: "Boolean flag for any hit (single/double/triple/HR)"
+
+  - name: int_mlb__player_season_statcast_metrics
+    description: |
+      Player season-level Statcast metrics aggregated from batted ball data.
+      Contains exit velocity, launch angle, quality metrics, and trajectory distributions.
+      Used as input for player season stat rankings and MLB Savant-style percentiles.
+    columns:
+      - name: player_id
+        description: "MLB player ID"
+        tests:
+          - not_null
+      - name: season
+        description: "MLB season year"
+        tests:
+          - not_null
+      - name: total_batted_balls
+        description: "Total number of batted ball events tracked by Statcast"
+      - name: games_with_batted_balls
+        description: "Number of games where player had batted balls tracked"
+      - name: max_exit_velocity
+        description: "Maximum exit velocity (mph) - key metric for power potential"
+      - name: avg_exit_velocity
+        description: "Average exit velocity (mph) - overall quality of contact"
+      - name: p90_exit_velocity
+        description: "90th percentile exit velocity (mph) - consistency of hard contact"
+      - name: stddev_exit_velocity
+        description: "Standard deviation of exit velocity - contact consistency"
+      - name: avg_launch_angle
+        description: "Average launch angle (degrees)"
+      - name: stddev_launch_angle
+        description: "Standard deviation of launch angle"
+      - name: avg_launch_distance
+        description: "Average projected distance (feet)"
+      - name: max_launch_distance
+        description: "Maximum projected distance (feet)"
+      - name: total_barrels
+        description: "Total barrel events (98+ mph, 26-30° launch angle)"
+      - name: total_hard_hits
+        description: "Total hard-hit balls (95+ mph exit velocity)"
+      - name: total_home_runs
+        description: "Total home runs from Statcast data"
+      - name: total_hits
+        description: "Total hits from Statcast data"
+      - name: barrel_rate
+        description: "Barrels per batted ball - elite is 15%+"
+      - name: hard_hit_rate
+        description: "Hard hits per batted ball - elite is 50%+"
+      - name: home_run_rate
+        description: "Home runs per batted ball"
+      - name: fly_balls
+        description: "Count of fly balls"
+      - name: line_drives
+        description: "Count of line drives"
+      - name: ground_balls
+        description: "Count of ground balls"
+      - name: popups
+        description: "Count of pop ups"
+      - name: avg_sprint_speed
+        description: "Average sprint speed (ft/sec)"
+      - name: max_sprint_speed
+        description: "Maximum sprint speed (ft/sec)"
+
+  - name: int_mlb__player_season_stats_enriched
+    description: |
+      Intermediate enriched player season statistics.
+      Combines Statcast metrics with traditional batting stats, team context, and percentile rankings.
+      Each row represents a player's performance for their primary team in a season (handles mid-season trades).
+    columns:
+      - name: player_id
+        description: "MLB player ID"
+        tests:
+          - not_null
+      - name: team_id
+        description: "Primary team ID (team with most games played if player changed teams)"
+        tests:
+          - not_null
+      - name: season
+        description: "MLB season year"
+        tests:
+          - not_null
+      - name: games_played
+        description: "Games played for primary team"
+      - name: exit_velo_percentile
+        description: "Percentile rank (0-100) for max exit velocity within season"
+      - name: avg_exit_velo_percentile
+        description: "Percentile rank (0-100) for avg exit velocity within season"
+      - name: home_run_percentile
+        description: "Percentile rank (0-100) for home runs within season"
+      - name: barrel_rate_percentile
+        description: "Percentile rank (0-100) for barrel rate within season"
+      - name: hard_hit_rate_percentile
+        description: "Percentile rank (0-100) for hard hit rate within season"
+      - name: max_distance_percentile
+        description: "Percentile rank (0-100) for max launch distance within season"
+      - name: sprint_speed_percentile
+        description: "Percentile rank (0-100) for avg sprint speed within season"

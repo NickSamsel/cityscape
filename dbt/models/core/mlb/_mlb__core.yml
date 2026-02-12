@@ -361,3 +361,37 @@ models:
         tests:
           - unique
           - not_null
+
+  - name: core_mlb__player_season_statcast_metrics
+    description: |
+      Core table for player season-level Statcast metrics.
+      Single source of truth for aggregated batted ball data by player-season.
+      Each row represents a player's Statcast metrics for a season.
+    columns:
+      - name: player_id
+        description: "MLB player ID"
+        tests:
+          - not_null
+      - name: season
+        description: "MLB season year"
+        tests:
+          - not_null
+
+  - name: core_mlb__player_season_stats
+    description: |
+      Core fact table for MLB player season statistics.
+      Single source of truth for player season-level performance combining traditional and Statcast metrics.
+      Each row represents a player's performance for their primary team in a season.
+    columns:
+      - name: player_id
+        description: "MLB player ID"
+        tests:
+          - not_null
+      - name: team_id
+        description: "Primary team ID (team with most games played)"
+        tests:
+          - not_null
+      - name: season
+        description: "MLB season year"
+        tests:
+          - not_null
