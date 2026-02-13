@@ -7,7 +7,7 @@
   )
 -}}
 
-source_data as (
+with source_data as (
   select
     {{ cast_string('team_id') }} as team_id,
     {{ cast_integer('season') }} as season,

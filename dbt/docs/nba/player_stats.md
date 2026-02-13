@@ -162,10 +162,6 @@ Total offensive rebounds across all games in the aggregation period.
 Total defensive rebounds across all games in the aggregation period.
 {% enddocs %}
 
-{% docs nba_total_rebounds %}
-Total rebounds across all games in the aggregation period.
-{% enddocs %}
-
 {% docs nba_total_assists %}
 Total assists across all games in the aggregation period.
 {% enddocs %}

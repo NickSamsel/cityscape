@@ -7,7 +7,7 @@
   )
 -}}
 
-source_data as (
+with source_data as (
   select
     {{ cast_integer('division_id') }} as division_id,
     {{ cast_string('division_name') }} as division_name,

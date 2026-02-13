@@ -7,7 +7,7 @@
   )
 -}}
 
-source_data as (
+with source_data as (
   select
     {{ cast_integer('league_id') }} as league_id,
     {{ cast_string('league_name') }} as league_name,
