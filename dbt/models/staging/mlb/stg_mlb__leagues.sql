@@ -7,22 +7,34 @@
   )
 -}}
 
-with source as (
+source_data as (
   select
-    cast(league_id as int64) as league_id,
-    cast(league_name as string) as league_name,
-    cast(league_abbr as string) as league_abbr,
-    row_number() over (
-      partition by cast(league_id as int64)
-      order by cast(league_name as string)
-    ) as row_num
+    {{ cast_integer('league_id') }} as league_id,
+    {{ cast_string('league_name') }} as league_name,
+    {{ cast_string('league_abbr') }} as league_abbr
   from {{ source('raw', 'mlb_leagues') }}
 
   {% if is_incremental() %}
-  where league_id not in (select league_id from {{ this }})
+  where not exists (
+    select 1 from {{ this }} as existing
+    where existing.league_id = {{ cast_integer('league_id') }}
+  )
   {% endif %}
+),
+
+deduplicated as (
+  select
+    *,
+    row_number() over (
+      partition by league_id
+      order by league_name
+    ) as row_num
+  from source_data
 )
 
-select * except(row_num)
-from source
+select
+  league_id,
+  league_name,
+  league_abbr
+from deduplicated
 where row_num = 1

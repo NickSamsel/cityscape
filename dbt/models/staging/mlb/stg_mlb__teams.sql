@@ -7,29 +7,41 @@
   )
 -}}
 
-with source as (
+source_data as (
   select
-    cast(team_id as string) as team_id,
-    cast(season as int64) as season,
-    cast(team_name as string) as team_name,
-    cast(team_abbr as string) as team_abbr,
-    cast(league_id as int64) as league_id,
-    cast(division_id as int64) as division_id,
-    row_number() over (
-      partition by cast(team_id as string), cast(season as int64)
-      order by cast(team_name as string)
-    ) as row_num
+    {{ cast_string('team_id') }} as team_id,
+    {{ cast_integer('season') }} as season,
+    {{ cast_string('team_name') }} as team_name,
+    {{ cast_string('team_abbr') }} as team_abbr,
+    {{ cast_integer('league_id') }} as league_id,
+    {{ cast_integer('division_id') }} as division_id
   from {{ source('raw', 'mlb_teams') }}
 
   {% if is_incremental() %}
   where not exists (
     select 1 from {{ this }} as existing
-    where existing.team_id = cast(team_id as string)
-      and existing.season = cast(season as int64)
+    where existing.team_id = {{ cast_string('team_id') }}
+      and existing.season = {{ cast_integer('season') }}
   )
   {% endif %}
+),
+
+deduplicated as (
+  select
+    *,
+    row_number() over (
+      partition by team_id, season
+      order by team_name
+    ) as row_num
+  from source_data
 )
 
-select * except(row_num)
-from source
+select
+  team_id,
+  season,
+  team_name,
+  team_abbr,
+  league_id,
+  division_id
+from deduplicated
 where row_num = 1

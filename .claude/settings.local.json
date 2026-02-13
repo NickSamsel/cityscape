@@ -3,7 +3,8 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(python3:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(pip install:*)"
     ]
   }
 }

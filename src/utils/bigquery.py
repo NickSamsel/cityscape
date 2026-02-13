@@ -1281,3 +1281,368 @@ def upsert_mlb_standings(client: bigquery.Client, project_id: str, rows: Iterabl
     client.delete_table(temp_table_id, not_found_ok=True)
 
     return len(df)
+
+
+# ============================================================================
+# NBA BigQuery Functions
+# ============================================================================
+
+def ensure_nba_tables(client: bigquery.Client, project_id: str) -> None:
+    """Ensure NBA tables exist in BigQuery with proper schema."""
+
+    # Define schema for nba_teams
+    teams_schema = [
+        bigquery.SchemaField("team_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("team_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("team_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("team_city", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("conference_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("division_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("year_founded", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    teams_table_id = f"{project_id}.raw.nba_teams"
+    teams_table = bigquery.Table(teams_table_id, schema=teams_schema)
+    client.create_table(teams_table, exists_ok=True)
+
+    # Define schema for nba_games
+    games_schema = [
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("season", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("season_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("game_date", "DATE", mode="NULLABLE"),
+        bigquery.SchemaField("status", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("home_team_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("away_team_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("home_score", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("away_score", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("arena", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("attendance", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    games_table_id = f"{project_id}.raw.nba_games"
+    games_table = bigquery.Table(games_table_id, schema=games_schema)
+    client.create_table(games_table, exists_ok=True)
+
+    # Define schema for nba_player_game_stats
+    player_stats_schema = [
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("team_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("starter", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("minutes", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("field_goals_made", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("field_goals_attempted", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("field_goal_pct", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("three_pointers_made", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("three_pointers_attempted", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("three_point_pct", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("free_throws_made", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("free_throws_attempted", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("free_throw_pct", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("offensive_rebounds", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("defensive_rebounds", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("total_rebounds", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("assists", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("steals", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("blocks", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("turnovers", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("personal_fouls", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("points", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("plus_minus", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    player_stats_table_id = f"{project_id}.raw.nba_player_game_stats"
+    player_stats_table = bigquery.Table(player_stats_table_id, schema=player_stats_schema)
+    client.create_table(player_stats_table, exists_ok=True)
+
+    # Define schema for nba_conferences
+    conferences_schema = [
+        bigquery.SchemaField("conference_id", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("conference_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("conference_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    conferences_table_id = f"{project_id}.raw.nba_conferences"
+    conferences_table = bigquery.Table(conferences_table_id, schema=conferences_schema)
+    client.create_table(conferences_table, exists_ok=True)
+
+    # Define schema for nba_divisions
+    divisions_schema = [
+        bigquery.SchemaField("division_id", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("division_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("division_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("conference_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    divisions_table_id = f"{project_id}.raw.nba_divisions"
+    divisions_table = bigquery.Table(divisions_table_id, schema=divisions_schema)
+    client.create_table(divisions_table, exists_ok=True)
+
+    # Define schema for nba_players
+    players_schema = [
+        bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("full_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("first_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("last_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("jersey_number", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("position", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("height", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("weight", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("birth_date", "DATE", mode="NULLABLE"),
+        bigquery.SchemaField("country", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("draft_year", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("draft_round", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("draft_number", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("is_active", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    players_table_id = f"{project_id}.raw.nba_players"
+    players_table = bigquery.Table(players_table_id, schema=players_schema)
+    client.create_table(players_table, exists_ok=True)
+
+
+def upsert_nba_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert NBA teams data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime
+
+    data = []
+    for r in rows:
+        data.append({
+            "team_id": str(r["team_id"]),
+            "team_name": r["team_name"],
+            "team_abbr": r.get("team_abbr"),
+            "team_city": r.get("team_city"),
+            "conference_id": r.get("conference_id"),
+            "division_id": r.get("division_id"),
+            "year_founded": r.get("year_founded"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['team_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate team records")
+
+    table_id = f"{project_id}.raw.nba_teams"
+    temp_table = f"{project_id}.raw._temp_nba_teams"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.team_id = S.team_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        team_name = S.team_name,
+        team_abbr = S.team_abbr,
+        team_city = S.team_city,
+        conference_id = S.conference_id,
+        division_id = S.division_id,
+        year_founded = S.year_founded,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (team_id, team_name, team_abbr, team_city, conference_id, division_id, year_founded, raw, loaded_at)
+      VALUES (S.team_id, S.team_name, S.team_abbr, S.team_city, S.conference_id, S.division_id, S.year_founded, S.raw, S.loaded_at)
+    """
+
+    query_job = client.query(merge_sql)
+    query_job.result()
+    client.delete_table(temp_table, not_found_ok=True)
+
+    return len(data)
+
+
+def upsert_nba_games(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert NBA games data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime
+
+    data = []
+    for r in rows:
+        data.append({
+            "game_id": str(r["game_id"]),
+            "season": r["season"],
+            "season_type": r.get("season_type"),
+            "game_date": r.get("game_date"),
+            "status": r.get("status"),
+            "home_team_id": str(r["home_team_id"]) if r.get("home_team_id") else None,
+            "away_team_id": str(r["away_team_id"]) if r.get("away_team_id") else None,
+            "home_score": r.get("home_score"),
+            "away_score": r.get("away_score"),
+            "arena": r.get("arena"),
+            "attendance": r.get("attendance"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['game_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate game records")
+
+    table_id = f"{project_id}.raw.nba_games"
+    temp_table = f"{project_id}.raw._temp_nba_games"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.game_id = S.game_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        season = S.season,
+        season_type = S.season_type,
+        game_date = S.game_date,
+        status = S.status,
+        home_team_id = S.home_team_id,
+        away_team_id = S.away_team_id,
+        home_score = S.home_score,
+        away_score = S.away_score,
+        arena = S.arena,
+        attendance = S.attendance,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (game_id, season, season_type, game_date, status, home_team_id, away_team_id, home_score, away_score, arena, attendance, raw, loaded_at)
+      VALUES (S.game_id, S.season, S.season_type, S.game_date, S.status, S.home_team_id, S.away_team_id, S.home_score, S.away_score, S.arena, S.attendance, S.raw, S.loaded_at)
+    """
+
+    query_job = client.query(merge_sql)
+    query_job.result()
+    client.delete_table(temp_table, not_found_ok=True)
+
+    return len(data)
+
+
+def upsert_nba_player_game_stats(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert NBA player game stats data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime
+
+    data = []
+    for r in rows:
+        data.append({
+            "game_id": str(r["game_id"]),
+            "player_id": str(r["player_id"]),
+            "team_id": str(r["team_id"]),
+            "player_name": r["player_name"],
+            "starter": r.get("starter"),
+            "minutes": r.get("minutes"),
+            "field_goals_made": r.get("field_goals_made"),
+            "field_goals_attempted": r.get("field_goals_attempted"),
+            "field_goal_pct": r.get("field_goal_pct"),
+            "three_pointers_made": r.get("three_pointers_made"),
+            "three_pointers_attempted": r.get("three_pointers_attempted"),
+            "three_point_pct": r.get("three_point_pct"),
+            "free_throws_made": r.get("free_throws_made"),
+            "free_throws_attempted": r.get("free_throws_attempted"),
+            "free_throw_pct": r.get("free_throw_pct"),
+            "offensive_rebounds": r.get("offensive_rebounds"),
+            "defensive_rebounds": r.get("defensive_rebounds"),
+            "total_rebounds": r.get("total_rebounds"),
+            "assists": r.get("assists"),
+            "steals": r.get("steals"),
+            "blocks": r.get("blocks"),
+            "turnovers": r.get("turnovers"),
+            "personal_fouls": r.get("personal_fouls"),
+            "points": r.get("points"),
+            "plus_minus": r.get("plus_minus"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['game_id', 'player_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate player stat records")
+
+    table_id = f"{project_id}.raw.nba_player_game_stats"
+    temp_table = f"{project_id}.raw._temp_nba_player_game_stats"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.game_id = S.game_id AND T.player_id = S.player_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        team_id = S.team_id,
+        player_name = S.player_name,
+        starter = S.starter,
+        minutes = S.minutes,
+        field_goals_made = S.field_goals_made,
+        field_goals_attempted = S.field_goals_attempted,
+        field_goal_pct = S.field_goal_pct,
+        three_pointers_made = S.three_pointers_made,
+        three_pointers_attempted = S.three_pointers_attempted,
+        three_point_pct = S.three_point_pct,
+        free_throws_made = S.free_throws_made,
+        free_throws_attempted = S.free_throws_attempted,
+        free_throw_pct = S.free_throw_pct,
+        offensive_rebounds = S.offensive_rebounds,
+        defensive_rebounds = S.defensive_rebounds,
+        total_rebounds = S.total_rebounds,
+        assists = S.assists,
+        steals = S.steals,
+        blocks = S.blocks,
+        turnovers = S.turnovers,
+        personal_fouls = S.personal_fouls,
+        points = S.points,
+        plus_minus = S.plus_minus,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (game_id, player_id, team_id, player_name, starter, minutes, field_goals_made, field_goals_attempted, field_goal_pct,
+              three_pointers_made, three_pointers_attempted, three_point_pct, free_throws_made, free_throws_attempted, free_throw_pct,
+              offensive_rebounds, defensive_rebounds, total_rebounds, assists, steals, blocks, turnovers, personal_fouls, points, plus_minus, raw, loaded_at)
+      VALUES (S.game_id, S.player_id, S.team_id, S.player_name, S.starter, S.minutes, S.field_goals_made, S.field_goals_attempted, S.field_goal_pct,
+              S.three_pointers_made, S.three_pointers_attempted, S.three_point_pct, S.free_throws_made, S.free_throws_attempted, S.free_throw_pct,
+              S.offensive_rebounds, S.defensive_rebounds, S.total_rebounds, S.assists, S.steals, S.blocks, S.turnovers, S.personal_fouls, S.points, S.plus_minus, S.raw, S.loaded_at)
+    """
+
+    query_job = client.query(merge_sql)
+    query_job.result()
+    client.delete_table(temp_table, not_found_ok=True)
+
+    return len(data)

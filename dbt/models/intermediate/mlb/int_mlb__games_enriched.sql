@@ -60,23 +60,9 @@ final as (
         g.away_score,
         
         -- Game outcome calculations
-        case
-            when g.home_score > g.away_score then g.home_team_id
-            when g.away_score > g.home_score then g.away_team_id
-            else null
-        end as winning_team_id,
-        
-        case
-            when g.home_score > g.away_score then g.away_team_id
-            when g.away_score > g.home_score then g.home_team_id
-            else null
-        end as losing_team_id,
-        
-        case
-            when g.home_score > g.away_score then 'home'
-            when g.away_score > g.home_score then 'away'
-            else 'tie'
-        end as winner,
+        {{ calculate_winning_team('g.home_team_id', 'g.away_team_id', 'g.home_score', 'g.away_score') }} as winning_team_id,
+        {{ calculate_losing_team('g.home_team_id', 'g.away_team_id', 'g.home_score', 'g.away_score') }} as losing_team_id,
+        {{ calculate_winner_type('g.home_score', 'g.away_score') }} as winner,
         
         abs(g.home_score - g.away_score) as score_differential,
         g.home_score + g.away_score as total_runs
@@ -96,9 +82,12 @@ final as (
         on home_t.division_id = home_div.division_id
     left join divisions as away_div
         on away_t.division_id = away_div.division_id
-    
+
     {% if is_incremental() %}
-    where g.game_id not in (select game_id from {{ this }})
+    where not exists (
+        select 1 from {{ this }} as existing
+        where existing.game_id = g.game_id
+    )
     {% endif %}
 )
 
