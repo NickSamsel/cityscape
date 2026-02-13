@@ -3,7 +3,10 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(python3:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(pip install:*)",
+      "Bash(uv run dbt compile:*)",
+      "Bash(uv run dbt run:*)"
     ]
   }
 }

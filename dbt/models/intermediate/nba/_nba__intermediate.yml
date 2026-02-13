@@ -1,0 +1,223 @@
+version: 2
+
+models:
+  - name: int_nba__games_enriched
+    description: |
+      NBA games joined with team information and enriched with game outcome calculations.
+      This intermediate model contains all business logic for determining winners, losers, and score metrics.
+    columns:
+      - name: game_id
+        description: "{{ doc('nba_game_id') }}"
+        tests:
+          - unique
+      - name: season
+        description: "{{ doc('nba_season') }}"
+      - name: game_date
+        description: "{{ doc('nba_game_date') }}"
+      - name: season_type
+        description: "{{ doc('nba_season_type') }}"
+      - name: status
+        description: "{{ doc('nba_status') }}"
+      - name: home_team_id
+        description: "{{ doc('nba_home_team_id') }}"
+      - name: home_team_name
+        description: "{{ doc('nba_home_team_name') }}"
+      - name: home_team_abbr
+        description: "{{ doc('nba_home_team_abbr') }}"
+      - name: home_conference_id
+        description: "{{ doc('nba_home_conference_id') }}"
+      - name: home_division_id
+        description: "{{ doc('nba_home_division_id') }}"
+      - name: home_score
+        description: "{{ doc('nba_home_score') }}"
+      - name: away_team_id
+        description: "{{ doc('nba_away_team_id') }}"
+      - name: away_team_name
+        description: "{{ doc('nba_away_team_name') }}"
+      - name: away_team_abbr
+        description: "{{ doc('nba_away_team_abbr') }}"
+      - name: away_conference_id
+        description: "{{ doc('nba_away_conference_id') }}"
+      - name: away_division_id
+        description: "{{ doc('nba_away_division_id') }}"
+      - name: away_score
+        description: "{{ doc('nba_away_score') }}"
+      - name: arena
+        description: "{{ doc('nba_arena') }}"
+      - name: attendance
+        description: "{{ doc('nba_attendance') }}"
+      - name: winning_team_id
+        description: "{{ doc('nba_winning_team_id') }}"
+      - name: losing_team_id
+        description: "{{ doc('nba_losing_team_id') }}"
+      - name: score_differential
+        description: "{{ doc('nba_score_differential') }}"
+
+  - name: int_nba__player_game_stats_enriched
+    description: |
+      NBA player game statistics enriched with game and team details.
+      Contains all player statistics with full context for aggregation and analysis.
+    columns:
+      - name: game_id
+        description: "{{ doc('nba_game_id') }}"
+      - name: player_id
+        description: "{{ doc('nba_player_id') }}"
+      - name: player_name
+        description: "{{ doc('nba_player_name') }}"
+      - name: team_id
+        description: "{{ doc('nba_team_id') }}"
+      - name: team_name
+        description: "{{ doc('nba_team_name') }}"
+      - name: team_abbr
+        description: "{{ doc('nba_team_abbr') }}"
+      - name: game_date
+        description: "{{ doc('nba_game_date') }}"
+      - name: season
+        description: "{{ doc('nba_season') }}"
+      - name: season_type
+        description: "{{ doc('nba_season_type') }}"
+      - name: starter
+        description: "{{ doc('nba_starter') }}"
+      - name: minutes
+        description: "{{ doc('nba_minutes') }}"
+      - name: field_goals_made
+        description: "{{ doc('nba_field_goals_made') }}"
+      - name: field_goals_attempted
+        description: "{{ doc('nba_field_goals_attempted') }}"
+      - name: field_goal_pct
+        description: "{{ doc('nba_field_goal_pct') }}"
+      - name: three_pointers_made
+        description: "{{ doc('nba_three_pointers_made') }}"
+      - name: three_pointers_attempted
+        description: "{{ doc('nba_three_pointers_attempted') }}"
+      - name: three_point_pct
+        description: "{{ doc('nba_three_point_pct') }}"
+      - name: free_throws_made
+        description: "{{ doc('nba_free_throws_made') }}"
+      - name: free_throws_attempted
+        description: "{{ doc('nba_free_throws_attempted') }}"
+      - name: free_throw_pct
+        description: "{{ doc('nba_free_throw_pct') }}"
+      - name: offensive_rebounds
+        description: "{{ doc('nba_offensive_rebounds') }}"
+      - name: defensive_rebounds
+        description: "{{ doc('nba_defensive_rebounds') }}"
+      - name: total_rebounds
+        description: "{{ doc('nba_total_rebounds') }}"
+      - name: assists
+        description: "{{ doc('nba_assists') }}"
+      - name: steals
+        description: "{{ doc('nba_steals') }}"
+      - name: blocks
+        description: "{{ doc('nba_blocks') }}"
+      - name: turnovers
+        description: "{{ doc('nba_turnovers') }}"
+      - name: personal_fouls
+        description: "{{ doc('nba_personal_fouls') }}"
+      - name: points
+        description: "{{ doc('nba_points') }}"
+      - name: plus_minus
+        description: "{{ doc('nba_plus_minus') }}"
+
+  - name: int_nba__players_enriched
+    description: |
+      NBA players enriched with calculated fields.
+      Adds age, career length, and draft category classifications.
+    columns:
+      - name: player_id
+        description: "{{ doc('nba_player_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: full_name
+        description: "{{ doc('nba_full_name') }}"
+      - name: first_name
+        description: "{{ doc('nba_first_name') }}"
+      - name: last_name
+        description: "{{ doc('nba_last_name') }}"
+      - name: jersey_number
+        description: "{{ doc('nba_jersey_number') }}"
+      - name: position
+        description: "{{ doc('nba_position') }}"
+      - name: height
+        description: "{{ doc('nba_height') }}"
+      - name: weight
+        description: "{{ doc('nba_weight') }}"
+      - name: birth_date
+        description: "{{ doc('nba_birth_date') }}"
+      - name: current_age
+        description: "{{ doc('nba_current_age') }}"
+      - name: country
+        description: "{{ doc('nba_country') }}"
+      - name: draft_year
+        description: "{{ doc('nba_draft_year') }}"
+      - name: draft_round
+        description: "{{ doc('nba_draft_round') }}"
+      - name: draft_number
+        description: "{{ doc('nba_draft_number') }}"
+      - name: draft_category
+        description: "{{ doc('nba_draft_category') }}"
+      - name: is_active
+        description: "{{ doc('nba_is_active') }}"
+      - name: years_since_draft
+        description: "{{ doc('nba_years_since_draft') }}"
+
+  - name: int_nba__teams
+    description: |
+      NBA teams at intermediate layer enriched with conference and division information.
+    columns:
+      - name: team_id
+        description: "{{ doc('nba_team_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: team_name
+        description: "{{ doc('nba_team_name') }}"
+      - name: team_abbr
+        description: "{{ doc('nba_team_abbr') }}"
+      - name: team_city
+        description: "{{ doc('nba_team_city') }}"
+      - name: conference_id
+        description: "{{ doc('nba_conference_id') }}"
+      - name: conference_name
+        description: "{{ doc('nba_conference_name') }}"
+      - name: conference_abbr
+        description: "{{ doc('nba_conference_abbr') }}"
+      - name: division_id
+        description: "{{ doc('nba_division_id') }}"
+      - name: division_name
+        description: "{{ doc('nba_division_name') }}"
+      - name: division_abbr
+        description: "{{ doc('nba_division_abbr') }}"
+      - name: year_founded
+        description: "{{ doc('nba_year_founded') }}"
+
+  - name: int_nba__conferences
+    description: |
+      NBA conferences at intermediate layer.
+      No additional enrichment needed for reference data.
+    columns:
+      - name: conference_id
+        description: "{{ doc('nba_conference_id') }}"
+        tests:
+          - unique
+      - name: conference_name
+        description: "{{ doc('nba_conference_name') }}"
+      - name: conference_abbr
+        description: "{{ doc('nba_conference_abbr') }}"
+
+  - name: int_nba__divisions
+    description: |
+      NBA divisions at intermediate layer.
+      No additional enrichment needed for reference data.
+    columns:
+      - name: division_id
+        description: "{{ doc('nba_division_id') }}"
+        tests:
+          - unique
+      - name: division_name
+        description: "{{ doc('nba_division_name') }}"
+      - name: division_abbr
+        description: "{{ doc('nba_division_abbr') }}"
+      - name: conference_id
+        description: "{{ doc('nba_conference_id') }}"

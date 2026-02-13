@@ -10,6 +10,10 @@ sources:
       # NBA
       - name: nba_games
       - name: nba_teams
+      - name: nba_player_game_stats
+      - name: nba_conferences
+      - name: nba_divisions
+      - name: nba_players
 
       # MLB
       - name: mlb_games
