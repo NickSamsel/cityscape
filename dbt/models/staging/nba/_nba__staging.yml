@@ -198,3 +198,64 @@ models:
         description: "{{ doc('nba_draft_number') }}"
       - name: is_active
         description: "{{ doc('nba_is_active') }}"
+
+  - name: stg_nba__shot_chart
+    description: |
+      NBA individual shot attempts staged from raw landing tables.
+      Similar to MLB Statcast - captures every shot with location, type, and outcome.
+      Perfect for shot chart visualizations and advanced shooting analytics.
+    columns:
+      - name: game_id
+        description: "Unique identifier for the NBA game"
+        tests:
+          - not_null
+      - name: game_event_id
+        description: "Unique event ID within the game for this shot"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique identifier for the player who took the shot"
+        tests:
+          - not_null
+      - name: player_name
+        description: "Name of the player who took the shot"
+      - name: team_id
+        description: "Unique identifier for the team"
+        tests:
+          - not_null
+      - name: team_name
+        description: "Name of the team"
+      - name: period
+        description: "Quarter/period of the game (1-4, 5+ for OT)"
+      - name: minutes_remaining
+        description: "Minutes remaining in the period when shot was taken"
+      - name: seconds_remaining
+        description: "Seconds remaining in the period when shot was taken"
+      - name: event_type
+        description: "Type of event (Made Shot, Missed Shot)"
+      - name: action_type
+        description: "Specific type of shot (Jump Shot, Layup, Dunk, etc.)"
+      - name: shot_type
+        description: "2PT Field Goal or 3PT Field Goal"
+      - name: shot_zone_basic
+        description: "Basic shot zone (Above the Break 3, In The Paint, Mid-Range, etc.)"
+      - name: shot_zone_area
+        description: "Area of the court (Left Side, Right Side, Center, Back Court)"
+      - name: shot_zone_range
+        description: "Distance range (Less Than 8 ft, 8-16 ft, 16-24 ft, 24+ ft)"
+      - name: shot_distance
+        description: "Distance of shot in feet"
+      - name: loc_x
+        description: "X coordinate on court (-250 to 250)"
+      - name: loc_y
+        description: "Y coordinate on court (0 to 940)"
+      - name: shot_attempted_flag
+        description: "1 if shot was attempted"
+      - name: shot_made_flag
+        description: "1 if shot was made, 0 if missed"
+      - name: game_date
+        description: "Date when the game was played"
+      - name: htm
+        description: "Home team abbreviation"
+      - name: vtm
+        description: "Visiting team abbreviation"

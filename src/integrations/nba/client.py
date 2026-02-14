@@ -10,7 +10,8 @@ from nba_api.stats.endpoints import (
     commonteamroster,
     leaguestandingsv3,
     playergamelog,
-    scoreboard,
+    scoreboardv2,
+    shotchartdetail,
     teamgamelog,
 )
 from nba_api.stats.static import players as static_players
@@ -23,6 +24,7 @@ from .models import (
     NbaGame,
     NbaPlayer,
     NbaPlayerGameStats,
+    NbaShotDetail,
     NbaStandingsRecord,
     NbaTeam,
 )
@@ -153,7 +155,7 @@ class NbaStatsApi:
         # Iterate through each date and fetch games
         while current_date <= end_date:
             try:
-                scoreboard_data = scoreboard.Scoreboard(
+                scoreboard_data = scoreboardv2.ScoreboardV2(
                     game_date=current_date.strftime("%Y-%m-%d")
                 )
                 games_dict = scoreboard_data.get_normalized_dict()
@@ -357,6 +359,76 @@ class NbaStatsApi:
                         opp_points_per_game=None,  # Not in this endpoint
                         diff_points_per_game=None,  # Not in this endpoint
                         raw=record,
+                    )
+                )
+
+        return out
+
+    def get_shot_chart_detail(
+        self,
+        *,
+        game_id: str,
+        player_id: int | None = None,
+        team_id: int | None = None,
+    ) -> list[NbaShotDetail]:
+        """Fetch shot chart details for a game.
+
+        Gets individual shot data including location, type, and outcome.
+        Similar to MLB Statcast data.
+
+        Args:
+            game_id: The NBA game ID
+            player_id: Optional - filter to specific player (0 = all players)
+            team_id: Optional - filter to specific team (0 = all teams)
+
+        Returns:
+            List of NbaShotDetail objects for all shots in the game
+        """
+        try:
+            shot_chart = shotchartdetail.ShotChartDetail(
+                team_id=team_id or 0,
+                player_id=player_id or 0,
+                game_id=game_id,
+                context_measure_simple="FGA",  # Field Goal Attempts
+                season_nullable="",
+                season_type_all_star="",
+            )
+            shot_data = shot_chart.get_normalized_dict()
+        except Exception as e:
+            raise NbaGameNotFoundError(
+                f"Failed to fetch shot chart for game {game_id}"
+            ) from e
+
+        out: list[NbaShotDetail] = []
+
+        if "Shot_Chart_Detail" in shot_data:
+            for shot in shot_data["Shot_Chart_Detail"]:
+                out.append(
+                    NbaShotDetail(
+                        game_id=game_id,
+                        game_event_id=parse_int_or_none(shot.get("GAME_EVENT_ID")),
+                        player_id=parse_int_or_none(shot.get("PLAYER_ID")) or 0,
+                        player_name=parse_str_or_none(shot.get("PLAYER_NAME")),
+                        team_id=parse_int_or_none(shot.get("TEAM_ID")) or 0,
+                        team_name=parse_str_or_none(shot.get("TEAM_NAME")),
+                        period=parse_int_or_none(shot.get("PERIOD")),
+                        minutes_remaining=parse_int_or_none(shot.get("MINUTES_REMAINING")),
+                        seconds_remaining=parse_int_or_none(shot.get("SECONDS_REMAINING")),
+                        event_type=parse_str_or_none(shot.get("EVENT_TYPE")),
+                        action_type=parse_str_or_none(shot.get("ACTION_TYPE")),
+                        shot_type=parse_str_or_none(shot.get("SHOT_TYPE")),
+                        shot_zone_basic=parse_str_or_none(shot.get("SHOT_ZONE_BASIC")),
+                        shot_zone_area=parse_str_or_none(shot.get("SHOT_ZONE_AREA")),
+                        shot_zone_range=parse_str_or_none(shot.get("SHOT_ZONE_RANGE")),
+                        shot_distance=parse_int_or_none(shot.get("SHOT_DISTANCE")),
+                        loc_x=parse_int_or_none(shot.get("LOC_X")),
+                        loc_y=parse_int_or_none(shot.get("LOC_Y")),
+                        shot_attempted_flag=parse_int_or_none(shot.get("SHOT_ATTEMPTED_FLAG")),
+                        shot_made_flag=parse_int_or_none(shot.get("SHOT_MADE_FLAG")),
+                        game_date=parse_str_or_none(shot.get("GAME_DATE")),
+                        htm=parse_str_or_none(shot.get("HTM")),
+                        vtm=parse_str_or_none(shot.get("VTM")),
+                        raw=shot,
                     )
                 )
 

@@ -31,6 +31,7 @@ def ingest_nba_teams_bigquery() -> int:
         project_id=settings.gcp_project_id,
         location="US",
         credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
     )
 
     client = get_client(cfg)
@@ -90,6 +91,7 @@ def ingest_nba_games_bigquery(
         project_id=settings.gcp_project_id,
         location="US",
         credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
     )
 
     client = get_client(cfg)
@@ -165,6 +167,7 @@ def ingest_nba_player_game_stats_bigquery(
         project_id=settings.gcp_project_id,
         location="US",
         credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
     )
 
     client = get_client(cfg)

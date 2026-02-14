@@ -14,6 +14,7 @@ dependencies = [
 	"dbt-postgres>=1.7",
 	"dbt-bigquery>=1.7",
 	"MLB-StatsAPI",
+	"nba-api",
 	"httpx>=0.28",
 	"psycopg2-binary>=2.9",
 ]

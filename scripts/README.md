@@ -7,7 +7,7 @@ Utility scripts for data ingestion, migrations, and demos.
 ```
 scripts/
 ├── mlb/              # MLB-specific ingestion scripts
-├── nba/              # NBA-specific ingestion scripts (placeholder)
+├── nba/              # NBA-specific ingestion scripts
 ├── nfl/              # NFL-specific ingestion scripts (placeholder)
 ├── nhl/              # NHL-specific ingestion scripts (placeholder)
 ├── demos/            # Demo and comparison scripts
@@ -90,7 +90,72 @@ uv run python scripts/mlb/ingest_historical_player_stats.py \
 ## NBA Scripts
 
 ### `nba/ingest_teams_and_games.py`
-🚧 **Placeholder** - NBA data ingestion not yet implemented.
+Ingest NBA teams, games, and player game stats for one or more seasons. **Supports historical data back to 1960!**
+
+**Usage:**
+```bash
+# Default: current season (teams + games + player stats)
+uv run python scripts/nba/ingest_teams_and_games.py
+
+# Specific season
+uv run python scripts/nba/ingest_teams_and_games.py --season 2024
+
+# Multiple seasons (sequential)
+uv run python scripts/nba/ingest_teams_and_games.py --start-year 2020 --end-year 2024
+
+# Multiple seasons PARALLEL (RECOMMENDED - much faster!)
+# Ingests teams, games, AND player stats concurrently
+uv run python scripts/nba/ingest_teams_and_games.py --start-year 2020 --end-year 2024 --parallel
+
+# Historical backfill from 1960 to present (parallel mode)
+uv run python scripts/nba/ingest_teams_and_games.py --start-year 1960 --end-year 2024 --parallel --max-workers 20
+
+# Games only (skip player stats - faster but incomplete)
+uv run python scripts/nba/ingest_teams_and_games.py --start-year 2020 --end-year 2024 --parallel --games-only
+
+# Date range filter (single season only)
+uv run python scripts/nba/ingest_teams_and_games.py --season 2024 --start-date 2024-10-01 --end-date 2024-12-31
+
+# Include playoffs
+uv run python scripts/nba/ingest_teams_and_games.py --season 2024 --season-type "Playoffs"
+
+# Parallel with custom worker count (adjust based on API rate limits)
+uv run python scripts/nba/ingest_teams_and_games.py --start-year 2015 --end-year 2024 --parallel --max-workers 15
+```
+
+**Options:**
+- `--season`: Single season to ingest
+- `--start-year` / `--end-year`: Season range for multi-season ingestion (supports back to 1960)
+- `--start-date` / `--end-date`: Filter games by date (YYYY-MM-DD)
+- `--season-type`: Season type (Regular Season, Playoffs, etc., default: Regular Season)
+- `--parallel`: Use parallel processing for multi-season ingestion (HIGHLY recommended for large ranges)
+- `--max-workers`: Number of concurrent seasons to process (default: 10, max recommended: 20)
+- `--games-only`: Skip player stats ingestion (faster but incomplete data)
+- `--include-player-stats`: Include player stats (default: True in parallel mode)
+
+**What gets ingested:**
+- NBA teams (30 teams)
+- Conferences (East, West)
+- Divisions (6 divisions)
+- Games for specified seasons and types
+- Player game-by-game statistics (individual shot stats, rebounds, assists, etc.)
+
+**Performance:**
+- Single season: ~2-5 minutes (depends on number of games)
+- Parallel mode (complete): ~5-10 minutes per season (games + player stats)
+- Parallel mode (games-only): ~30-60 seconds per season
+- Historical backfill (1960-2024, 64 seasons): ~8-12 hours with max_workers=15-20
+- Uses batch write to avoid BigQuery rate limits
+
+**Recommended approach for historical data:**
+```bash
+# Ingest all NBA data from 1960 to present
+uv run python scripts/nba/ingest_teams_and_games.py \
+  --start-year 1960 \
+  --end-year 2024 \
+  --parallel \
+  --max-workers 15
+```
 
 ## NFL Scripts
 

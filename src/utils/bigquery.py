@@ -1414,6 +1414,39 @@ def ensure_nba_tables(client: bigquery.Client, project_id: str) -> None:
     players_table = bigquery.Table(players_table_id, schema=players_schema)
     client.create_table(players_table, exists_ok=True)
 
+    # Define schema for nba_shot_chart (individual shot details)
+    shot_chart_schema = [
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("game_event_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("team_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("team_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("period", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("minutes_remaining", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("seconds_remaining", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("event_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("action_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("shot_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("shot_zone_basic", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("shot_zone_area", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("shot_zone_range", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("shot_distance", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("loc_x", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("loc_y", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("shot_attempted_flag", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("shot_made_flag", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("game_date", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("htm", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("vtm", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    shot_chart_table_id = f"{project_id}.raw.nba_shot_chart"
+    shot_chart_table = bigquery.Table(shot_chart_table_id, schema=shot_chart_schema)
+    client.create_table(shot_chart_table, exists_ok=True)
+
 
 def upsert_nba_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
     """Upsert NBA teams data to BigQuery."""
@@ -1468,6 +1501,150 @@ def upsert_nba_teams(client: bigquery.Client, project_id: str, rows: Iterable[di
     WHEN NOT MATCHED THEN
       INSERT (team_id, team_name, team_abbr, team_city, conference_id, division_id, year_founded, raw, loaded_at)
       VALUES (S.team_id, S.team_name, S.team_abbr, S.team_city, S.conference_id, S.division_id, S.year_founded, S.raw, S.loaded_at)
+    """
+
+    query_job = client.query(merge_sql)
+    query_job.result()
+    client.delete_table(temp_table, not_found_ok=True)
+
+    return len(data)
+
+
+def upsert_nba_conferences(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert NBA conferences data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime
+
+    data = []
+    for r in rows:
+        data.append({
+            "conference_id": int(r["conference_id"]),  # Explicitly cast to int
+            "conference_name": r["conference_name"],
+            "conference_abbr": r.get("conference_abbr"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+    # Ensure proper dtypes for BigQuery schema (use lowercase int64, not nullable Int64)
+    df['conference_id'] = df['conference_id'].astype('int64')
+
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['conference_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate conference records")
+
+    table_id = f"{project_id}.raw.nba_conferences"
+    temp_table = f"{project_id}.raw._temp_nba_conferences"
+
+    # Define explicit schema for temp table to ensure correct types
+    schema = [
+        bigquery.SchemaField("conference_id", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("conference_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("conference_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=schema,
+    )
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.conference_id = S.conference_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        conference_name = S.conference_name,
+        conference_abbr = S.conference_abbr,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (conference_id, conference_name, conference_abbr, raw, loaded_at)
+      VALUES (S.conference_id, S.conference_name, S.conference_abbr, S.raw, S.loaded_at)
+    """
+
+    query_job = client.query(merge_sql)
+    query_job.result()
+    client.delete_table(temp_table, not_found_ok=True)
+
+    return len(data)
+
+
+def upsert_nba_divisions(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert NBA divisions data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime
+
+    data = []
+    for r in rows:
+        data.append({
+            "division_id": int(r["division_id"]),  # Explicitly cast to int
+            "division_name": r["division_name"],
+            "division_abbr": r.get("division_abbr"),
+            "conference_id": int(r.get("conference_id")) if r.get("conference_id") is not None else None,
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+    # Ensure proper dtypes for BigQuery schema (use lowercase int64)
+    df['division_id'] = df['division_id'].astype('int64')
+    # conference_id can be null, so handle it carefully
+    if df['conference_id'].notna().any():
+        df['conference_id'] = df['conference_id'].astype('Int64')  # Nullable integer
+
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['division_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate division records")
+
+    table_id = f"{project_id}.raw.nba_divisions"
+    temp_table = f"{project_id}.raw._temp_nba_divisions"
+
+    # Define explicit schema for temp table to ensure correct types
+    schema = [
+        bigquery.SchemaField("division_id", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("division_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("division_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("conference_id", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=schema,
+    )
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.division_id = S.division_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        division_name = S.division_name,
+        division_abbr = S.division_abbr,
+        conference_id = S.conference_id,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (division_id, division_name, division_abbr, conference_id, raw, loaded_at)
+      VALUES (S.division_id, S.division_name, S.division_abbr, S.conference_id, S.raw, S.loaded_at)
     """
 
     query_job = client.query(merge_sql)
@@ -1639,6 +1816,108 @@ def upsert_nba_player_game_stats(client: bigquery.Client, project_id: str, rows:
       VALUES (S.game_id, S.player_id, S.team_id, S.player_name, S.starter, S.minutes, S.field_goals_made, S.field_goals_attempted, S.field_goal_pct,
               S.three_pointers_made, S.three_pointers_attempted, S.three_point_pct, S.free_throws_made, S.free_throws_attempted, S.free_throw_pct,
               S.offensive_rebounds, S.defensive_rebounds, S.total_rebounds, S.assists, S.steals, S.blocks, S.turnovers, S.personal_fouls, S.points, S.plus_minus, S.raw, S.loaded_at)
+    """
+
+    query_job = client.query(merge_sql)
+    query_job.result()
+    client.delete_table(temp_table, not_found_ok=True)
+
+    return len(data)
+
+
+def upsert_nba_shot_chart(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert NBA shot chart data to BigQuery.
+
+    Individual shot attempts with location, type, and outcome.
+    Similar to MLB Statcast data.
+    """
+    import pandas as pd
+    from datetime import datetime
+    from src.utils.logger import get_run_logger
+    import json
+
+    data = []
+    for row in rows:
+        data.append({
+            "game_id": str(row["game_id"]),
+            "game_event_id": row.get("game_event_id"),
+            "player_id": str(row["player_id"]),
+            "player_name": row.get("player_name"),
+            "team_id": str(row["team_id"]),
+            "team_name": row.get("team_name"),
+            "period": row.get("period"),
+            "minutes_remaining": row.get("minutes_remaining"),
+            "seconds_remaining": row.get("seconds_remaining"),
+            "event_type": row.get("event_type"),
+            "action_type": row.get("action_type"),
+            "shot_type": row.get("shot_type"),
+            "shot_zone_basic": row.get("shot_zone_basic"),
+            "shot_zone_area": row.get("shot_zone_area"),
+            "shot_zone_range": row.get("shot_zone_range"),
+            "shot_distance": row.get("shot_distance"),
+            "loc_x": row.get("loc_x"),
+            "loc_y": row.get("loc_y"),
+            "shot_attempted_flag": row.get("shot_attempted_flag"),
+            "shot_made_flag": row.get("shot_made_flag"),
+            "game_date": row.get("game_date"),
+            "htm": row.get("htm"),
+            "vtm": row.get("vtm"),
+            "raw": json.dumps(row.get("raw", {})),
+            "loaded_at": datetime.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=['game_id', 'game_event_id'], keep='last')
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate shot records")
+
+    table_id = f"{project_id}.raw.nba_shot_chart"
+    temp_table = f"{project_id}.raw._temp_nba_shot_chart"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    job = client.load_table_from_dataframe(df, temp_table, job_config=job_config)
+    job.result()
+
+    merge_sql = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table}` S
+    ON T.game_id = S.game_id AND T.game_event_id = S.game_event_id
+    WHEN MATCHED THEN
+      UPDATE SET
+        player_id = S.player_id,
+        player_name = S.player_name,
+        team_id = S.team_id,
+        team_name = S.team_name,
+        period = S.period,
+        minutes_remaining = S.minutes_remaining,
+        seconds_remaining = S.seconds_remaining,
+        event_type = S.event_type,
+        action_type = S.action_type,
+        shot_type = S.shot_type,
+        shot_zone_basic = S.shot_zone_basic,
+        shot_zone_area = S.shot_zone_area,
+        shot_zone_range = S.shot_zone_range,
+        shot_distance = S.shot_distance,
+        loc_x = S.loc_x,
+        loc_y = S.loc_y,
+        shot_attempted_flag = S.shot_attempted_flag,
+        shot_made_flag = S.shot_made_flag,
+        game_date = S.game_date,
+        htm = S.htm,
+        vtm = S.vtm,
+        raw = S.raw,
+        loaded_at = S.loaded_at
+    WHEN NOT MATCHED THEN
+      INSERT (game_id, game_event_id, player_id, player_name, team_id, team_name, period,
+              minutes_remaining, seconds_remaining, event_type, action_type, shot_type,
+              shot_zone_basic, shot_zone_area, shot_zone_range, shot_distance, loc_x, loc_y,
+              shot_attempted_flag, shot_made_flag, game_date, htm, vtm, raw, loaded_at)
+      VALUES (S.game_id, S.game_event_id, S.player_id, S.player_name, S.team_id, S.team_name, S.period,
+              S.minutes_remaining, S.seconds_remaining, S.event_type, S.action_type, S.shot_type,
+              S.shot_zone_basic, S.shot_zone_area, S.shot_zone_range, S.shot_distance, S.loc_x, S.loc_y,
+              S.shot_attempted_flag, S.shot_made_flag, S.game_date, S.htm, S.vtm, S.raw, S.loaded_at)
     """
 
     query_job = client.query(merge_sql)

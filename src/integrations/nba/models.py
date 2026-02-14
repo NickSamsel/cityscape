@@ -135,3 +135,36 @@ class NbaStandingsRecord:
     opp_points_per_game: float | None
     diff_points_per_game: float | None
     raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class NbaShotDetail:
+    """Individual shot attempt details (shot chart data).
+
+    Similar to MLB Statcast data - captures every shot with location,
+    type, and outcome. Perfect for shot charts and advanced analytics.
+    """
+    game_id: str
+    game_event_id: int | None
+    player_id: int
+    player_name: str | None
+    team_id: int
+    team_name: str | None
+    period: int | None
+    minutes_remaining: int | None
+    seconds_remaining: int | None
+    event_type: str | None  # Made Shot, Missed Shot
+    action_type: str | None  # Jump Shot, Layup, Dunk, etc.
+    shot_type: str | None  # 2PT Field Goal, 3PT Field Goal
+    shot_zone_basic: str | None  # Above the Break 3, In The Paint, Mid-Range, etc.
+    shot_zone_area: str | None  # Left Side, Right Side, Center, Back Court
+    shot_zone_range: str | None  # Less Than 8 ft, 8-16 ft, 16-24 ft, 24+ ft
+    shot_distance: int | None  # Distance in feet
+    loc_x: int | None  # X coordinate on court (-250 to 250)
+    loc_y: int | None  # Y coordinate on court (0 to 940)
+    shot_attempted_flag: int | None  # 1 = shot attempted
+    shot_made_flag: int | None  # 1 = made, 0 = missed
+    game_date: str | None
+    htm: str | None  # Home team abbreviation
+    vtm: str | None  # Visiting team abbreviation
+    raw: dict[str, Any]
