@@ -125,6 +125,7 @@ def ingest_player_stats_parallel(
         project_id=settings.gcp_project_id,
         location="US",
         credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
     )
 
     client = get_client(cfg)
@@ -214,6 +215,7 @@ def ingest_player_stats_sequential(
         project_id=settings.gcp_project_id,
         location="US",
         credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
     )
 
     client = get_client(cfg)

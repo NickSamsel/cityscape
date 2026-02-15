@@ -8,7 +8,8 @@
       "Bash(uv run dbt compile:*)",
       "Bash(uv run dbt run:*)",
       "Bash(uv sync:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(python -c:*)"
     ]
   }
 }

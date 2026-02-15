@@ -1,0 +1,107 @@
+# Daily MLB data ingestion pipeline
+#
+# Runs every morning at 6 AM ET (10 AM UTC) to pick up results from the
+# previous night's games. The MLB Stats API is free, unauthenticated, and
+# updated in near real-time — scores and player stats are available within
+# minutes of game completion.
+#
+# Cost: ~5-10 min/run during season (Apr-Oct) = ~150-300 min/month,
+# well within GitHub's free 2,000 min/month allowance.
+#
+# Required GitHub Secrets:
+#   GCP_SERVICE_ACCOUNT_KEY  - base64-encoded GCP service account JSON
+#   GCP_PROJECT_ID           - BigQuery project ID
+
+name: MLB Daily Ingest
+
+on:
+  schedule:
+    # 10:00 UTC = 6:00 AM ET — after west coast games finish
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "MLB season year"
+        required: false
+        type: number
+      lookback_days:
+        description: "Days to look back for updates"
+        required: false
+        default: 2
+        type: number
+      skip_statcast:
+        description: "Skip Statcast ingestion (faster)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  ingest:
+    name: Ingest MLB data
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Skip off-season runs (save CI minutes). The Python script also has its
+    # own season guard, but this avoids even spinning up the runner.
+    # MLB regular season: late March through early October.
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+
+    steps:
+      - name: Check if in-season (skip Nov-Feb)
+        id: season_check
+        run: |
+          month=$(date +%m)
+          if [ "$month" -ge 11 ] || [ "$month" -le 2 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Off-season (month=$month), skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.season_check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.season_check.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        if: steps.season_check.outputs.skip != 'true'
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        if: steps.season_check.outputs.skip != 'true'
+        run: uv sync --no-dev
+
+      - name: Write GCP credentials
+        if: steps.season_check.outputs.skip != 'true'
+        run: echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d > /tmp/gcp-key.json
+
+      - name: Run MLB daily ingestion
+        if: steps.season_check.outputs.skip != 'true'
+        run: |
+          ARGS="--season ${{ inputs.season || '' }} --lookback-days ${{ inputs.lookback_days || 2 }}"
+          if [ -z "${{ inputs.season }}" ]; then
+            ARGS="--lookback-days ${{ inputs.lookback_days || 2 }}"
+          fi
+          if [ "${{ inputs.skip_statcast }}" = "true" ]; then
+            ARGS="$ARGS --skip-statcast"
+          fi
+          uv run python scripts/mlb/daily_ingest.py $ARGS
+
+      - name: Run dbt build (MLB incremental)
+        if: steps.season_check.outputs.skip != 'true'
+        working-directory: dbt
+        run: |
+          uv run dbt deps
+          uv run dbt build --select tag:mlb --target dev
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/gcp-key.json

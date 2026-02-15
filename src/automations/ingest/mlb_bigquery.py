@@ -148,6 +148,7 @@ def ingest_mlb_season_bigquery(
         project_id=settings.gcp_project_id,
         location="US",
         credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
     )
 
     client = get_client(cfg)
