@@ -313,6 +313,66 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
     standings_table = bigquery.Table(standings_table_id, schema=standings_schema)
     client.create_table(standings_table, exists_ok=True)
 
+    # Define schema for mlb_schedule
+    schedule_schema = [
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("season", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("game_date", "DATE", mode="NULLABLE"),
+        bigquery.SchemaField("game_datetime", "TIMESTAMP", mode="NULLABLE"),
+        bigquery.SchemaField("game_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("status", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("day_night", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("venue_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("venue_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("home_team_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("away_team_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("home_probable_pitcher_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("home_probable_pitcher_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("away_probable_pitcher_id", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("away_probable_pitcher_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("scheduled_innings", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("series_description", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    schedule_table_id = f"{project_id}.raw.mlb_schedule"
+    schedule_table = bigquery.Table(schedule_table_id, schema=schedule_schema)
+    client.create_table(schedule_table, exists_ok=True)
+
+    # Define schema for mlb_game_broadcasts
+    broadcasts_schema = [
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("broadcast_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("broadcast_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("call_sign", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("is_national", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("home_away", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("language", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    broadcasts_table_id = f"{project_id}.raw.mlb_game_broadcasts"
+    broadcasts_table = bigquery.Table(broadcasts_table_id, schema=broadcasts_schema)
+    client.create_table(broadcasts_table, exists_ok=True)
+
+    # Define schema for mlb_game_lineups
+    lineups_schema = [
+        bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("team_side", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("full_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("position_abbreviation", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("batting_order", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    lineups_table_id = f"{project_id}.raw.mlb_game_lineups"
+    lineups_table = bigquery.Table(lineups_table_id, schema=lineups_schema)
+    client.create_table(lineups_table, exists_ok=True)
+
 
 def upsert_mlb_teams(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
     """Upsert MLB teams data to BigQuery."""
@@ -1273,6 +1333,227 @@ def upsert_mlb_standings(client: bigquery.Client, project_id: str, rows: Iterabl
                 CAST(S.home_wins AS INT64), CAST(S.home_losses AS INT64),
                 CAST(S.away_wins AS INT64), CAST(S.away_losses AS INT64),
                 S.raw, TIMESTAMP(S.loaded_at))
+    """
+
+    query_job = client.query(merge_query)
+    query_job.result()
+
+    client.delete_table(temp_table_id, not_found_ok=True)
+
+    return len(df)
+
+
+def upsert_mlb_schedule(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB schedule data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime as dt
+
+    data = []
+    for r in rows:
+        data.append({
+            "game_id": str(r["game_id"]),
+            "season": r["season"],
+            "game_date": r.get("game_date"),
+            "game_datetime": r.get("game_datetime"),
+            "game_type": r.get("game_type"),
+            "status": r.get("status"),
+            "day_night": r.get("day_night"),
+            "venue_id": str(r["venue_id"]) if r.get("venue_id") is not None else None,
+            "venue_name": r.get("venue_name"),
+            "home_team_id": str(r["home_team_id"]) if r.get("home_team_id") is not None else None,
+            "away_team_id": str(r["away_team_id"]) if r.get("away_team_id") is not None else None,
+            "home_probable_pitcher_id": str(r["home_probable_pitcher_id"]) if r.get("home_probable_pitcher_id") is not None else None,
+            "home_probable_pitcher_name": r.get("home_probable_pitcher_name"),
+            "away_probable_pitcher_id": str(r["away_probable_pitcher_id"]) if r.get("away_probable_pitcher_id") is not None else None,
+            "away_probable_pitcher_name": r.get("away_probable_pitcher_name"),
+            "scheduled_innings": r.get("scheduled_innings"),
+            "series_description": r.get("series_description"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": dt.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=["game_id"], keep="last")
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate schedule records")
+
+    table_id = f"{project_id}.raw.mlb_schedule"
+    temp_table_id = f"{table_id}_temp"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.game_id = S.game_id
+    WHEN MATCHED THEN
+        UPDATE SET
+            season = S.season,
+            game_date = S.game_date,
+            game_datetime = TIMESTAMP(S.game_datetime),
+            game_type = S.game_type,
+            status = S.status,
+            day_night = S.day_night,
+            venue_id = S.venue_id,
+            venue_name = S.venue_name,
+            home_team_id = S.home_team_id,
+            away_team_id = S.away_team_id,
+            home_probable_pitcher_id = S.home_probable_pitcher_id,
+            home_probable_pitcher_name = S.home_probable_pitcher_name,
+            away_probable_pitcher_id = S.away_probable_pitcher_id,
+            away_probable_pitcher_name = S.away_probable_pitcher_name,
+            scheduled_innings = S.scheduled_innings,
+            series_description = S.series_description,
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (game_id, season, game_date, game_datetime, game_type, status, day_night,
+                venue_id, venue_name, home_team_id, away_team_id,
+                home_probable_pitcher_id, home_probable_pitcher_name,
+                away_probable_pitcher_id, away_probable_pitcher_name,
+                scheduled_innings, series_description, raw, loaded_at)
+        VALUES (S.game_id, S.season, S.game_date, TIMESTAMP(S.game_datetime),
+                S.game_type, S.status, S.day_night,
+                S.venue_id, S.venue_name, S.home_team_id, S.away_team_id,
+                S.home_probable_pitcher_id, S.home_probable_pitcher_name,
+                S.away_probable_pitcher_id, S.away_probable_pitcher_name,
+                S.scheduled_innings, S.series_description,
+                S.raw, TIMESTAMP(S.loaded_at))
+    """
+
+    query_job = client.query(merge_query)
+    query_job.result()
+
+    client.delete_table(temp_table_id, not_found_ok=True)
+
+    return len(df)
+
+
+def upsert_mlb_game_broadcasts(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB game broadcast data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime as dt
+
+    data = []
+    for r in rows:
+        data.append({
+            "game_id": str(r["game_id"]),
+            "broadcast_name": r["broadcast_name"],
+            "broadcast_type": r.get("broadcast_type"),
+            "call_sign": r.get("call_sign"),
+            "is_national": r.get("is_national"),
+            "home_away": r.get("home_away"),
+            "language": r.get("language"),
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": dt.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=["game_id", "broadcast_name"], keep="last")
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate broadcast records")
+
+    table_id = f"{project_id}.raw.mlb_game_broadcasts"
+    temp_table_id = f"{table_id}_temp"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.game_id = S.game_id AND T.broadcast_name = S.broadcast_name
+    WHEN MATCHED THEN
+        UPDATE SET
+            broadcast_type = S.broadcast_type,
+            call_sign = S.call_sign,
+            is_national = S.is_national,
+            home_away = S.home_away,
+            language = S.language,
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (game_id, broadcast_name, broadcast_type, call_sign, is_national,
+                home_away, language, raw, loaded_at)
+        VALUES (S.game_id, S.broadcast_name, S.broadcast_type, S.call_sign, S.is_national,
+                S.home_away, S.language, S.raw, TIMESTAMP(S.loaded_at))
+    """
+
+    query_job = client.query(merge_query)
+    query_job.result()
+
+    client.delete_table(temp_table_id, not_found_ok=True)
+
+    return len(df)
+
+
+def upsert_mlb_game_lineups(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB game lineup data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime as dt
+
+    data = []
+    for r in rows:
+        data.append({
+            "game_id": str(r["game_id"]),
+            "player_id": str(r["player_id"]),
+            "team_side": r["team_side"],
+            "full_name": r["full_name"],
+            "position_abbreviation": r.get("position_abbreviation"),
+            "batting_order": r["batting_order"],
+            "raw": json.dumps(r["raw"]),
+            "loaded_at": dt.utcnow(),
+        })
+
+    df = pd.DataFrame(data)
+
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=["game_id", "player_id", "team_side"], keep="last")
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate lineup records")
+
+    table_id = f"{project_id}.raw.mlb_game_lineups"
+    temp_table_id = f"{table_id}_temp"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.game_id = S.game_id AND T.player_id = S.player_id AND T.team_side = S.team_side
+    WHEN MATCHED THEN
+        UPDATE SET
+            full_name = S.full_name,
+            position_abbreviation = S.position_abbreviation,
+            batting_order = S.batting_order,
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (game_id, player_id, team_side, full_name, position_abbreviation,
+                batting_order, raw, loaded_at)
+        VALUES (S.game_id, S.player_id, S.team_side, S.full_name, S.position_abbreviation,
+                S.batting_order, S.raw, TIMESTAMP(S.loaded_at))
     """
 
     query_job = client.query(merge_query)

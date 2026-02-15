@@ -75,7 +75,7 @@ def main() -> int:
     )
 
     # Step 1: Teams, games, leagues, divisions
-    logger.info("Step 1/4: Ingesting teams, games, and reference data...")
+    logger.info("Step 1/5: Ingesting teams, games, and reference data...")
     from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery
 
     teams, games, leagues, divisions = ingest_mlb_season_bigquery(
@@ -87,7 +87,7 @@ def main() -> int:
     logger.info(f"  teams={teams} games={games} leagues={leagues} divisions={divisions}")
 
     # Step 2: Player batting + pitching stats
-    logger.info("Step 2/4: Ingesting player stats...")
+    logger.info("Step 2/5: Ingesting player stats...")
     from src.automations.ingest.mlb import ingest_player_stats_sequential
 
     batting, pitching = ingest_player_stats_sequential(
@@ -100,7 +100,7 @@ def main() -> int:
 
     # Step 3: Statcast data
     if not args.skip_statcast:
-        logger.info("Step 3/4: Ingesting Statcast data...")
+        logger.info("Step 3/5: Ingesting Statcast data...")
         from src.automations.ingest.mlb_statcast import ingest_mlb_statcast_data_bigquery
 
         pitches, batted_balls = ingest_mlb_statcast_data_bigquery(
@@ -112,14 +112,26 @@ def main() -> int:
         )
         logger.info(f"  pitches={pitches:,} batted_balls={batted_balls:,}")
     else:
-        logger.info("Step 3/4: Skipping Statcast data (--skip-statcast)")
+        logger.info("Step 3/5: Skipping Statcast data (--skip-statcast)")
 
     # Step 4: Standings snapshot
-    logger.info("Step 4/4: Ingesting standings...")
+    logger.info("Step 4/5: Ingesting standings...")
     from src.automations.ingest.mlb import ingest_standings_snapshot
 
     standings = ingest_standings_snapshot(season=args.season, standings_date=today)
     logger.info(f"  standings_records={standings}")
+
+    # Step 5: Schedule, probable pitchers, broadcasts, lineups
+    logger.info("Step 5/5: Ingesting schedule, pitchers, broadcasts, and lineups...")
+    from src.automations.ingest.mlb_bigquery import ingest_mlb_schedule_bigquery
+
+    schedule, broadcasts, lineups = ingest_mlb_schedule_bigquery(
+        season=args.season,
+        game_types=args.game_types,
+        start_date=window_start,
+        end_date=window_end,
+    )
+    logger.info(f"  schedule={schedule} broadcasts={broadcasts} lineups={lineups}")
 
     logger.info("MLB daily ingestion complete!")
     return 0

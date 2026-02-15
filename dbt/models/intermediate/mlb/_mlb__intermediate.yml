@@ -69,6 +69,56 @@ models:
       - name: total_runs
         description: "{{ doc('mlb_total_runs') }}"
 
+  - name: int_mlb__schedule_enriched
+    description: |
+      MLB schedule enriched with team context, league/division details, and probable pitcher information.
+      Joins schedule data with teams, leagues, divisions, and player reference to provide full game context.
+    columns:
+      - name: game_id
+        description: "Unique game identifier (gamePk)"
+        tests:
+          - unique
+      - name: season
+        description: "Season year"
+      - name: game_date
+        description: "Official date of the game"
+      - name: game_datetime
+        description: "Scheduled start time (UTC timestamp)"
+      - name: venue_id
+        description: "Venue identifier"
+      - name: venue_name
+        description: "Venue name"
+      - name: home_team_id
+        description: "Home team identifier"
+      - name: home_team_name
+        description: "Home team full name"
+      - name: home_team_abbr
+        description: "Home team abbreviation"
+      - name: away_team_id
+        description: "Away team identifier"
+      - name: away_team_name
+        description: "Away team full name"
+      - name: away_team_abbr
+        description: "Away team abbreviation"
+      - name: home_probable_pitcher_id
+        description: "Home probable starter player ID"
+      - name: home_probable_pitcher_name
+        description: "Home probable starter name"
+      - name: home_probable_pitcher_throws
+        description: "Home probable starter throwing hand (L/R)"
+      - name: away_probable_pitcher_id
+        description: "Away probable starter player ID"
+      - name: away_probable_pitcher_name
+        description: "Away probable starter name"
+      - name: away_probable_pitcher_throws
+        description: "Away probable starter throwing hand (L/R)"
+      - name: has_probable_pitchers
+        description: "True if both teams have announced probable starters"
+      - name: is_interleague
+        description: "True if home and away teams are from different leagues"
+      - name: day_night
+        description: "Day or night game indicator"
+
   - name: int_mlb__player_batting_stats_enriched
     description: |
       MLB player batting statistics enriched with game and team details.

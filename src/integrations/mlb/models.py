@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 
@@ -199,4 +199,52 @@ class MlbStatcastBattedBall:
     sprint_speed: float | None  # ft/sec
     is_barrel: bool | None
     is_hard_hit: bool | None  # 95+ mph exit velo
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbScheduleEntry:
+    """MLB schedule entry with venue, probable pitchers, and game time."""
+    game_id: int
+    season: int
+    game_date: date | None
+    game_datetime: datetime | None
+    game_type: str | None
+    status: str | None
+    day_night: str | None
+    venue_id: int | None
+    venue_name: str | None
+    home_team_id: int | None
+    away_team_id: int | None
+    home_probable_pitcher_id: int | None
+    home_probable_pitcher_name: str | None
+    away_probable_pitcher_id: int | None
+    away_probable_pitcher_name: str | None
+    scheduled_innings: int | None
+    series_description: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbBroadcast:
+    """Broadcast information for an MLB game."""
+    game_id: int
+    broadcast_name: str
+    broadcast_type: str | None  # TV, AM, FM
+    call_sign: str | None
+    is_national: bool | None
+    home_away: str | None
+    language: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbLineupEntry:
+    """Starting lineup entry for an MLB game."""
+    game_id: int
+    player_id: int
+    team_side: str  # "home" or "away"
+    full_name: str
+    position_abbreviation: str | None
+    batting_order: int
     raw: dict[str, Any]

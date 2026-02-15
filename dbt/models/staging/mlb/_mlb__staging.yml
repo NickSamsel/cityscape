@@ -232,6 +232,90 @@ models:
       - name: last_ten_record
         description: "Record in last 10 games (e.g., '7-3')"
 
+  - name: stg_mlb__schedule
+    description: |
+      MLB game schedule with venue, game time, probable pitchers, and metadata.
+      Each row represents a single scheduled game with enriched context.
+    columns:
+      - name: game_id
+        description: "Unique game identifier (gamePk)"
+        tests:
+          - not_null
+          - unique
+      - name: season
+        description: "Season year"
+        tests:
+          - not_null
+      - name: game_date
+        description: "Official date of the game"
+      - name: game_datetime
+        description: "Scheduled start time (UTC timestamp)"
+      - name: venue_id
+        description: "Venue identifier"
+      - name: venue_name
+        description: "Venue name (e.g., 'Yankee Stadium')"
+      - name: home_probable_pitcher_id
+        description: "Player ID of the home team's probable starting pitcher"
+      - name: home_probable_pitcher_name
+        description: "Name of the home team's probable starting pitcher"
+      - name: away_probable_pitcher_id
+        description: "Player ID of the away team's probable starting pitcher"
+      - name: away_probable_pitcher_name
+        description: "Name of the away team's probable starting pitcher"
+      - name: day_night
+        description: "Whether the game is a day or night game"
+      - name: series_description
+        description: "Series context (e.g., 'Regular Season')"
+
+  - name: stg_mlb__game_broadcasts
+    description: |
+      Broadcast information for MLB games (TV, radio).
+      Each row represents a single broadcast outlet for a game.
+    columns:
+      - name: game_id
+        description: "Game identifier"
+        tests:
+          - not_null
+      - name: broadcast_name
+        description: "Name of the broadcast outlet (e.g., 'ESPN', 'WLW 700')"
+        tests:
+          - not_null
+      - name: broadcast_type
+        description: "Type of broadcast (TV, AM, FM)"
+      - name: call_sign
+        description: "Station call sign"
+      - name: is_national
+        description: "Whether this is a national broadcast"
+      - name: home_away
+        description: "Which team's broadcast (home or away)"
+
+  - name: stg_mlb__game_lineups
+    description: |
+      Starting lineups for MLB games.
+      Each row represents a player's spot in the starting lineup.
+      Lineups are typically set 1-2 hours before first pitch.
+    columns:
+      - name: game_id
+        description: "Game identifier"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team_side
+        description: "Whether the player is on the home or away team"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['home', 'away']
+      - name: full_name
+        description: "Player's full name"
+      - name: position_abbreviation
+        description: "Defensive position (e.g., 'SS', 'CF', 'DH')"
+      - name: batting_order
+        description: "Position in the batting order (1-9)"
+
   - name: stg_mlb__players
     description: "MLB players staged from raw landing tables"
     columns:

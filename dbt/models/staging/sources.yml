@@ -26,6 +26,9 @@ sources:
       - name: mlb_statcast_pitches
       - name: mlb_statcast_batted_balls
       - name: mlb_standings
+      - name: mlb_schedule
+      - name: mlb_game_broadcasts
+      - name: mlb_game_lineups
 
       # NHL
       - name: nhl_games
