@@ -21,7 +21,7 @@ The compose file starts Prefect Server on `http://localhost:4200` and sets `PREF
 
 ### Running flows
 
-- Local run (inside dev container): `uv run python -m cityscape.automations.prefect.mlb`
+- Local run (inside dev container): `uv run python -m src.automations.prefect.mlb`
 
 ### Scheduling (yes, you can)
 
@@ -109,20 +109,99 @@ The Python code uses a single installable package under `src/`, organized as:
 
 ## MLB ingestion
 
-### Team & Game Data (Postgres)
+### MLB ingest commands (all entrypoints)
 
-Fetch MLB season data from the free MLB Stats API and land it into Postgres raw tables:
+All commands below are intended to run inside the dev container and land into BigQuery.
+
+- Daily “do everything” windowed ingest (recommended):
+
+```bash
+uv run python scripts/mlb/daily_ingest.py
+
+# Custom window controls
+uv run python scripts/mlb/daily_ingest.py --season 2025 --lookback-days 3
+
+# Faster run (skip Statcast)
+uv run python scripts/mlb/daily_ingest.py --skip-statcast
+```
+
+- Teams + games (+ leagues/divisions) backfill:
+
+```bash
+# Single season
+uv run python scripts/mlb/ingest_teams_and_games.py --season 2024
+
+# Multi-season (parallel)
+uv run python scripts/mlb/ingest_teams_and_games.py --start-year 2020 --end-year 2024 --parallel
+```
+
+- Player game stats backfill (batting + pitching):
+
+```bash
+uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2020 --end-year 2024
+```
+
+- Player dimension (from player IDs observed in stats tables):
+
+```bash
+uv run python scripts/mlb/ingest_players.py
+uv run python scripts/mlb/ingest_players.py --parallel --max-workers 3
+```
+
+- Statcast pitches + batted balls:
+
+```bash
+uv run python scripts/mlb/ingest_statcast_data.py --season 2024
+```
+
+- Standings snapshots:
+
+```bash
+uv run python scripts/mlb/ingest_standings.py --season 2024
+uv run python scripts/mlb/ingest_standings.py --start-season 2020 --end-season 2024
+```
+
+- Schedule + probable pitchers + broadcasts + lineups (+ venues/ballparks)
+  - This is included in `scripts/mlb/daily_ingest.py` (step 5).
+  - Standalone (example):
+
+```bash
+uv run python -c "from datetime import date; from src.automations.ingest.mlb_bigquery import ingest_mlb_schedule_bigquery; ingest_mlb_schedule_bigquery(season=2024, start_date=date(2024,4,1), end_date=date(2024,4,7))"
+```
+
+This standalone run ingests (at minimum):
+- `raw.mlb_schedule` (includes `home_probable_pitcher_*` / `away_probable_pitcher_*` and `venue_id`)
+- `raw.mlb_game_broadcasts`
+- `raw.mlb_game_lineups`
+- `raw.mlb_venues` (ballpark metadata like capacity + field dimensions)
+
+- Venues (ballparks) only:
+
+```bash
+# Full season (all parks teams played in)
+uv run python -m scripts.mlb.ingest_venues --season 2024 --game-types R,P
+
+# Or derive venue IDs from schedule in a small date window
+uv run python -m scripts.mlb.ingest_venues --season 2024 --start-date 2024-04-01 --end-date 2024-04-07
+
+# Or pass explicit venue IDs
+uv run python -m scripts.mlb.ingest_venues --season 2024 --venue-ids 3,10,12
+```
+
+### Team & Game Data (BigQuery)
+
+Fetch MLB season data from the free MLB Stats API and land it into BigQuery raw tables:
 
 - `raw.mlb_teams`
 - `raw.mlb_games`
 
-Run inside the dev container (with `postgres` service up):
+Run inside the dev container:
 
 ```bash
-uv run cityscape ingest mlb --season 2024
+uv run python scripts/mlb/ingest_teams_and_games.py --season 2024
 ```
 
-Then build dbt staging models:
+Then build dbt models:
 
 ```bash
 make dbt-run  # or: cd dbt && uv run dbt run -s tag:mlb

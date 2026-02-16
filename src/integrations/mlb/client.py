@@ -849,75 +849,75 @@ class MlbStatsApi:
                         ))
 
         return schedule_entries, broadcasts, lineup_entries
-    
-        def list_venues(
-            self,
-            *,
-            venue_ids: list[int],
-            season: int | None = None,
-            hydrate: str = "location,fieldInfo",
-        ) -> list[MlbVenue]:
-            """Fetch venue (ballpark) reference data.
 
-            Uses the MLB Stats API `venue` endpoint, which requires venueIds.
-            """
-            if not venue_ids:
-                return []
+    def list_venues(
+        self,
+        *,
+        venue_ids: list[int],
+        season: int | None = None,
+        hydrate: str = "location,fieldInfo",
+    ) -> list[MlbVenue]:
+        """Fetch venue (ballpark) reference data.
 
-            params: dict[str, Any] = {
-                "venueIds": ",".join(str(v) for v in sorted(set(venue_ids))),
-            }
-            if season is not None:
-                params["season"] = season
-            if hydrate:
-                params["hydrate"] = hydrate
+        Uses the MLB Stats API `venue` endpoint, which requires venueIds.
+        """
+        if not venue_ids:
+            return []
 
-            payload = self._get_json("venue", params)
+        params: dict[str, Any] = {
+            "venueIds": ",".join(str(v) for v in sorted(set(venue_ids))),
+        }
+        if season is not None:
+            params["season"] = season
+        if hydrate:
+            params["hydrate"] = hydrate
 
-            venues: list[MlbVenue] = []
-            for v in payload.get("venues", []):
-                if not isinstance(v, dict):
-                    continue
+        payload = self._get_json("venue", params)
 
-                venue_id = parse_int_or_none(v.get("id"))
-                if venue_id is None:
-                    continue
+        venues: list[MlbVenue] = []
+        for v in payload.get("venues", []):
+            if not isinstance(v, dict):
+                continue
 
-                location = v.get("location") if isinstance(v.get("location"), dict) else {}
-                default_coords = (
-                    location.get("defaultCoordinates")
-                    if isinstance(location.get("defaultCoordinates"), dict)
-                    else {}
+            venue_id = parse_int_or_none(v.get("id"))
+            if venue_id is None:
+                continue
+
+            location = v.get("location") if isinstance(v.get("location"), dict) else {}
+            default_coords = (
+                location.get("defaultCoordinates")
+                if isinstance(location.get("defaultCoordinates"), dict)
+                else {}
+            )
+            field_info = v.get("fieldInfo") if isinstance(v.get("fieldInfo"), dict) else {}
+
+            venues.append(
+                MlbVenue(
+                    venue_id=venue_id,
+                    season=parse_int_or_none(v.get("season")),
+                    venue_name=parse_str_or_none(v.get("name")),
+                    active=v.get("active") if isinstance(v.get("active"), bool) else None,
+                    city=parse_str_or_none(location.get("city")),
+                    state=parse_str_or_none(location.get("state")),
+                    state_abbrev=parse_str_or_none(location.get("stateAbbrev")),
+                    country=parse_str_or_none(location.get("country")),
+                    latitude=self._safe_float(default_coords.get("latitude")),
+                    longitude=self._safe_float(default_coords.get("longitude")),
+                    capacity=parse_int_or_none(field_info.get("capacity")),
+                    turf_type=parse_str_or_none(field_info.get("turfType")),
+                    roof_type=parse_str_or_none(field_info.get("roofType")),
+                    left_line=self._safe_float(field_info.get("leftLine")),
+                    right_line=self._safe_float(field_info.get("rightLine")),
+                    center=self._safe_float(field_info.get("center")),
+                    left=self._safe_float(field_info.get("left")),
+                    right=self._safe_float(field_info.get("right")),
+                    left_center=self._safe_float(field_info.get("leftCenter")),
+                    right_center=self._safe_float(field_info.get("rightCenter")),
+                    raw=v,
                 )
-                field_info = v.get("fieldInfo") if isinstance(v.get("fieldInfo"), dict) else {}
+            )
 
-                venues.append(
-                    MlbVenue(
-                        venue_id=venue_id,
-                        season=parse_int_or_none(v.get("season")),
-                        venue_name=parse_str_or_none(v.get("name")),
-                        active=v.get("active") if isinstance(v.get("active"), bool) else None,
-                        city=parse_str_or_none(location.get("city")),
-                        state=parse_str_or_none(location.get("state")),
-                        state_abbrev=parse_str_or_none(location.get("stateAbbrev")),
-                        country=parse_str_or_none(location.get("country")),
-                        latitude=self._safe_float(default_coords.get("latitude")),
-                        longitude=self._safe_float(default_coords.get("longitude")),
-                        capacity=parse_int_or_none(field_info.get("capacity")),
-                        turf_type=parse_str_or_none(field_info.get("turfType")),
-                        roof_type=parse_str_or_none(field_info.get("roofType")),
-                        left_line=self._safe_float(field_info.get("leftLine")),
-                        right_line=self._safe_float(field_info.get("rightLine")),
-                        center=self._safe_float(field_info.get("center")),
-                        left=self._safe_float(field_info.get("left")),
-                        right=self._safe_float(field_info.get("right")),
-                        left_center=self._safe_float(field_info.get("leftCenter")),
-                        right_center=self._safe_float(field_info.get("rightCenter")),
-                        raw=v,
-                    )
-                )
-
-            return venues
+        return venues
 
     def _safe_float(self, value: Any) -> float | None:
         """Safely convert value to float, returning None if invalid."""

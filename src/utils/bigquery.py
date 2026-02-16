@@ -1540,8 +1540,8 @@ def upsert_mlb_venues(client: bigquery.Client, project_id: str, rows: Iterable[d
             left_line = S.left_line,
             right_line = S.right_line,
             center = S.center,
-            left = S.left,
-            right = S.right,
+            `left` = S.`left`,
+            `right` = S.`right`,
             left_center = S.left_center,
             right_center = S.right_center,
             raw = S.raw,
@@ -1552,7 +1552,7 @@ def upsert_mlb_venues(client: bigquery.Client, project_id: str, rows: Iterable[d
             city, state, state_abbrev, country,
             latitude, longitude,
             capacity, turf_type, roof_type,
-            left_line, right_line, center, left, right, left_center, right_center,
+            left_line, right_line, center, `left`, `right`, left_center, right_center,
             raw, loaded_at
         )
         VALUES (
@@ -1561,7 +1561,7 @@ def upsert_mlb_venues(client: bigquery.Client, project_id: str, rows: Iterable[d
             S.latitude, S.longitude,
             CAST(S.capacity AS INT64), S.turf_type, S.roof_type,
             CAST(S.left_line AS FLOAT64), CAST(S.right_line AS FLOAT64), CAST(S.center AS FLOAT64),
-            CAST(S.left AS FLOAT64), CAST(S.right AS FLOAT64),
+            CAST(S.`left` AS FLOAT64), CAST(S.`right` AS FLOAT64),
             CAST(S.left_center AS FLOAT64), CAST(S.right_center AS FLOAT64),
             S.raw, TIMESTAMP(S.loaded_at)
         )

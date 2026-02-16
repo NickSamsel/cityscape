@@ -35,8 +35,8 @@ select
   left_line,
   right_line,
   center,
-  left,
-  right,
+  left_distance,
+  right_distance,
   left_center,
   right_center
 from ranked

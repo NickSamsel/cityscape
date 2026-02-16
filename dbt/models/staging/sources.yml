@@ -30,6 +30,7 @@ sources:
       - name: mlb_schedule
       - name: mlb_game_broadcasts
       - name: mlb_game_lineups
+      - name: mlb_venues
 
       # NHL
       - name: nhl_games

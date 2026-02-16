@@ -22,6 +22,14 @@
     {%- endif -%}
 {%- endmacro %}
 
+{% macro cast_float(column_name) -%}
+    {%- if target.type == 'bigquery' -%}
+        cast({{ column_name }} as float64)
+    {%- else -%}
+        cast({{ column_name }} as double precision)
+    {%- endif -%}
+{%- endmacro %}
+
 {% macro cast_date(column_name) -%}
     cast({{ column_name }} as date)
 {%- endmacro %}
