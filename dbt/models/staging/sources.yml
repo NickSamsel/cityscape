@@ -14,6 +14,7 @@ sources:
       - name: nba_conferences
       - name: nba_divisions
       - name: nba_players
+      - name: nba_shot_chart
 
       # MLB
       - name: mlb_games

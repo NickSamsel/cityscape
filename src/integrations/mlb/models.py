@@ -226,6 +226,38 @@ class MlbScheduleEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class MlbVenue:
+    """MLB venue (ballpark) reference data."""
+
+    venue_id: int
+    season: int | None
+    venue_name: str | None
+    active: bool | None
+
+    # Location
+    city: str | None
+    state: str | None
+    state_abbrev: str | None
+    country: str | None
+    latitude: float | None
+    longitude: float | None
+
+    # Field/park metadata
+    capacity: int | None
+    turf_type: str | None
+    roof_type: str | None
+    left_line: float | None
+    right_line: float | None
+    center: float | None
+    left: float | None
+    right: float | None
+    left_center: float | None
+    right_center: float | None
+
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
 class MlbBroadcast:
     """Broadcast information for an MLB game."""
     game_id: int

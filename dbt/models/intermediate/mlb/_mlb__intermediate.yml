@@ -8,7 +8,7 @@ models:
     columns:
       - name: game_id
         description: "{{ doc('mlb_game_id') }}"
-        tests: 
+        tests:
           - unique
       - name: season
         description: "{{ doc('mlb_season') }}"
@@ -75,49 +75,49 @@ models:
       Joins schedule data with teams, leagues, divisions, and player reference to provide full game context.
     columns:
       - name: game_id
-        description: "Unique game identifier (gamePk)"
+        description: "{{ doc('mlb_game_id') }}"
         tests:
           - unique
       - name: season
-        description: "Season year"
+        description: "{{ doc('mlb_season') }}"
       - name: game_date
-        description: "Official date of the game"
+        description: "{{ doc('mlb_game_date') }}"
       - name: game_datetime
-        description: "Scheduled start time (UTC timestamp)"
+        description: "{{ doc('mlb_game_datetime') }}"
       - name: venue_id
-        description: "Venue identifier"
+        description: "{{ doc('mlb_venue_id') }}"
       - name: venue_name
-        description: "Venue name"
+        description: "{{ doc('mlb_venue_name') }}"
       - name: home_team_id
-        description: "Home team identifier"
+        description: "{{ doc('mlb_home_team_id') }}"
       - name: home_team_name
-        description: "Home team full name"
+        description: "{{ doc('mlb_home_team_name') }}"
       - name: home_team_abbr
-        description: "Home team abbreviation"
+        description: "{{ doc('mlb_home_team_abbr') }}"
       - name: away_team_id
-        description: "Away team identifier"
+        description: "{{ doc('mlb_away_team_id') }}"
       - name: away_team_name
-        description: "Away team full name"
+        description: "{{ doc('mlb_away_team_name') }}"
       - name: away_team_abbr
-        description: "Away team abbreviation"
+        description: "{{ doc('mlb_away_team_abbr') }}"
       - name: home_probable_pitcher_id
-        description: "Home probable starter player ID"
+        description: "{{ doc('mlb_home_probable_pitcher_id') }}"
       - name: home_probable_pitcher_name
-        description: "Home probable starter name"
+        description: "{{ doc('mlb_home_probable_pitcher_name') }}"
       - name: home_probable_pitcher_throws
-        description: "Home probable starter throwing hand (L/R)"
+        description: "{{ doc('mlb_home_probable_pitcher_throws') }}"
       - name: away_probable_pitcher_id
-        description: "Away probable starter player ID"
+        description: "{{ doc('mlb_away_probable_pitcher_id') }}"
       - name: away_probable_pitcher_name
-        description: "Away probable starter name"
+        description: "{{ doc('mlb_away_probable_pitcher_name') }}"
       - name: away_probable_pitcher_throws
-        description: "Away probable starter throwing hand (L/R)"
+        description: "{{ doc('mlb_away_probable_pitcher_throws') }}"
       - name: has_probable_pitchers
-        description: "True if both teams have announced probable starters"
+        description: "{{ doc('mlb_has_probable_pitchers') }}"
       - name: is_interleague
-        description: "True if home and away teams are from different leagues"
+        description: "{{ doc('mlb_is_interleague') }}"
       - name: day_night
-        description: "Day or night game indicator"
+        description: "{{ doc('mlb_day_night') }}"
 
   - name: int_mlb__player_batting_stats_enriched
     description: |
@@ -360,13 +360,13 @@ models:
         description: "{{ doc('mlb_league_id') }}"
       - name: division_id
         description: "{{ doc('mlb_division_id') }}"
-    
+
   - name: int_mlb__players
     description: |
       MLB players at intermediate layer.
       No additional enrichment needed for reference data.
     columns:
-      - name: player_id   
+      - name: player_id
         description: "{{ doc('mlb_player_id') }}"
         tests:
           - not_null
@@ -420,70 +420,70 @@ models:
       Each row represents a single pitch with velocity, spin rate, location, and outcome.
     columns:
       - name: play_id
-        description: "Unique identifier for the pitch (game_id_atbat_pitchnum)"
+        description: "{{ doc('mlb_play_id') }}"
         tests:
           - unique
           - not_null
       - name: game_id
-        description: "MLB game identifier"
+        description: "{{ doc('mlb_game_id') }}"
       - name: at_bat_index
-        description: "Sequential at-bat number within the game"
+        description: "{{ doc('mlb_at_bat_index') }}"
       - name: pitch_number
-        description: "Sequential pitch number within the at-bat"
+        description: "{{ doc('mlb_pitch_number') }}"
       - name: season
-        description: "MLB season year"
+        description: "{{ doc('mlb_season') }}"
       - name: game_date
-        description: "Date the game was played"
+        description: "{{ doc('mlb_game_date') }}"
       - name: pitcher_id
-        description: "MLB player ID for the pitcher"
+        description: "{{ doc('mlb_pitcher_id') }}"
       - name: pitcher_name
-        description: "Full name of the pitcher"
+        description: "{{ doc('mlb_pitcher_name') }}"
       - name: pitcher_hand
-        description: "Pitcher throwing hand (L/R)"
+        description: "{{ doc('mlb_pitcher_hand') }}"
       - name: pitcher_age
-        description: "Pitcher age on game date"
+        description: "{{ doc('mlb_pitcher_age') }}"
       - name: batter_id
-        description: "MLB player ID for the batter"
+        description: "{{ doc('mlb_batter_id') }}"
       - name: batter_name
-        description: "Full name of the batter"
+        description: "{{ doc('mlb_batter_name') }}"
       - name: batter_hand
-        description: "Batter hitting hand (L/R)"
+        description: "{{ doc('mlb_batter_hand') }}"
       - name: batter_age
-        description: "Batter age on game date"
+        description: "{{ doc('mlb_batter_age') }}"
       - name: pitcher_batter_handedness
-        description: "Matchup type (Same/Opposite)"
+        description: "{{ doc('mlb_pitcher_batter_handedness') }}"
       - name: pitch_type
-        description: "Pitch type code (FF, CU, SL, etc.)"
+        description: "{{ doc('mlb_pitch_type') }}"
       - name: pitch_type_description
-        description: "Full pitch type description"
+        description: "{{ doc('mlb_pitch_type_description') }}"
       - name: release_speed
-        description: "Pitch velocity in mph"
+        description: "{{ doc('mlb_release_speed') }}"
       - name: release_spin_rate
-        description: "Pitch spin rate in rpm"
+        description: "{{ doc('mlb_release_spin_rate') }}"
       - name: release_extension
-        description: "Release point extension in feet"
+        description: "{{ doc('mlb_release_extension') }}"
       - name: zone
-        description: "Strike zone location (1-9 in zone, 11+ out of zone)"
+        description: "{{ doc('mlb_zone') }}"
       - name: in_strike_zone
-        description: "Boolean flag if pitch was in strike zone"
+        description: "{{ doc('mlb_in_strike_zone') }}"
       - name: plate_x
-        description: "Horizontal plate location in feet from center"
+        description: "{{ doc('mlb_plate_x') }}"
       - name: plate_z
-        description: "Vertical plate location in feet from ground"
+        description: "{{ doc('mlb_plate_z') }}"
       - name: strikes
-        description: "Strike count when pitch was thrown"
+        description: "{{ doc('mlb_count_strikes') }}"
       - name: balls
-        description: "Ball count when pitch was thrown"
+        description: "{{ doc('mlb_count_balls') }}"
       - name: outs
-        description: "Number of outs when pitch was thrown"
+        description: "{{ doc('mlb_count_outs') }}"
       - name: count_description
-        description: "Count as string (e.g., '2-1')"
+        description: "{{ doc('mlb_count_description') }}"
       - name: pitch_result
-        description: "Pitch result code (S, X, B, F, W)"
+        description: "{{ doc('mlb_pitch_result') }}"
       - name: velocity_tier
-        description: "Velocity classification (Elite/Above Average/Average/Below Average/Soft)"
+        description: "{{ doc('mlb_velocity_tier') }}"
       - name: spin_tier
-        description: "Spin rate classification (High/Average/Low)"
+        description: "{{ doc('mlb_spin_tier') }}"
 
   - name: int_mlb__statcast_batted_balls_enriched
     description: |
@@ -491,66 +491,66 @@ models:
       Each row represents a single batted ball with exit velocity, launch angle, and outcomes.
     columns:
       - name: play_id
-        description: "Unique identifier for the batted ball (game_id_atbat_pitchnum)"
+        description: "{{ doc('mlb_play_id') }}"
         tests:
           - unique
           - not_null
       - name: game_id
-        description: "MLB game identifier"
+        description: "{{ doc('mlb_game_id') }}"
       - name: at_bat_index
-        description: "Sequential at-bat number within the game"
+        description: "{{ doc('mlb_at_bat_index') }}"
       - name: season
-        description: "MLB season year"
+        description: "{{ doc('mlb_season') }}"
       - name: game_date
-        description: "Date the game was played"
+        description: "{{ doc('mlb_game_date') }}"
       - name: batter_id
-        description: "MLB player ID for the batter"
+        description: "{{ doc('mlb_batter_id') }}"
       - name: batter_name
-        description: "Full name of the batter"
+        description: "{{ doc('mlb_batter_name') }}"
       - name: batter_hand
-        description: "Batter hitting hand (L/R)"
+        description: "{{ doc('mlb_batter_hand') }}"
       - name: batter_age
-        description: "Batter age on game date"
+        description: "{{ doc('mlb_batter_age') }}"
       - name: pitcher_id
-        description: "MLB player ID for the pitcher"
+        description: "{{ doc('mlb_pitcher_id') }}"
       - name: pitcher_name
-        description: "Full name of the pitcher"
+        description: "{{ doc('mlb_pitcher_name') }}"
       - name: pitcher_hand
-        description: "Pitcher throwing hand (L/R)"
+        description: "{{ doc('mlb_pitcher_hand') }}"
       - name: pitcher_age
-        description: "Pitcher age on game date"
+        description: "{{ doc('mlb_pitcher_age') }}"
       - name: pitcher_batter_handedness
-        description: "Matchup type (Same/Opposite)"
+        description: "{{ doc('mlb_pitcher_batter_handedness') }}"
       - name: launch_speed
-        description: "Exit velocity in mph"
+        description: "{{ doc('mlb_launch_speed') }}"
       - name: launch_angle
-        description: "Launch angle in degrees"
+        description: "{{ doc('mlb_launch_angle') }}"
       - name: launch_distance
-        description: "Projected distance in feet"
+        description: "{{ doc('mlb_launch_distance') }}"
       - name: hit_location
-        description: "Field location code"
+        description: "{{ doc('mlb_hit_location') }}"
       - name: hit_trajectory
-        description: "Batted ball trajectory (fly_ball, line_drive, ground_ball, popup)"
+        description: "{{ doc('mlb_hit_trajectory') }}"
       - name: hit_result
-        description: "Play outcome (Single, Double, Home Run, etc.)"
+        description: "{{ doc('mlb_hit_result') }}"
       - name: sprint_speed
-        description: "Runner sprint speed in ft/sec"
+        description: "{{ doc('mlb_sprint_speed') }}"
       - name: is_barrel
-        description: "Boolean flag for barrel (98+ mph, 26-30° launch angle)"
+        description: "{{ doc('mlb_is_barrel') }}"
       - name: is_hard_hit
-        description: "Boolean flag for hard hit (95+ mph exit velocity)"
+        description: "{{ doc('mlb_is_hard_hit') }}"
       - name: exit_velo_tier
-        description: "Exit velocity classification (Elite/Great/Good/Average/Below Average/Weak)"
+        description: "{{ doc('mlb_exit_velo_tier') }}"
       - name: trajectory_bucket
-        description: "Trajectory classification (Pop Up/Fly Ball/Line Drive/Ground Ball/Topped)"
+        description: "{{ doc('mlb_trajectory_bucket') }}"
       - name: quality_contact_tier
-        description: "Contact quality (Barrel/Hard Hit/Not Hard Hit)"
+        description: "{{ doc('mlb_quality_contact_tier') }}"
       - name: distance_bucket
-        description: "Distance classification (400+ ft/350-399 ft/etc.)"
+        description: "{{ doc('mlb_distance_bucket') }}"
       - name: is_home_run
-        description: "Boolean flag for home run"
+        description: "{{ doc('mlb_is_home_run') }}"
       - name: is_hit
-        description: "Boolean flag for any hit (single/double/triple/HR)"
+        description: "{{ doc('mlb_is_hit') }}"
 
   - name: int_mlb__player_season_statcast_metrics
     description: |
@@ -559,47 +559,47 @@ models:
       Used as input for player season stat rankings and MLB Savant-style percentiles.
     columns:
       - name: player_id
-        description: "MLB player ID"
+        description: "{{ doc('mlb_player_id') }}"
         tests:
           - not_null
       - name: season
-        description: "MLB season year"
+        description: "{{ doc('mlb_season') }}"
         tests:
           - not_null
       - name: total_batted_balls
-        description: "Total number of batted ball events tracked by Statcast"
+        description: "{{ doc('mlb_total_batted_balls') }}"
       - name: games_with_batted_balls
-        description: "Number of games where player had batted balls tracked"
+        description: "{{ doc('mlb_games_with_batted_balls') }}"
       - name: max_exit_velocity
-        description: "Maximum exit velocity (mph) - key metric for power potential"
+        description: "{{ doc('mlb_max_exit_velocity') }}"
       - name: avg_exit_velocity
-        description: "Average exit velocity (mph) - overall quality of contact"
+        description: "{{ doc('mlb_avg_exit_velocity') }}"
       - name: p90_exit_velocity
-        description: "90th percentile exit velocity (mph) - consistency of hard contact"
+        description: "{{ doc('mlb_p90_exit_velocity') }}"
       - name: stddev_exit_velocity
-        description: "Standard deviation of exit velocity - contact consistency"
+        description: "{{ doc('mlb_stddev_exit_velocity') }}"
       - name: avg_launch_angle
-        description: "Average launch angle (degrees)"
+        description: "{{ doc('mlb_avg_launch_angle') }}"
       - name: stddev_launch_angle
-        description: "Standard deviation of launch angle"
+        description: "{{ doc('mlb_stddev_launch_angle') }}"
       - name: avg_launch_distance
-        description: "Average projected distance (feet)"
+        description: "{{ doc('mlb_avg_launch_distance') }}"
       - name: max_launch_distance
-        description: "Maximum projected distance (feet)"
+        description: "{{ doc('mlb_max_launch_distance') }}"
       - name: total_barrels
-        description: "Total barrel events (98+ mph, 26-30° launch angle)"
+        description: "{{ doc('mlb_total_barrels') }}"
       - name: total_hard_hits
-        description: "Total hard-hit balls (95+ mph exit velocity)"
+        description: "{{ doc('mlb_total_hard_hits') }}"
       - name: total_home_runs
-        description: "Total home runs from Statcast data"
+        description: "{{ doc('mlb_home_runs') }}"
       - name: total_hits
-        description: "Total hits from Statcast data"
+        description: "{{ doc('mlb_hits') }}"
       - name: barrel_rate
-        description: "Barrels per batted ball - elite is 15%+"
+        description: "{{ doc('mlb_barrel_rate') }}"
       - name: hard_hit_rate
-        description: "Hard hits per batted ball - elite is 50%+"
+        description: "{{ doc('mlb_hard_hit_rate') }}"
       - name: home_run_rate
-        description: "Home runs per batted ball"
+        description: "{{ doc('mlb_home_run_rate') }}"
       - name: fly_balls
         description: "Count of fly balls"
       - name: line_drives
@@ -609,9 +609,9 @@ models:
       - name: popups
         description: "Count of pop ups"
       - name: avg_sprint_speed
-        description: "Average sprint speed (ft/sec)"
+        description: "{{ doc('mlb_avg_sprint_speed') }}"
       - name: max_sprint_speed
-        description: "Maximum sprint speed (ft/sec)"
+        description: "{{ doc('mlb_max_sprint_speed') }}"
 
   - name: int_mlb__player_season_stats_enriched
     description: |
@@ -620,15 +620,15 @@ models:
       Each row represents a player's performance for their primary team in a season (handles mid-season trades).
     columns:
       - name: player_id
-        description: "MLB player ID"
+        description: "{{ doc('mlb_player_id') }}"
         tests:
           - not_null
       - name: team_id
-        description: "Primary team ID (team with most games played if player changed teams)"
+        description: "{{ doc('mlb_team_id') }}"
         tests:
           - not_null
       - name: season
-        description: "MLB season year"
+        description: "{{ doc('mlb_season') }}"
         tests:
           - not_null
       - name: games_played

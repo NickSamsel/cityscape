@@ -340,6 +340,36 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
     schedule_table = bigquery.Table(schedule_table_id, schema=schedule_schema)
     client.create_table(schedule_table, exists_ok=True)
 
+    # Define schema for mlb_venues
+    venues_schema = [
+        bigquery.SchemaField("venue_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("season", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("venue_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("active", "BOOL", mode="NULLABLE"),
+        bigquery.SchemaField("city", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("state", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("state_abbrev", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("country", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("latitude", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("longitude", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("capacity", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("turf_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("roof_type", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("left_line", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("right_line", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("center", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("left", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("right", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("left_center", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("right_center", "FLOAT64", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ]
+
+    venues_table_id = f"{project_id}.raw.mlb_venues"
+    venues_table = bigquery.Table(venues_table_id, schema=venues_schema)
+    client.create_table(venues_table, exists_ok=True)
+
     # Define schema for mlb_game_broadcasts
     broadcasts_schema = [
         bigquery.SchemaField("game_id", "STRING", mode="REQUIRED"),
@@ -1427,6 +1457,114 @@ def upsert_mlb_schedule(client: bigquery.Client, project_id: str, rows: Iterable
                 S.away_probable_pitcher_id, S.away_probable_pitcher_name,
                 S.scheduled_innings, S.series_description,
                 S.raw, TIMESTAMP(S.loaded_at))
+    """
+
+    query_job = client.query(merge_query)
+    query_job.result()
+
+    client.delete_table(temp_table_id, not_found_ok=True)
+
+    return len(df)
+
+
+def upsert_mlb_venues(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert MLB venue (ballpark) reference data to BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime as dt
+
+    data: list[dict[str, Any]] = []
+    for r in rows:
+        data.append(
+            {
+                "venue_id": str(r["venue_id"]),
+                "season": r.get("season"),
+                "venue_name": r.get("venue_name"),
+                "active": r.get("active"),
+                "city": r.get("city"),
+                "state": r.get("state"),
+                "state_abbrev": r.get("state_abbrev"),
+                "country": r.get("country"),
+                "latitude": r.get("latitude"),
+                "longitude": r.get("longitude"),
+                "capacity": r.get("capacity"),
+                "turf_type": r.get("turf_type"),
+                "roof_type": r.get("roof_type"),
+                "left_line": r.get("left_line"),
+                "right_line": r.get("right_line"),
+                "center": r.get("center"),
+                "left": r.get("left"),
+                "right": r.get("right"),
+                "left_center": r.get("left_center"),
+                "right_center": r.get("right_center"),
+                "raw": json.dumps(r["raw"]),
+                "loaded_at": dt.utcnow(),
+            }
+        )
+
+    df = pd.DataFrame(data)
+
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=["venue_id", "season"], keep="last")
+    if initial_count > len(df):
+        logger = get_run_logger()
+        logger.warning(f"Removed {initial_count - len(df)} duplicate venue records")
+
+    table_id = f"{project_id}.raw.mlb_venues"
+    temp_table_id = f"{table_id}_temp"
+
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    load_job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    load_job.result()
+
+    merge_query = f"""
+    MERGE `{table_id}` T
+    USING `{temp_table_id}` S
+    ON T.venue_id = S.venue_id AND (T.season = S.season OR (T.season IS NULL AND S.season IS NULL))
+    WHEN MATCHED THEN
+        UPDATE SET
+            season = S.season,
+            venue_name = S.venue_name,
+            active = S.active,
+            city = S.city,
+            state = S.state,
+            state_abbrev = S.state_abbrev,
+            country = S.country,
+            latitude = S.latitude,
+            longitude = S.longitude,
+            capacity = S.capacity,
+            turf_type = S.turf_type,
+            roof_type = S.roof_type,
+            left_line = S.left_line,
+            right_line = S.right_line,
+            center = S.center,
+            left = S.left,
+            right = S.right,
+            left_center = S.left_center,
+            right_center = S.right_center,
+            raw = S.raw,
+            loaded_at = TIMESTAMP(S.loaded_at)
+    WHEN NOT MATCHED THEN
+        INSERT (
+            venue_id, season, venue_name, active,
+            city, state, state_abbrev, country,
+            latitude, longitude,
+            capacity, turf_type, roof_type,
+            left_line, right_line, center, left, right, left_center, right_center,
+            raw, loaded_at
+        )
+        VALUES (
+            S.venue_id, S.season, S.venue_name, S.active,
+            S.city, S.state, S.state_abbrev, S.country,
+            S.latitude, S.longitude,
+            CAST(S.capacity AS INT64), S.turf_type, S.roof_type,
+            CAST(S.left_line AS FLOAT64), CAST(S.right_line AS FLOAT64), CAST(S.center AS FLOAT64),
+            CAST(S.left AS FLOAT64), CAST(S.right AS FLOAT64),
+            CAST(S.left_center AS FLOAT64), CAST(S.right_center AS FLOAT64),
+            S.raw, TIMESTAMP(S.loaded_at)
+        )
     """
 
     query_job = client.query(merge_query)
