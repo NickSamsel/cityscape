@@ -10,6 +10,14 @@ Unique identifier for the venue/stadium where the game is played.
 Name of the venue/stadium where the game is played (e.g., "Yankee Stadium", "Fenway Park").
 {% enddocs %}
 
+{% docs mlb_venue_city %}
+City where the venue is located.
+{% enddocs %}
+
+{% docs mlb_venue_country %}
+Country where the venue is located.
+{% enddocs %}
+
 {% docs mlb_day_night %}
 Indicates whether the game is a day or night game.
 {% enddocs %}

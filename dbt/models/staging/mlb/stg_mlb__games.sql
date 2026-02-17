@@ -17,7 +17,8 @@ with source_data as (
         {{ cast_string('home_team_id') }} as home_team_id,
         {{ cast_string('away_team_id') }} as away_team_id,
         {{ cast_integer('home_score') }} as home_score,
-        {{ cast_integer('away_score') }} as away_score
+        {{ cast_integer('away_score') }} as away_score,
+        {{ cast_string('venue_id') }} as venue_id
     from {{ source('raw', 'mlb_games') }}
 
     {% if is_incremental() %}
@@ -48,6 +49,7 @@ select
     home_team_id,
     away_team_id,
     home_score,
-    away_score
+    away_score,
+    venue_id
 from deduplicated
 where row_num = 1

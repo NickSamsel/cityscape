@@ -613,6 +613,134 @@ models:
       - name: max_sprint_speed
         description: "{{ doc('mlb_max_sprint_speed') }}"
 
+  - name: int_mlb__career_batting_stats
+    description: |
+      Career batting aggregates per player.
+      Sums game-level batting lines into career totals and derives simple rate stats.
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: career_games_batted
+        description: "{{ doc('mlb_career_games_batted') }}"
+      - name: career_home_runs
+        description: "{{ doc('mlb_career_home_runs') }}"
+      - name: career_batting_avg
+        description: "{{ doc('mlb_career_batting_avg') }}"
+      - name: career_ops
+        description: "{{ doc('mlb_career_ops') }}"
+      - name: last_game_date
+        description: "{{ doc('mlb_last_game_date') }}"
+
+  - name: int_mlb__career_pitching_stats
+    description: |
+      Career pitching aggregates per player.
+      Sums game-level pitching lines into career totals and derives rate stats (ERA, WHIP, K/9).
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: career_games_pitched
+        description: "{{ doc('mlb_career_games_pitched') }}"
+      - name: career_era
+        description: "{{ doc('mlb_career_era') }}"
+      - name: career_whip
+        description: "{{ doc('mlb_career_whip') }}"
+      - name: career_k_per_9
+        description: "{{ doc('mlb_career_k_per_9') }}"
+      - name: last_game_date
+        description: "{{ doc('mlb_last_game_date') }}"
+
+  - name: int_mlb__batter_statcast_metrics
+    description: |
+      Batter-level Statcast batted-ball aggregates.
+      Calculates exit velocity, launch angle, barrel rate, and other batted-ball quality metrics.
+    columns:
+      - name: batter_id
+        description: "{{ doc('mlb_batter_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: total_batted_balls
+        description: "{{ doc('mlb_total_batted_balls') }}"
+      - name: games_with_batted_balls
+        description: "{{ doc('mlb_games_with_batted_balls') }}"
+      - name: avg_exit_velocity
+        description: "{{ doc('mlb_avg_exit_velocity') }}"
+      - name: max_exit_velocity
+        description: "{{ doc('mlb_max_exit_velocity') }}"
+      - name: barrel_rate
+        description: "{{ doc('mlb_barrel_rate') }}"
+      - name: hard_hit_rate
+        description: "{{ doc('mlb_hard_hit_rate') }}"
+      - name: avg_sprint_speed
+        description: "{{ doc('mlb_avg_sprint_speed') }}"
+
+  - name: int_mlb__pitcher_statcast_metrics
+    description: |
+      Pitcher-level Statcast pitch aggregates.
+      Calculates velocity, spin, zone control, and primary pitch type metrics.
+    columns:
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: total_pitches
+        description: "{{ doc('mlb_pitch_count') }}"
+      - name: avg_release_speed
+        description: "{{ doc('mlb_avg_release_speed') }}"
+      - name: max_release_speed
+        description: "{{ doc('mlb_max_release_speed') }}"
+      - name: avg_spin_rate
+        description: "{{ doc('mlb_avg_spin_rate') }}"
+      - name: zone_percentage
+        description: "{{ doc('mlb_staff_zone_rate') }}"
+      - name: primary_pitch_type
+        description: "{{ doc('mlb_primary_pitch_type') }}"
+      - name: primary_pitch_description
+        description: "{{ doc('mlb_primary_pitch_description') }}"
+      - name: primary_pitch_avg_speed
+        description: "{{ doc('mlb_primary_pitch_avg_speed') }}"
+
+  - name: int_mlb__player_pitching_season_stats_enriched
+    description: |
+      Intermediate enriched pitcher season statistics.
+      Aggregates game-level pitching stats to (player, primary_team, season) and adds derived metrics and percentiles.
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: games_pitched
+        description: "{{ doc('mlb_games_played') }}"
+      - name: innings_pitched
+        description: "{{ doc('mlb_innings_pitched_decimal') }}"
+      - name: era
+        description: "{{ doc('mlb_era') }}"
+      - name: whip
+        description: "{{ doc('mlb_whip') }}"
+      - name: k_per_9
+        description: "{{ doc('mlb_k_per_nine') }}"
+      - name: avg_pitch_velocity
+        description: "Average pitch velocity (mph) from Statcast pitches"
+      - name: avg_spin_rate
+        description: "Average spin rate (rpm) from Statcast pitches"
+      - name: simplified_pitching_war
+        description: "Simplified WAR estimate based on FIP and innings pitched"
+
   - name: int_mlb__player_season_stats_enriched
     description: |
       Intermediate enriched player season statistics.
@@ -647,3 +775,23 @@ models:
         description: "Percentile rank (0-100) for max launch distance within season"
       - name: sprint_speed_percentile
         description: "Percentile rank (0-100) for avg sprint speed within season"
+
+  - name: int_mlb__venues_enriched
+    description: |
+      MLB venues enriched with primary home team and popularity ranking.
+      Identifies the primary team for each venue based on regular season game counts and ranks them by popularity.
+    columns:
+      - name: venue_id
+        description: "{{ doc('mlb_venue_id') }}"
+      - name: venue_name
+        description: "{{ doc('mlb_venue_name') }}"
+      - name: primary_home_team_id
+        description: "{{ doc('mlb_primary_home_team_id') }}"
+      - name: primary_home_team_name
+        description: "{{ doc('mlb_primary_home_team_name') }}"
+      - name: city
+        description: "{{ doc('mlb_venue_city') }}"
+      - name: country
+        description: "{{ doc('mlb_venue_country') }}"
+      - name: season
+        description: "{{ doc('mlb_season') }}"

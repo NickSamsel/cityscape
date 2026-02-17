@@ -367,3 +367,145 @@ models:
         description: "{{ doc('mlb_active') }}"
       - name: raw
         description: "{{doc('mlb_raw_player') }}"
+
+  - name: stg_mlb__venues
+    description: |
+      MLB venues (ballparks) staged from raw landing tables.
+      Each row represents a unique (venue_id, season) record.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - venue_id
+              - season
+    columns:
+      - name: venue_id
+        description: "{{ doc('mlb_venue_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: venue_name
+        description: "{{ doc('mlb_venue_name') }}"
+      - name: active
+        description: "Whether the venue is currently active"
+      - name: city
+        description: "{{ doc('mlb_venue_city') }}"
+      - name: state
+        description: "State/province where the venue is located"
+      - name: state_abbrev
+        description: "State/province abbreviation where the venue is located"
+      - name: country
+        description: "{{ doc('mlb_venue_country') }}"
+      - name: latitude
+        description: "Venue latitude"
+      - name: longitude
+        description: "Venue longitude"
+      - name: capacity
+        description: "Venue seating capacity"
+      - name: turf_type
+        description: "Venue turf type"
+      - name: roof_type
+        description: "Venue roof type"
+      - name: left_line
+        description: "Distance down the left field line (feet)"
+      - name: right_line
+        description: "Distance down the right field line (feet)"
+      - name: center
+        description: "Distance to center field (feet)"
+      - name: left_distance
+        description: "Distance to left field (feet)"
+      - name: right_distance
+        description: "Distance to right field (feet)"
+      - name: left_center
+        description: "Distance to left-center field (feet)"
+      - name: right_center
+        description: "Distance to right-center field (feet)"
+
+  - name: stg_mlb__statcast_pitches
+    description: |
+      MLB Statcast pitch-level events staged from raw landing tables.
+      Each row represents a single pitch event (identified by play_id).
+    columns:
+      - name: play_id
+        description: "{{ doc('mlb_play_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+      - name: at_bat_index
+        description: "{{ doc('mlb_at_bat_index') }}"
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: batter_id
+        description: "{{ doc('mlb_batter_id') }}"
+      - name: pitch_number
+        description: "{{ doc('mlb_pitch_number') }}"
+      - name: pitch_type
+        description: "{{ doc('mlb_pitch_type') }}"
+      - name: pitch_type_description
+        description: "{{ doc('mlb_pitch_type_description') }}"
+      - name: release_speed
+        description: "{{ doc('mlb_release_speed') }}"
+      - name: release_spin_rate
+        description: "{{ doc('mlb_release_spin_rate') }}"
+      - name: release_extension
+        description: "{{ doc('mlb_release_extension') }}"
+      - name: zone
+        description: "{{ doc('mlb_zone') }}"
+      - name: plate_x
+        description: "{{ doc('mlb_plate_x') }}"
+      - name: plate_z
+        description: "{{ doc('mlb_plate_z') }}"
+      - name: strikes
+        description: "{{ doc('mlb_count_strikes') }}"
+      - name: balls
+        description: "{{ doc('mlb_count_balls') }}"
+      - name: outs
+        description: "{{ doc('mlb_count_outs') }}"
+      - name: pitch_result
+        description: "{{ doc('mlb_pitch_result') }}"
+      - name: loaded_at
+        description: "Load timestamp for the raw event"
+
+  - name: stg_mlb__statcast_batted_balls
+    description: |
+      MLB Statcast batted-ball events staged from raw landing tables.
+      Each row represents a ball put into play (identified by play_id).
+    columns:
+      - name: play_id
+        description: "{{ doc('mlb_play_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+      - name: at_bat_index
+        description: "{{ doc('mlb_at_bat_index') }}"
+      - name: batter_id
+        description: "{{ doc('mlb_batter_id') }}"
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: launch_speed
+        description: "{{ doc('mlb_launch_speed') }}"
+      - name: launch_angle
+        description: "{{ doc('mlb_launch_angle') }}"
+      - name: launch_distance
+        description: "{{ doc('mlb_launch_distance') }}"
+      - name: hit_location
+        description: "{{ doc('mlb_hit_location') }}"
+      - name: hit_trajectory
+        description: "{{ doc('mlb_hit_trajectory') }}"
+      - name: hit_result
+        description: "{{ doc('mlb_hit_result') }}"
+      - name: sprint_speed
+        description: "{{ doc('mlb_sprint_speed') }}"
+      - name: is_barrel
+        description: "{{ doc('mlb_is_barrel') }}"
+      - name: is_hard_hit
+        description: "{{ doc('mlb_is_hard_hit') }}"
+      - name: loaded_at
+        description: "Load timestamp for the raw event"

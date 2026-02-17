@@ -1,8 +1,10 @@
+version: 2
+
 models:
   - name: core_mlb__games
     description: |
-      MLB games joined with team information and enriched with game outcome calculations.
-      This intermediate model contains all business logic for determining winners, losers, and score metrics.
+      Core MLB games model with team information and derived game outcome fields.
+      Promotes game result logic from the intermediate layer into a stable core table.
     columns:
       - name: game_id
         description: "{{ doc('mlb_game_id') }}"
@@ -66,6 +68,60 @@ models:
         description: "{{ doc('mlb_score_differential') }}"
       - name: total_runs
         description: "{{ doc('mlb_total_runs') }}"
+
+  - name: core_mlb__teams
+    description: |
+      Core MLB teams model.
+      Single source of truth for team reference data by season.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - team_id
+              - season
+    columns:
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: team_name
+        description: "{{ doc('mlb_team_name') }}"
+      - name: team_abbr
+        description: "{{ doc('mlb_team_abbr') }}"
+      - name: league_id
+        description: "{{ doc('mlb_league_id') }}"
+      - name: division_id
+        description: "{{ doc('mlb_division_id') }}"
+
+  - name: core_mlb__venues
+    description: |
+      Core MLB venues (ballparks) model.
+      Single source of truth for venue attributes by season.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - venue_id
+              - season
+    columns:
+      - name: venue_id
+        description: "{{ doc('mlb_venue_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: venue_name
+        description: "{{ doc('mlb_venue_name') }}"
+      - name: city
+        description: "{{ doc('mlb_venue_city') }}"
+      - name: country
+        description: "{{ doc('mlb_venue_country') }}"
 
   - name: core_mlb__player_batting_stats
     description: |
