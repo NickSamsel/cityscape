@@ -76,7 +76,7 @@ def main() -> int:
 
     # Step 1: Teams, games, leagues, divisions
     logger.info("Step 1/5: Ingesting teams, games, and reference data...")
-    from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery
+    from src.automations.ingest.mlb import ingest_mlb_season_bigquery
 
     teams, games, leagues, divisions = ingest_mlb_season_bigquery(
         season=args.season,
@@ -101,7 +101,7 @@ def main() -> int:
     # Step 3: Statcast data
     if not args.skip_statcast:
         logger.info("Step 3/5: Ingesting Statcast data...")
-        from src.automations.ingest.mlb_statcast import ingest_mlb_statcast_data_bigquery
+        from src.automations.ingest.mlb import ingest_mlb_statcast_data_bigquery
 
         pitches, batted_balls = ingest_mlb_statcast_data_bigquery(
             season=args.season,
@@ -123,7 +123,7 @@ def main() -> int:
 
     # Step 5: Schedule, probable pitchers, broadcasts, lineups
     logger.info("Step 5/5: Ingesting schedule, pitchers, broadcasts, and lineups...")
-    from src.automations.ingest.mlb_bigquery import ingest_mlb_schedule_bigquery
+    from src.automations.ingest.mlb import ingest_mlb_schedule_bigquery
 
     schedule, broadcasts, lineups = ingest_mlb_schedule_bigquery(
         season=args.season,

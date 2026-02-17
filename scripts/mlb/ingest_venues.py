@@ -62,7 +62,7 @@ def main() -> int:
     if args.venue_ids:
         venue_ids = [int(v.strip()) for v in args.venue_ids.split(",") if v.strip()]
 
-    from src.automations.ingest.mlb_bigquery import ingest_mlb_venues_bigquery
+    from src.automations.ingest.mlb import ingest_mlb_venues_bigquery
 
     inserted = ingest_mlb_venues_bigquery(
         season=args.season,

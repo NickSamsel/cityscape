@@ -209,7 +209,7 @@ Examples:
         # We would need to modify the flow or call the underlying function directly
         if start_date or end_date:
             print("⚠️  Note: Date filtering requires calling the function directly")
-            from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery
+            from src.automations.ingest.mlb import ingest_mlb_season_bigquery
             teams, games, leagues, divisions = ingest_mlb_season_bigquery(
                 season=season,
                 game_types=args.game_types,

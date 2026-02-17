@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 from src import __version__
-from src.automations.ingest.mlb import ingest_mlb_season
+from src.automations.ingest.mlb import ingest_mlb_season_bigquery
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -38,8 +38,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "ingest" and args.ingest_target == "mlb":
-        teams, games = ingest_mlb_season(season=args.season, game_types=args.game_types)
-        print(f"ingested mlb season={args.season}: teams={teams} games={games}")
+        teams, games, leagues, divisions = ingest_mlb_season_bigquery(season=args.season, game_types=args.game_types)
+        print(f"ingested mlb season={args.season}: teams={teams} games={games} leagues={leagues} divisions={divisions}")
         return 0
 
     parser.print_help()

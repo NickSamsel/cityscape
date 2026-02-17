@@ -12,19 +12,19 @@ from prefect import flow, task
 from prefect.task_runners import ConcurrentTaskRunner
 
 from src.automations.ingest.mlb import (
+    fetch_mlb_reference_data,
+    fetch_mlb_season_data,
+    get_unique_player_ids_from_bigquery,
+    ingest_mlb_season_bigquery,
+    ingest_mlb_statcast_data_bigquery,
     ingest_player_stats_parallel,
     ingest_player_stats_sequential,
     ingest_players_from_stats,
     ingest_players_parallel,
-    get_unique_player_ids_from_bigquery,
-)
-from src.automations.ingest.mlb.standings import (
-    ingest_standings_snapshot,
     ingest_standings_historical,
     ingest_standings_historical_parallel,
+    ingest_standings_snapshot,
 )
-from src.automations.ingest.mlb_bigquery import ingest_mlb_season_bigquery, fetch_mlb_season_data
-from src.automations.ingest.mlb_statcast import ingest_mlb_statcast_data_bigquery
 from src.integrations.mlb import MlbStatsApi
 from src.utils.logger import get_run_logger
 from src.utils.bigquery import (
@@ -232,7 +232,6 @@ def mlb_multi_season_ingestion_parallel(
     
     # Fetch reference data (leagues and divisions) - only need to do this once
     logger.info("Fetching reference data (leagues and divisions)...")
-    from src.automations.ingest.mlb_bigquery import fetch_mlb_reference_data
     league_rows, division_rows = fetch_mlb_reference_data()
     
     # Now write all data to BigQuery in a single batch operation
@@ -278,7 +277,7 @@ if __name__ == "__main__":
 def mlb_player_stats_season_ingestion(*, season: int, game_types: str = "R") -> dict[str, int]:
     """Prefect flow that ingests MLB player game-by-game stats into BigQuery.
 
-    This wraps `ingest_mlb_player_game_stats_bigquery` so logs are attached to the Prefect run.
+    This wraps `ingest_player_stats_sequential` so logs are attached to the Prefect run.
     """
 
     logger = get_run_logger()
