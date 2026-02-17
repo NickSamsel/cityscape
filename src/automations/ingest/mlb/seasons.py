@@ -129,7 +129,7 @@ def fetch_mlb_reference_data() -> tuple[list[dict], list[dict]]:
 def ingest_mlb_season_bigquery(
     *,
     season: int,
-    game_types: str = "R",
+    game_types: str = "R,F,D,L,W",
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> tuple[int, int, int, int]:
@@ -189,7 +189,7 @@ def ingest_mlb_multi_season_bigquery(
     *,
     start_year: int,
     end_year: int,
-    game_types: str = "R",
+    game_types: str = "R,F,D,L,W",
     parallel: bool = False,
     max_workers: int = 10,
 ) -> dict[str, int | list[int]]:

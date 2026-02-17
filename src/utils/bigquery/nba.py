@@ -4,7 +4,7 @@ from typing import Any, Iterable
 
 import pandas as pd
 from google.cloud import bigquery
-from prefect import get_run_logger
+from src.utils.logger import get_run_logger
 
 from .engine import UpsertTableConfig, ensure_table, upsert_dataframe
 

@@ -17,6 +17,7 @@ from .schedule import (
 from .seasons import (
     fetch_mlb_reference_data,
     fetch_mlb_season_data,
+    ingest_mlb_multi_season_bigquery,
     ingest_mlb_season_bigquery,
 )
 from .standings import (
@@ -38,6 +39,7 @@ __all__ = [
     "fetch_mlb_season_data",
     "fetch_mlb_reference_data",
     "ingest_mlb_season_bigquery",
+    "ingest_mlb_multi_season_bigquery",
     # schedule
     "ingest_mlb_schedule_bigquery",
     # venues
