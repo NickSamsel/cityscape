@@ -299,18 +299,19 @@ class MlbStatsApi:
         self,
         *,
         season: int,
-        game_types: str = "R",
+        game_types: str = "R,F,L,W",  # Default: all except spring (R=regular, F=wild card, L=league championship, W=world series)
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> list[MlbGame]:
         """List games for a given season and date range.
-        
+
         Args:
             season: The MLB season year (e.g., 2024)
-            game_types: Comma-separated game types (R=regular, S=spring, F=wild card, etc.)
+            game_types: Comma-separated game types (R=regular, F=wild card, L=league championship, W=world series, etc.)
+                        Default is all except spring training.
             start_date: Optional start date filter
             end_date: Optional end date filter
-            
+
         Returns:
             List of MlbGame objects
         """
@@ -328,12 +329,12 @@ class MlbStatsApi:
 
         out: list[MlbGame] = []
         dates = payload.get("dates", [])
-        
+
         for d in dates:
             if not isinstance(d, dict):
                 continue
             games = d.get("games", [])
-            
+
             for g in games:
                 if not isinstance(g, dict):
                     continue
@@ -349,7 +350,7 @@ class MlbStatsApi:
                         game_date = None
                 else:
                     game_date = None
-
+                
                 teams = g.get("teams") if isinstance(g.get("teams"), dict) else {}
                 home = teams.get("home") if isinstance(teams.get("home"), dict) else {}
                 away = teams.get("away") if isinstance(teams.get("away"), dict) else {}
@@ -358,6 +359,9 @@ class MlbStatsApi:
                 detailed_state = (
                     status.get("detailedState") if isinstance(status.get("detailedState"), str) else None
                 )
+
+                venue = g.get("venue") if isinstance(g.get("venue"), dict) else {}
+                venue_id = parse_int_or_none(venue.get("id"))
 
                 out.append(
                     MlbGame(
@@ -370,6 +374,7 @@ class MlbStatsApi:
                         away_team_id=extract_team_id(away),
                         home_score=extract_score(home),
                         away_score=extract_score(away),
+                        venue_id=venue_id,
                         raw=g,
                     )
                 )

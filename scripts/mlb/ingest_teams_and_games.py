@@ -29,11 +29,7 @@ import logging
 import warnings
 from datetime import date, datetime
 
-from src.automations.prefect.mlb import (
-    mlb_season_ingestion,
-    mlb_multi_season_ingestion,
-    mlb_multi_season_ingestion_parallel,
-)
+from src.automations.ingest.mlb import ingest_mlb_multi_season_bigquery, ingest_mlb_season_bigquery
 
 
 # Suppress noisy cleanup warnings
@@ -163,19 +159,13 @@ Examples:
             print(f"Concurrent workers: {args.max_workers}")
         print(f"\nStarting ingestion...\n")
         
-        if args.parallel:
-            result = mlb_multi_season_ingestion_parallel(
-                start_year=args.start_year,
-                end_year=args.end_year,
-                game_types=args.game_types,
-                max_workers=args.max_workers,
-            )
-        else:
-            result = mlb_multi_season_ingestion(
-                start_year=args.start_year,
-                end_year=args.end_year,
-                game_types=args.game_types,
-            )
+        result = ingest_mlb_multi_season_bigquery(
+            start_year=args.start_year,
+            end_year=args.end_year,
+            game_types=args.game_types,
+            parallel=bool(args.parallel),
+            max_workers=args.max_workers,
+        )
         
         print(f"\n{'='*80}")
         print(f"✅ Multi-Season Ingestion Complete!")
@@ -218,7 +208,11 @@ Examples:
             )
             result = {"teams": teams, "games": games, "leagues": leagues, "divisions": divisions}
         else:
-            result = mlb_season_ingestion(season=season, game_types=args.game_types)
+            teams, games, leagues, divisions = ingest_mlb_season_bigquery(
+                season=season,
+                game_types=args.game_types,
+            )
+            result = {"teams": teams, "games": games, "leagues": leagues, "divisions": divisions}
         
         print(f"\n{'='*80}")
         print(f"✅ Ingestion Complete!")

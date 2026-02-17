@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
 from src.integrations.mlb import MlbStatsApi
@@ -74,6 +75,7 @@ def fetch_mlb_season_data(
             "away_team_id": g.away_team_id,
             "home_score": g.home_score,
             "away_score": g.away_score,
+            "venue_id": g.venue_id,
             "raw": g.raw,
         }
         for g in games
@@ -181,3 +183,83 @@ def ingest_mlb_season_bigquery(
         f"leagues={inserted_leagues} divisions={inserted_divisions}"
     )
     return inserted_teams, inserted_games, inserted_leagues, inserted_divisions
+
+
+def ingest_mlb_multi_season_bigquery(
+    *,
+    start_year: int,
+    end_year: int,
+    game_types: str = "R",
+    parallel: bool = False,
+    max_workers: int = 10,
+) -> dict[str, int | list[int]]:
+    """Ingest MLB teams/games/leagues/divisions for a year range.
+
+    This is the shared implementation for scripts and Prefect flows.
+    It fetches per-season team/game rows (optionally in parallel) and performs
+    a single batch write to BigQuery to reduce rate-limit pressure.
+    """
+
+    if start_year > end_year:
+        raise ValueError(f"start_year ({start_year}) cannot be greater than end_year ({end_year})")
+
+    logger = get_run_logger()
+    settings = get_settings()
+
+    seasons = list(range(start_year, end_year + 1))
+    logger.info(
+        f"Fetching MLB multi-season data seasons={start_year}..{end_year} "
+        f"game_types={game_types} parallel={parallel}"
+    )
+
+    all_team_rows: list[dict] = []
+    all_game_rows: list[dict] = []
+
+    if parallel:
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures = {
+                ex.submit(fetch_mlb_season_data, season=s, game_types=game_types): s for s in seasons
+            }
+            for fut in as_completed(futures):
+                season = futures[fut]
+                team_rows, game_rows = fut.result()
+                logger.info(f"Fetched season={season} teams={len(team_rows)} games={len(game_rows)}")
+                all_team_rows.extend(team_rows)
+                all_game_rows.extend(game_rows)
+    else:
+        for season in seasons:
+            team_rows, game_rows = fetch_mlb_season_data(season=season, game_types=game_types)
+            all_team_rows.extend(team_rows)
+            all_game_rows.extend(game_rows)
+
+    league_rows, division_rows = fetch_mlb_reference_data()
+
+    cfg = BigQueryConfig(
+        project_id=settings.gcp_project_id,
+        location="US",
+        credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key,
+    )
+    client = get_client(cfg)
+
+    ensure_raw_dataset(client, cfg.project_id)
+    ensure_mlb_tables(client, cfg.project_id)
+
+    inserted_teams = upsert_mlb_teams(client, cfg.project_id, all_team_rows)
+    inserted_games = upsert_mlb_games(client, cfg.project_id, all_game_rows)
+    inserted_leagues = upsert_mlb_leagues(client, cfg.project_id, league_rows)
+    inserted_divisions = upsert_mlb_divisions(client, cfg.project_id, division_rows)
+
+    logger.info(
+        f"Multi-season ingest complete seasons={start_year}..{end_year} teams={inserted_teams} "
+        f"games={inserted_games} leagues={inserted_leagues} divisions={inserted_divisions}"
+    )
+
+    return {
+        "seasons_processed": len(seasons),
+        "total_teams": inserted_teams,
+        "total_games": inserted_games,
+        "total_leagues": inserted_leagues,
+        "total_divisions": inserted_divisions,
+        "seasons": seasons,
+    }

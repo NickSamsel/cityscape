@@ -185,6 +185,7 @@ MLB_GAMES = UpsertTableConfig(
         bigquery.SchemaField("away_team_id", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("home_score", "INT64", mode="NULLABLE"),
         bigquery.SchemaField("away_score", "INT64", mode="NULLABLE"),
+        bigquery.SchemaField("venue_id", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
     ),
@@ -627,6 +628,7 @@ def upsert_mlb_games(client: bigquery.Client, project_id: str, rows: Iterable[di
                 "away_team_id": str(r["away_team_id"]) if r.get("away_team_id") else None,
                 "home_score": r.get("home_score"),
                 "away_score": r.get("away_score"),
+                "venue_id": str(r["venue_id"]) if r.get("venue_id") is not None else None,
                 "raw": json.dumps(r["raw"]),
                 "loaded_at": datetime.utcnow(),
             }

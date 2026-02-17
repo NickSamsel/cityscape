@@ -9,10 +9,16 @@
 
 -- Intermediate model for MLB teams
 -- No additional enrichment needed at intermediate layer for reference data
+with primary_fields as (
+    select *
+    from {{ ref('stg_mlb__venues') }}
+    where country in ('USA', 'Canada')
+),
 
-select 
+home_team as (
+    select
 
-from {{ ref('stg_mlb__venues') }}
+)
 
 {% if is_incremental() %}
   where not exists (

@@ -5,6 +5,7 @@ from typing import Mapping, Sequence
 
 import pandas as pd
 from google.cloud import bigquery
+from google.api_core.exceptions import NotFound
 
 
 # Sentinel used to mean "use cfg.schema for staging loads".
@@ -136,4 +137,18 @@ def ensure_table(*, client: bigquery.Client, project_id: str, cfg: UpsertTableCo
     if cfg.schema is None:
         return
     table_id = cfg.table_id(project_id)
-    client.create_table(bigquery.Table(table_id, schema=list(cfg.schema)), exists_ok=True)
+
+    try:
+        table = client.get_table(table_id)
+    except NotFound:
+        client.create_table(bigquery.Table(table_id, schema=list(cfg.schema)), exists_ok=True)
+        return
+
+    existing_fields = {f.name for f in table.schema}
+    missing_fields = [f for f in cfg.schema if f.name not in existing_fields]
+    if not missing_fields:
+        return
+
+    # BigQuery supports adding new nullable columns. (Required columns may fail.)
+    table.schema = list(table.schema) + list(missing_fields)
+    client.update_table(table, ["schema"])

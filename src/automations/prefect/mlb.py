@@ -15,6 +15,7 @@ from src.automations.ingest.mlb import (
     fetch_mlb_reference_data,
     fetch_mlb_season_data,
     get_unique_player_ids_from_bigquery,
+    ingest_mlb_multi_season_bigquery,
     ingest_mlb_season_bigquery,
     ingest_mlb_statcast_data_bigquery,
     ingest_player_stats_parallel,
@@ -124,32 +125,12 @@ def mlb_multi_season_ingestion(
     Example: start_year=2020, end_year=2024 will ingest seasons 2020, 2021, 2022, 2023, 2024
     """
 
-    logger = get_run_logger()
-    logger.info(f"Starting multi-season ingestion: {start_year} to {end_year}")
-
-    results = []
-    total_teams = 0
-    total_games = 0
-
-    for season in range(start_year, end_year + 1):
-        logger.info(f"Processing season {season}...")
-        result = mlb_season_ingestion(season=season, game_types=game_types)
-        
-        total_teams += result["teams"]
-        total_games += result["games"]
-        results.append({"season": season, **result})
-
-    logger.info(
-        f"Completed multi-season ingestion: {len(results)} seasons, "
-        f"{total_teams} total teams, {total_games} total games"
+    return ingest_mlb_multi_season_bigquery(
+        start_year=start_year,
+        end_year=end_year,
+        game_types=game_types,
+        parallel=False,
     )
-
-    return {
-        "seasons_processed": len(results),
-        "total_teams": total_teams,
-        "total_games": total_games,
-        "seasons": [r["season"] for r in results],
-    }
 
 
 @task(name="fetch-single-season-data")
@@ -197,75 +178,13 @@ def mlb_multi_season_ingestion_parallel(
         max_workers: Number of concurrent seasons to fetch (default 10)
     """
 
-    logger = get_run_logger()
-    logger.info(
-        f"Starting PARALLEL multi-season ingestion: {start_year} to {end_year} "
-        f"with {max_workers} concurrent workers"
+    return ingest_mlb_multi_season_bigquery(
+        start_year=start_year,
+        end_year=end_year,
+        game_types=game_types,
+        parallel=True,
+        max_workers=max_workers,
     )
-
-    # Create list of seasons to process
-    seasons = list(range(start_year, end_year + 1))
-    
-    # Fetch all season data in parallel
-    logger.info(f"Fetching data for {len(seasons)} seasons in parallel...")
-    futures = fetch_single_season_data_task.map(seasons, game_types=[game_types] * len(seasons))
-    
-    # Wait for all futures to complete
-    from prefect.futures import wait
-    wait(futures)
-    
-    # Collect all results
-    all_team_rows = []
-    all_game_rows = []
-    seasons_processed = []
-    
-    for future in futures:
-        result = future.result()
-        seasons_processed.append(result["season"])
-        all_team_rows.extend(result["team_rows"])
-        all_game_rows.extend(result["game_rows"])
-    
-    logger.info(
-        f"Collected data from {len(seasons_processed)} seasons: "
-        f"{len(all_team_rows)} team records, {len(all_game_rows)} game records"
-    )
-    
-    # Fetch reference data (leagues and divisions) - only need to do this once
-    logger.info("Fetching reference data (leagues and divisions)...")
-    league_rows, division_rows = fetch_mlb_reference_data()
-    
-    # Now write all data to BigQuery in a single batch operation
-    logger.info("Writing all data to BigQuery in batch...")
-    settings = get_settings()
-    cfg = BigQueryConfig(
-        project_id=settings.gcp_project_id,
-        location="US",
-        credentials_path=settings.gcp_credentials_path,
-    )
-    
-    client = get_client(cfg)
-    ensure_raw_dataset(client, cfg.project_id)
-    ensure_mlb_tables(client, cfg.project_id)
-    
-    inserted_teams = upsert_mlb_teams(client, cfg.project_id, all_team_rows)
-    inserted_games = upsert_mlb_games(client, cfg.project_id, all_game_rows)
-    inserted_leagues = upsert_mlb_leagues(client, cfg.project_id, league_rows)
-    inserted_divisions = upsert_mlb_divisions(client, cfg.project_id, division_rows)
-    
-    logger.info(
-        f"Completed PARALLEL multi-season ingestion: {len(seasons_processed)} seasons, "
-        f"{inserted_teams} teams, {inserted_games} games, "
-        f"{inserted_leagues} leagues, {inserted_divisions} divisions written to BigQuery"
-    )
-
-    return {
-        "seasons_processed": len(seasons_processed),
-        "total_teams": inserted_teams,
-        "total_games": inserted_games,
-        "total_leagues": inserted_leagues,
-        "total_divisions": inserted_divisions,
-        "seasons": sorted(seasons_processed),
-    }
 
 
 if __name__ == "__main__":
@@ -393,7 +312,7 @@ def mlb_player_stats_multi_season_ingestion(
     task_runner=ConcurrentTaskRunner(max_workers=20),
 )
 def mlb_player_stats_season_ingestion_parallel(
-    *, season: int, game_types: str = "R", max_workers: int = 20
+    *, season: int, game_types: str = "R,F,L,W", max_workers: int = 20
 ) -> dict[str, int]:
     """Prefect flow that ingests MLB player stats in PARALLEL (much faster!).
 
