@@ -49,6 +49,7 @@ class MlbGame:
     away_team_id: int | None
     home_score: int | None
     away_score: int | None
+    venue_id: int | None
     raw: dict[str, Any]
 
 

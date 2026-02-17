@@ -33,3 +33,11 @@ The abbreviated name or code for the home team in the game (e.g., "NYY", "LAD").
 {% docs mlb_away_team_abbr %}
 The abbreviated name or code for the away team in the game (e.g., "NYY", "LAD"). This is enriched from the teams dimension.
 {% enddocs %}
+
+{% docs mlb_primary_home_team_id %}
+Team ID for the primary home team associated with a venue. Derived by counting regular-season home games per venue-season.
+{% enddocs %}
+
+{% docs mlb_primary_home_team_name %}
+Team name for the primary home team associated with a venue. Derived by counting regular-season home games per venue-season.
+{% enddocs %}

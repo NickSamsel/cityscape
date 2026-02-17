@@ -34,6 +34,7 @@ final as (
         g.game_date,
         g.game_type,
         g.status,
+        g.venue_id,
         
         -- Home team information
         g.home_team_id,

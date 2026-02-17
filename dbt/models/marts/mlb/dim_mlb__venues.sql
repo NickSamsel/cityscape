@@ -7,37 +7,18 @@
 
 -- Dimension table for MLB venues (ballparks)
 -- One row per venue_id using the latest available season
+{{-
+  config(
+    materialized='incremental',
+    unique_key=['venue_id', 'season'],
+    on_schema_change='sync_all_columns',
+    tags=["mart", "mlb", "dimension"]
+  )
+-}}
 
-with ranked as (
-  select
-    *,
-    row_number() over (
-      partition by venue_id
-      order by season desc
-    ) as row_num
-  from {{ ref('core_mlb__venues') }}
-)
+-- Mart dimension table for MLB venues
+-- Analytics-ready view built from core model
+-- This is a slowly changing dimension (Type 2) with season as the effective date
 
-select
-  venue_id,
-  season,
-  venue_name,
-  active,
-  city,
-  state,
-  state_abbrev,
-  country,
-  latitude,
-  longitude,
-  capacity,
-  turf_type,
-  roof_type,
-  left_line,
-  right_line,
-  center,
-  left_distance,
-  right_distance,
-  left_center,
-  right_center
-from ranked
-where row_num = 1
+select *
+from {{ ref('core_mlb__venues') }}

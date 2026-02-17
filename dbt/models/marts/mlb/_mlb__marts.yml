@@ -61,6 +61,40 @@ models:
       - name: division_id
         description: "{{ doc('mlb_division_id') }}"
 
+  - name: dim_mlb__venues
+    description: |
+      Dimension table containing MLB venue (ballpark) attributes.
+      One row per venue_id using the latest available season.
+    columns:
+      - name: venue_id
+        description: "{{ doc('mlb_venue_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: venue_name
+        description: "{{ doc('mlb_venue_name') }}"
+      - name: city
+        description: "{{ doc('mlb_venue_city') }}"
+      - name: country
+        description: "{{ doc('mlb_venue_country') }}"
+
+  - name: dim_mlb__players
+    description: |
+      Dimension table containing MLB player reference data.
+      One row per player_id (current attributes).
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: full_name
+        description: "{{ doc('mlb_full_name') }}"
+      - name: primary_position_abbr
+        description: "{{ doc('mlb_primary_position_abbr') }}"
+      - name: active
+        description: "{{ doc('mlb_active') }}"
+
   - name: fct_mlb__games
     description: |
       Fact table containing MLB game results with complete team information and outcomes.
@@ -476,6 +510,32 @@ models:
       - name: sprint_speed_percentile
         description: "Percentile rank (0-100) for avg sprint speed within season"
 
+  - name: fct_mlb__player_pitching_season_stats
+    description: |
+      Pitcher season-level statistics combining traditional pitching stats with Statcast pitch metrics.
+      Each row represents a pitcher's performance for their primary team in a season.
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+        tests:
+          - not_null
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+        tests:
+          - not_null
+      - name: innings_pitched
+        description: "{{ doc('mlb_innings_pitched_decimal') }}"
+      - name: era
+        description: "{{ doc('mlb_era') }}"
+      - name: whip
+        description: "{{ doc('mlb_whip') }}"
+      - name: avg_pitch_velocity
+        description: "Average pitch velocity (mph) from Statcast pitches"
+
   - name: fct_mlb__team_game_stats
     description: |
       Fact table containing team-level statistics for each game.
@@ -792,6 +852,47 @@ models:
         description: "Percentage of pitches put in play"
       - name: strike_rate
         description: "Total strike rate (called + swinging + foul + in play)"
+
+  - name: fct_mlb__pitch_zone_outcomes
+    description: |
+      Pitch zone outcome aggregates derived from Statcast pitch events.
+      One row per (player_id, player_type, season, zone) with counts and rates used for pitch charts.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - player_id
+              - player_type
+              - season
+              - zone
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+        tests:
+          - not_null
+      - name: player_type
+        description: "{{ doc('mlb_player_type') }}"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['batter', 'pitcher']
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+      - name: zone
+        description: "{{ doc('mlb_zone') }}"
+      - name: in_strike_zone
+        description: "{{ doc('mlb_in_strike_zone') }}"
+      - name: total_pitches
+        description: "{{ doc('mlb_pitch_count') }}"
+      - name: called_strike_rate
+        description: "Called strike rate (%)"
+      - name: swinging_strike_rate
+        description: "Swinging strike rate (%)"
+      - name: ball_rate
+        description: "Ball rate (%)"
+      - name: strike_rate
+        description: "Total strike rate (%)"
 
   - name: fct_mlb__player_batted_ball_season_stats
     description: |

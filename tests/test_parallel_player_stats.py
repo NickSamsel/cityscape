@@ -6,8 +6,8 @@ from datetime import date, timedelta
 from prefect import flow
 from prefect.task_runners import ConcurrentTaskRunner
 
-from src.automations.ingest.mlb_player_stats_bigquery_parallel import (
-    ingest_mlb_player_game_stats_bigquery,
+from src.automations.ingest.mlb import (
+    ingest_player_stats_parallel,
 )
 
 
@@ -24,7 +24,7 @@ def test_parallel_with_date_range():
     print("   This should take about 30-60 seconds for ~26 games\n")
     
     try:
-        batting_count, pitching_count = ingest_mlb_player_game_stats_bigquery(
+        batting_count, pitching_count = ingest_player_stats_parallel(
             season=2024,
             game_types='R',
             start_date=date(2024, 9, 1),
