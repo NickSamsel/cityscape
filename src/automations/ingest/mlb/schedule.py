@@ -13,7 +13,6 @@ from src.utils.bigquery import (
     upsert_mlb_schedule,
     upsert_mlb_game_broadcasts,
     upsert_mlb_game_lineups,
-    upsert_mlb_venues,
 )
 from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
@@ -119,38 +118,6 @@ def ingest_mlb_schedule_bigquery(
     client = get_client(cfg)
     ensure_raw_dataset(client, cfg.project_id)
     ensure_mlb_tables(client, cfg.project_id)
-
-    venue_ids = sorted({int(e.venue_id) for e in schedule_entries if e.venue_id is not None})
-    if venue_ids:
-        venues = api.list_venues(venue_ids=venue_ids, season=season)
-        venue_rows = [
-            {
-                "venue_id": v.venue_id,
-                "season": v.season,
-                "venue_name": v.venue_name,
-                "active": v.active,
-                "city": v.city,
-                "state": v.state,
-                "state_abbrev": v.state_abbrev,
-                "country": v.country,
-                "latitude": v.latitude,
-                "longitude": v.longitude,
-                "capacity": v.capacity,
-                "turf_type": v.turf_type,
-                "roof_type": v.roof_type,
-                "left_line": v.left_line,
-                "right_line": v.right_line,
-                "center": v.center,
-                "left": v.left,
-                "right": v.right,
-                "left_center": v.left_center,
-                "right_center": v.right_center,
-                "raw": v.raw,
-            }
-            for v in venues
-        ]
-        inserted_venues = upsert_mlb_venues(client, cfg.project_id, venue_rows)
-        logger.info(f"Upserted venues={inserted_venues}")
 
     inserted_schedule = upsert_mlb_schedule(client, cfg.project_id, schedule_rows)
     inserted_broadcasts = upsert_mlb_game_broadcasts(client, cfg.project_id, broadcast_rows)

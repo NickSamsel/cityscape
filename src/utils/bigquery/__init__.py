@@ -2,15 +2,15 @@ from __future__ import annotations
 
 """BigQuery helpers.
 
-This module was converted from a single file into a package so we can add
-sport-specific modules (e.g. nfl.py) and shared engines without a monolith.
+This module is a package so we can add sport-specific modules (e.g. mlb.py)
+and shared engines without a monolith.
 
 Backwards compatibility: existing imports like
-`from src.utils.bigquery import upsert_mlb_players` still work.
+`from src.utils.bigquery import get_client, upsert_mlb_players` still work.
 """
 
-# Re-export the legacy API surface.
-from .legacy import *  # noqa: F403
+# Core helpers used across ingest code.
+from .core import BigQueryConfig, ensure_raw_dataset, get_client
 
 # New Option-B building blocks.
 from .engine import UpsertTableConfig, build_merge_sql, ensure_table, upsert_dataframe
