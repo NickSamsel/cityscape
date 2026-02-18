@@ -17,122 +17,224 @@ Provide a reliable, daily-updated datastore for Beat the Streak recommendations,
 ## Data Contract (Tables)
 Create datasets/tables that are stable and versioned by `model_version`.
 
-### 1) `bts_recommendations_daily`
-One row per player recommendation per date.
+## Feature Table
+### Build out a table with the following features for the ML model to pull from, must refresh daily with most up to date data
+### Need both a training table with got hit case flag and a testing/prediction tabel for upcoming games
+- Games with hit L5
+- form matchup
+- career average vs pitcher
+- rolling batting average
+- slg l30
+- exit velo l15
+- hard hit rate l15
+- hot hitter weak pitcher
 
-**Primary key**: (`recommendation_date`, `player_id`, `model_version`)
+### Logic for tables
 
-Columns (minimum):
-- `recommendation_date` (DATE)
-- `model_version` (STRING)
-- `player_id` (INT64/STRING)
-- `player_name` (STRING)
-- `team_id` (INT64/STRING)
-- `team_abbr` (STRING)
-- `opponent_team_id` (INT64/STRING)
-- `game_id` (STRING) — nullable if doubleheaders / TBD
-- `game_start_ts` (TIMESTAMP) — nullable
-- `rank` (INT64)
-- `pick_probability_hit` (FLOAT64) — model probability of at least one hit
-- `confidence` (FLOAT64) — optional calibrated confidence
-- `expected_hits` (FLOAT64) — optional
-- `features_json` (STRING/JSON) — optional explanation payload
-- `created_at` (TIMESTAMP)
+-- Create Pitcher vs Batter Matchup History Table
+-- This table contains historical performance of batters against specific pitchers
 
-### 2) `bts_player_game_outcomes`
-One row per player per game with outcome used to score the recommendation.
+CREATE OR REPLACE TABLE `${GCP_PROJECT_ID}.mlb.fct_mlb__pitcher_batter_matchups` AS
+WITH matchup_data AS (
+  SELECT
+    b.player_id as batter_id,
+    p.player_id as pitcher_id,
+    b.game_id,
+    b.game_date,
+    b.season,
+    b.hits,
+    b.at_bats,
+    b.home_runs,
+    b.strikeouts
+  FROM `${GCP_PROJECT_ID}.mlb.fct_mlb__player_batting_stats` b
+  INNER JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__player_pitching_stats` p
+    ON b.game_id = p.game_id
+    AND b.team_id != p.team_id  -- Opposing teams
+)
+SELECT
+  batter_id,
+  pitcher_id,
+  COUNT(*) as total_matchups,
+  SUM(CASE WHEN hits > 0 THEN 1 ELSE 0 END) as games_with_hit,
+  SUM(hits) as total_hits,
+  SUM(at_bats) as total_at_bats,
+  SUM(home_runs) as total_home_runs,
+  SUM(strikeouts) as total_strikeouts,
+  SAFE_DIVIDE(SUM(hits), SUM(at_bats)) as career_avg_vs_pitcher,
 
-**Primary key**: (`game_date`, `game_id`, `player_id`)
+  -- Recent matchup performance (last 3 years)
+  SUM(CASE WHEN season >= EXTRACT(YEAR FROM CURRENT_DATE()) - 3 THEN hits ELSE 0 END) as recent_hits,
+  SUM(CASE WHEN season >= EXTRACT(YEAR FROM CURRENT_DATE()) - 3 THEN at_bats ELSE 0 END) as recent_at_bats,
 
-Columns:
-- `game_date` (DATE)
-- `game_id` (STRING)
-- `player_id` (INT64/STRING)
-- `player_name` (STRING)
-- `team_id` (INT64/STRING)
-- `had_hit` (BOOL) — scored truth
-- `hits` (INT64)
-- `ab` (INT64)
-- `pa` (INT64)
-- `walks` (INT64)
-- `hbp` (INT64)
-- `updated_at` (TIMESTAMP)
+  -- Last matchup details
+  MAX(game_date) as last_matchup_date,
+  (ARRAY_AGG(hits ORDER BY game_date DESC LIMIT 1))[OFFSET(0)] as last_matchup_hits
 
-### 3) `bts_reco_scoring_daily`
-Daily scoring join between recommendations and outcomes.
+FROM matchup_data
+GROUP BY batter_id, pitcher_id
+HAVING total_at_bats >= 5;  -- Minimum sample size
 
-**Primary key**: (`recommendation_date`, `player_id`, `model_version`)
+-- Create Rolling Batting Stats Table
+-- This table contains rolling window statistics for player performance
+CREATE OR REPLACE TABLE `${GCP_PROJECT_ID}.mlb.fct_mlb__player_rolling_batting_stats` AS
+SELECT
+  player_id,
+  game_date,
+  team_id,
 
-Columns:
-- `recommendation_date` (DATE)
-- `model_version` (STRING)
-- `player_id` (INT64/STRING)
-- `rank` (INT64)
-- `pick_probability_hit` (FLOAT64)
-- `had_hit` (BOOL) — nullable until games complete
-- `scored_at` (TIMESTAMP) — when it became final
+  -- Last 7 days
+  AVG(hits) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as hits_L7,
+  AVG(SAFE_CAST(avg AS FLOAT64)) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as avg_L7,
+  SUM(CASE WHEN hits > 0 THEN 1 ELSE 0 END) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as games_with_hit_L7,
 
-### 4) `bts_model_metrics_daily`
-Aggregated metrics for UI.
+  -- Last 15 days
+  AVG(hits) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as hits_L15,
+  AVG(SAFE_CAST(avg AS FLOAT64)) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as avg_L15,
 
-**Primary key**: (`metric_date`, `model_version`, `metric_name`, `segment`)
+  -- Last 30 days
+  AVG(hits) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) as hits_L30,
+  AVG(SAFE_CAST(avg AS FLOAT64)) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) as avg_L30,
+  AVG(SAFE_CAST(obp AS FLOAT64)) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) as obp_L30,
+  AVG(SAFE_CAST(slg AS FLOAT64)) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) as slg_L30,
 
-Columns:
-- `metric_date` (DATE)
-- `model_version` (STRING)
-- `metric_name` (STRING) — e.g., `top1_accuracy`, `top3_any_hit_accuracy`, `brier`, `logloss`
-- `segment` (STRING) — e.g., `overall`, `vs_rhp`, `home`, `away`
-- `metric_value` (FLOAT64)
-- `n` (INT64)
+  -- Plate discipline (last 15 days)
+  AVG(strikeout_rate) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as k_rate_L15,
+  AVG(walk_rate) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as bb_rate_L15,
 
-### 5) (Optional) `bts_user_picks`
-If you want per-user streak tracking in the warehouse.
+  -- Recent form indicators
+  SUM(CASE WHEN hits > 0 THEN 1 ELSE 0 END) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as games_with_hit_L5,
+  SUM(hits) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as total_hits_L3,
 
-**Primary key**: (`user_id`, `pick_date`)
+  -- Statcast metrics (last 15 days)
+  AVG(avg_exit_velocity) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as exit_velo_L15,
+  AVG(hard_hit_rate) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as hard_hit_rate_L15,
+  AVG(barrel_rate) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as barrel_rate_L15
 
-Columns:
-- `user_id` (STRING)
-- `pick_date` (DATE)
-- `player_id` (INT64/STRING)
-- `model_version` (STRING)
-- `had_hit` (BOOL) — nullable until final
-- `streak_after` (INT64) — computed in ETL or in app
+FROM `${GCP_PROJECT_ID}.mlb.fct_mlb__player_batting_stats`
+WHERE game_date >= '2020-01-01';  -- Process all training data from 2020 onwards
 
-If you don’t want auth yet, skip this table and keep streak in localStorage on the client.
+-- Create Rolling Pitching Stats Table
+-- This table contains rolling window statistics for pitcher performance
 
-## Pipelines / Jobs
+CREATE OR REPLACE TABLE `${GCP_PROJECT_ID}.mlb.fct_mlb__pitcher_rolling_stats` AS
+SELECT
+  player_id as pitcher_id,
+  game_date,
+  team_id,
 
-### A) Daily recommendation build
-- Input: current day expected lineups + starting pitchers + park + player form, etc.
-- Output: write rows into `bts_recommendations_daily` for `recommendation_date = CURRENT_DATE()`.
-- Run time: early morning + optional refresh at lineup lock.
+  -- Last 5 starts
+  AVG(SAFE_CAST(era AS FLOAT64)) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as era_L5,
+  AVG(whip) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as whip_L5,
+  AVG(k_per_nine) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as k9_L5,
+  AVG(bb_per_nine) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as bb9_L5,
 
-### B) Outcome ingestion + scoring
-- Load final game logs into `bts_player_game_outcomes`.
-- Join to recommendations into `bts_reco_scoring_daily`.
-- Compute `bts_model_metrics_daily`.
+  -- Last 15 days
+  AVG(fip) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as fip_L15,
+  AVG(avg_pitch_velocity) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as velo_L15,
 
-## API / Access Layer (if DB repo includes a service)
-If this repo exposes an API (Node/Express, Cloud Run, etc), define minimal read endpoints:
-- `GET /bts/recommendations?date=YYYY-MM-DD&modelVersion=...`
-- `GET /bts/metrics?start=...&end=...&modelVersion=...`
-- `GET /bts/history?playerId=...&start=...&end=...`
+  -- Quality starts (BOOLEAN needs CAST to INT or IF)
+  SUM(CASE WHEN is_quality_start = TRUE THEN 1 ELSE 0 END) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as quality_starts_L5,
 
-If you **don’t** want an API, ensure the webapp has a stable BigQuery view for each query.
+  -- Additional metrics
+  AVG(k_percentage) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as k_pct_L5,
+  AVG(zone_rate) OVER (PARTITION BY player_id ORDER BY game_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as zone_rate_L5
 
-## Views for the Webapp
-Create views that the UI can query without complex joins:
-- `vw_bts_today_recommendations`
-- `vw_bts_metrics_30d`
-- `vw_bts_reco_history`
+FROM `${GCP_PROJECT_ID}.mlb.fct_mlb__player_pitching_stats`
+WHERE game_date >= '2020-01-01';  -- Process all training data from 2020 onwards
 
-## Milestones
-1. Define schema + create tables/views in BigQuery.
-2. Implement daily reco write job (idempotent upsert).
-3. Implement scoring join + daily metrics.
-4. Add monitoring: row counts, freshness checks, alerting.
+### The tables above can simply be created following table needs predcition/training versions
 
-## Definition of Done
-- Today page can render in under ~1–2 seconds (view-level performance acceptable).
-- Data freshness visible (`created_at` / `updated_at`).
-- Metrics computed for last 30 days at minimum.
+-- Main Feature Extraction Query
+-- This query combines all feature sources for model training and prediction
+
+CREATE OR REPLACE TABLE `${GCP_PROJECT_ID}.mlb.fct_mlb__beat_the_streak_features` AS
+WITH pitcher_matchups AS (
+  -- Identify the opposing pitcher for each batter's game
+  SELECT
+    b.player_id as batter_id,
+    b.game_id,
+    b.game_date,
+    p.player_id as pitcher_id
+  FROM `${GCP_PROJECT_ID}.mlb.fct_mlb__player_batting_stats` b
+  INNER JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__player_pitching_stats` p
+    ON b.game_id = p.game_id
+    AND b.team_id != p.team_id  -- Opposing teams
+)
+SELECT
+  -- Identifiers
+  b.player_id,
+  b.game_date,
+  pm.pitcher_id,
+  b.game_id,
+
+  -- Target (for training only)
+  CASE WHEN b.hits >= 1 THEN 1 ELSE 0 END as got_hit,
+
+  -- Player form features
+  r.avg_L7 as rolling_batting_avg_L7,
+  r.avg_L15 as rolling_batting_avg_L15,
+  r.avg_L30 as rolling_batting_avg_L30,
+  r.games_with_hit_L5,
+  r.obp_L30,
+  r.slg_L30,
+
+  -- Statcast features (from batting stats and rolling stats)
+  r.exit_velo_L15,
+  r.hard_hit_rate_L15,
+  r.barrel_rate_L15,
+
+  -- Matchup features
+  m.career_avg_vs_pitcher,
+
+  -- Zone matchup feature (NEW!)
+  z.zone_matchup_score,
+  z.normalized_zone_score,
+  z.max_zone_advantage,
+
+  -- Regional zone features (V4)
+  zr.high_zone_matchup,
+  zr.middle_zone_matchup,
+  zr.low_zone_matchup,
+  zr.inside_zone_matchup,
+  zr.outside_zone_matchup,
+  zr.heart_zone_matchup,
+  zr.overall_zone_matchup,
+  zr.hitter_high_success,
+  zr.hitter_low_success,
+  zr.hitter_inside_success,
+  zr.hitter_outside_success,
+  zr.pitcher_high_freq,
+  zr.pitcher_low_freq,
+  zr.pitcher_inside_freq,
+  zr.pitcher_outside_freq,
+  zr.favorable_high,
+  zr.favorable_outside,
+
+  -- Pitcher features
+  p.era_L5 as pitcher_era_L5,
+  p.whip_L5 as pitcher_whip_L5,
+  p.fip_L15 as pitcher_fip_L15,
+
+  -- Context features
+  CASE WHEN b.team_id = g.home_team_id THEN 1 ELSE 0 END as home_vs_away
+
+FROM `${GCP_PROJECT_ID}.mlb.fct_mlb__player_batting_stats` b
+LEFT JOIN pitcher_matchups pm
+  ON b.player_id = pm.batter_id AND b.game_id = pm.game_id
+LEFT JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__player_rolling_batting_stats` r
+  ON b.player_id = r.player_id AND b.game_date = r.game_date
+LEFT JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__daily_game_context` g
+  ON b.game_id = g.game_id
+LEFT JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__pitcher_rolling_stats` p
+  ON pm.pitcher_id = p.pitcher_id AND b.game_date = p.game_date
+LEFT JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__pitcher_batter_matchups` m
+  ON b.player_id = m.batter_id AND pm.pitcher_id = m.pitcher_id
+LEFT JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__zone_matchup_scores` z
+  ON b.player_id = z.player_id
+  AND pm.pitcher_id = z.pitcher_id
+  AND EXTRACT(YEAR FROM b.game_date) = z.season
+LEFT JOIN `${GCP_PROJECT_ID}.mlb.fct_mlb__zone_regions_matchup` zr
+  ON b.player_id = zr.player_id
+  AND pm.pitcher_id = zr.pitcher_id
+  AND EXTRACT(YEAR FROM b.game_date) = zr.season
+WHERE b.game_date >= '2020-01-01';
