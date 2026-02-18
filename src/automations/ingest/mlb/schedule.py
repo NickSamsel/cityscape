@@ -22,41 +22,28 @@ def ingest_mlb_schedule_bigquery(
     *,
     season: int,
     game_types: str = "R",
-    start_date: date | None = None,
-    end_date: date | None = None,
 ) -> tuple[int, int, int]:
-    """Fetch MLB schedule (with venues, probable pitchers, broadcasts, lineups) and land into BigQuery.
-
-    Lands into:
-    - raw.mlb_schedule
-    - raw.mlb_game_broadcasts
-    - raw.mlb_game_lineups
-
-    Returns:
-        Tuple of (schedule_count, broadcasts_count, lineups_count)
-    """
+    """Fetch the full MLB season schedule and upsert into BigQuery."""
 
     logger = get_run_logger()
     settings = get_settings()
     api = MlbStatsApi()
 
-    logger.info(
-        f"Fetching MLB schedule season={season} game_types={game_types} "
-        f"start_date={start_date} end_date={end_date}"
-    )
+    logger.info(f"Fetching full MLB schedule for season={season}, game_types={game_types}")
 
+    # Updated call: no more start_date/end_date arguments needed
     schedule_entries, broadcasts, lineup_entries = api.list_schedule(
         season=season,
         game_types=game_types,
-        start_date=start_date,
-        end_date=end_date,
     )
 
     logger.info(
-        f"Fetched schedule={len(schedule_entries)} broadcasts={len(broadcasts)} "
-        f"lineups={len(lineup_entries)}"
+        f"Fetched from API: schedule={len(schedule_entries)} "
+        f"broadcasts={len(broadcasts)} lineups={len(lineup_entries)}"
     )
 
+    # Convert Dataclasses to Dicts for BQ
+    # Use .__dict__ or asdict() if you prefer, but manual mapping is safest for schema control
     schedule_rows = [
         {
             "game_id": e.game_id,
@@ -76,7 +63,7 @@ def ingest_mlb_schedule_bigquery(
             "away_probable_pitcher_name": e.away_probable_pitcher_name,
             "scheduled_innings": e.scheduled_innings,
             "series_description": e.series_description,
-            "raw": e.raw,
+            "raw": e.raw,  # Ensure BQ schema for 'raw' is JSON or STRING
         }
         for e in schedule_entries
     ]
@@ -108,6 +95,7 @@ def ingest_mlb_schedule_bigquery(
         for l in lineup_entries
     ]
 
+    # BQ Client Setup
     cfg = BigQueryConfig(
         project_id=settings.gcp_project_id,
         location="US",
@@ -119,12 +107,16 @@ def ingest_mlb_schedule_bigquery(
     ensure_raw_dataset(client, cfg.project_id)
     ensure_mlb_tables(client, cfg.project_id)
 
+    # Perform Upserts
+    # Tip: Use 'game_id' as the merge key for schedule, 
+    # and ('game_id', 'player_id') for lineups.
     inserted_schedule = upsert_mlb_schedule(client, cfg.project_id, schedule_rows)
     inserted_broadcasts = upsert_mlb_game_broadcasts(client, cfg.project_id, broadcast_rows)
     inserted_lineups = upsert_mlb_game_lineups(client, cfg.project_id, lineup_rows)
 
     logger.info(
-        f"Ingest complete: schedule={inserted_schedule} broadcasts={inserted_broadcasts} "
-        f"lineups={inserted_lineups}"
+        f"Ingest complete: schedule={inserted_schedule} "
+        f"broadcasts={inserted_broadcasts} lineups={inserted_lineups}"
     )
+    
     return inserted_schedule, inserted_broadcasts, inserted_lineups

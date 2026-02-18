@@ -30,40 +30,20 @@ def main() -> None:
     parser.add_argument(
         "--game-types",
         type=str,
-        default="R",
+        default="R,F,L,D,W,S",
         help=(
-            "Comma-separated game types to ingest (default: R). "
+            "Comma-separated game types to ingest (default: R,F,L,D,W,S). "
             "Refer to MLB API docs for valid game type codes."
         ),
     )
 
-    parser.add_argument(
-        "--start-date",
-        type=str,
-        default=None,
-        help="Optional start date filter (YYYY-MM-DD)",
-    )
-    parser.add_argument(
-        "--end-date",
-        type=str,
-        default=None,
-        help="Optional end date filter (YYYY-MM-DD)",
-    )
-
     args = parser.parse_args()
-
-    start_date = (
-        datetime.strptime(args.start_date, "%Y-%m-%d").date() if args.start_date else None
-    )
-    end_date = datetime.strptime(args.end_date, "%Y-%m-%d").date() if args.end_date else None
 
     from src.automations.ingest.mlb import ingest_mlb_schedule_bigquery
 
     inserted = ingest_mlb_schedule_bigquery(
         season=args.season,
         game_types=args.game_types,
-        start_date=start_date,
-        end_date=end_date,
     )
     print(f"ingested mlb schedule: season={args.season} games={inserted}")
 

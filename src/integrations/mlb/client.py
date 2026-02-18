@@ -705,36 +705,22 @@ class MlbStatsApi:
                     batted_balls.append(batted_ball)
         
         return pitches, batted_balls
-    
+        
     def list_schedule(
         self,
         *,
         season: int,
         game_types: str = "R",
-        start_date: date | None = None,
-        end_date: date | None = None,
-    ) -> tuple[list[MlbScheduleEntry], list[MlbBroadcast], list[MlbLineupEntry]]:
-        """Fetch enriched schedule with venues, probable pitchers, broadcasts, and lineups.
-
-        Args:
-            season: The MLB season year
-            game_types: Game type filter (default "R" for regular season)
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Tuple of (schedule_entries, broadcasts, lineup_entries)
-        """
+    ) -> Tuple[list["MlbScheduleEntry"], list["MlbBroadcast"], list["MlbLineupEntry"]]:
+        """Fetch the entire season's schedule with all hydrations."""
+        
+        # This matches your working URL exactly
         params: dict[str, Any] = {
             "sportId": 1,
             "season": season,
             "gameTypes": game_types,
             "hydrate": "probablePitcher,broadcasts,venue,lineups",
         }
-        if start_date is not None:
-            params["startDate"] = start_date.isoformat()
-        if end_date is not None:
-            params["endDate"] = end_date.isoformat()
 
         payload = self._get_json("schedule", params)
 
@@ -742,113 +728,70 @@ class MlbStatsApi:
         broadcasts: list[MlbBroadcast] = []
         lineup_entries: list[MlbLineupEntry] = []
 
+        # The API nests games under a list of "dates"
         for d in payload.get("dates", []):
-            if not isinstance(d, dict):
-                continue
             for g in d.get("games", []):
-                if not isinstance(g, dict):
-                    continue
-
                 game_id = int(g.get("gamePk"))
 
-                # Parse game datetime
-                game_datetime_val: datetime | None = None
-                game_date_str = g.get("gameDate")
-                if isinstance(game_date_str, str) and game_date_str:
-                    try:
-                        game_datetime_val = datetime.fromisoformat(
-                            game_date_str.replace("Z", "+00:00")
-                        )
-                    except ValueError:
-                        pass
+                # 1. Parse Game Details
+                teams = g.get("teams", {})
+                home = teams.get("home", {})
+                away = teams.get("away", {})
+                
+                # 2. Extract Probable Pitchers
+                home_pp = home.get("probablePitcher", {})
+                away_pp = away.get("probablePitcher", {})
 
-                official_date = g.get("officialDate")
-                game_date_val: date | None = None
-                if isinstance(official_date, str) and official_date:
-                    try:
-                        game_date_val = date.fromisoformat(official_date)
-                    except ValueError:
-                        pass
-
-                # Teams
-                teams = g.get("teams") if isinstance(g.get("teams"), dict) else {}
-                home = teams.get("home") if isinstance(teams.get("home"), dict) else {}
-                away = teams.get("away") if isinstance(teams.get("away"), dict) else {}
-
-                # Status
-                status = g.get("status") if isinstance(g.get("status"), dict) else {}
-                detailed_state = parse_str_or_none(status.get("detailedState"))
-
-                # Venue
-                venue = g.get("venue") if isinstance(g.get("venue"), dict) else {}
-                venue_id = parse_int_or_none(venue.get("id"))
-                venue_name = parse_str_or_none(venue.get("name"))
-
-                # Probable pitchers
-                home_pp = home.get("probablePitcher") if isinstance(home.get("probablePitcher"), dict) else {}
-                away_pp = away.get("probablePitcher") if isinstance(away.get("probablePitcher"), dict) else {}
-
+                # 3. Create Schedule Entry
                 entry = MlbScheduleEntry(
                     game_id=game_id,
                     season=season,
-                    game_date=game_date_val,
-                    game_datetime=game_datetime_val,
-                    game_type=parse_str_or_none(g.get("gameType")),
-                    status=detailed_state,
-                    day_night=parse_str_or_none(g.get("dayNight")),
-                    venue_id=venue_id,
-                    venue_name=venue_name,
+                    game_date=date.fromisoformat(g["officialDate"]) if g.get("officialDate") else None,
+                    game_datetime=datetime.fromisoformat(g["gameDate"].replace("Z", "+00:00")) if g.get("gameDate") else None,
+                    game_type=g.get("gameType"),
+                    status=g.get("status", {}).get("detailedState"),
+                    day_night=g.get("dayNight"),
+                    venue_id=parse_int_or_none(g.get("venue", {}).get("id")),
+                    venue_name=g.get("venue", {}).get("name"),
                     home_team_id=extract_team_id(home),
                     away_team_id=extract_team_id(away),
                     home_probable_pitcher_id=parse_int_or_none(home_pp.get("id")),
-                    home_probable_pitcher_name=parse_str_or_none(home_pp.get("fullName")),
+                    home_probable_pitcher_name=home_pp.get("fullName"),
                     away_probable_pitcher_id=parse_int_or_none(away_pp.get("id")),
-                    away_probable_pitcher_name=parse_str_or_none(away_pp.get("fullName")),
-                    scheduled_innings=parse_int_or_none(g.get("scheduledInnings")),
-                    series_description=parse_str_or_none(g.get("seriesDescription")),
+                    away_probable_pitcher_name=away_pp.get("fullName"),
+                    scheduled_innings=g.get("scheduledInnings"),
+                    series_description=g.get("seriesDescription"),
                     raw=g,
                 )
                 schedule_entries.append(entry)
 
-                # Broadcasts
-                game_broadcasts = g.get("broadcasts", [])
-                if isinstance(game_broadcasts, list):
-                    for bc in game_broadcasts:
-                        if not isinstance(bc, dict):
-                            continue
-                        bc_name = parse_str_or_none(bc.get("name"))
-                        if not bc_name:
-                            continue
-                        broadcasts.append(MlbBroadcast(
-                            game_id=game_id,
-                            broadcast_name=bc_name,
-                            broadcast_type=parse_str_or_none(bc.get("type")),
-                            call_sign=parse_str_or_none(bc.get("callSign")),
-                            is_national=bc.get("isNational") if isinstance(bc.get("isNational"), bool) else None,
-                            home_away=parse_str_or_none(bc.get("homeAway")),
-                            language=parse_str_or_none(bc.get("language")),
-                            raw=bc,
-                        ))
+                # 4. Extract Broadcasts
+                for bc in g.get("broadcasts", []):
+                    broadcasts.append(MlbBroadcast(
+                        game_id=game_id,
+                        broadcast_name=bc.get("name"),
+                        broadcast_type=bc.get("type"),
+                        call_sign=bc.get("callSign"),
+                        is_national=bc.get("isNational"),
+                        home_away=bc.get("homeAway"),
+                        language=bc.get("language"),
+                        raw=bc,
+                    ))
 
-                # Lineups
-                lineups = g.get("lineups") if isinstance(g.get("lineups"), dict) else {}
-                for side, players_key in [("home", "homePlayers"), ("away", "awayPlayers")]:
-                    players = lineups.get(players_key, [])
-                    if not isinstance(players, list):
-                        continue
+                # 5. Extract Lineups
+                lineups = g.get("lineups", {})
+                for side in ["home", "away"]:
+                    players = lineups.get(f"{side}Players", [])
                     for order_idx, player in enumerate(players, 1):
-                        if not isinstance(player, dict):
-                            continue
                         pid = parse_int_or_none(player.get("id"))
-                        if pid is None:
-                            continue
-                        pos = player.get("primaryPosition") if isinstance(player.get("primaryPosition"), dict) else {}
+                        if not pid: continue
+                        
                         lineup_entries.append(MlbLineupEntry(
                             game_id=game_id,
                             player_id=pid,
                             team_side=side,
-                            full_name=str(player.get("fullName", "")),
-                            position_abbreviation=parse_str_or_none(pos.get("abbreviation")),
+                            full_name=player.get("fullName", ""),
+                            position_abbreviation=player.get("primaryPosition", {}).get("abbreviation"),
                             batting_order=order_idx,
                             raw=player,
                         ))
