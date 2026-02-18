@@ -451,3 +451,53 @@ models:
         description: "MLB season year"
         tests:
           - not_null
+
+  - name: core_mlb__schedule
+    description: |
+      Core fact table for MLB schedule data.
+      Single source of truth for game-level schedule information.
+    columns:
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+        tests:
+          - unique
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+      - name: game_datetime
+        description: "{{ doc('mlb_game_datetime') }}"
+      - name: venue_id
+        description: "{{ doc('mlb_venue_id') }}"
+      - name: venue_name
+        description: "{{ doc('mlb_venue_name') }}"
+      - name: home_team_id
+        description: "{{ doc('mlb_home_team_id') }}"
+      - name: home_team_name
+        description: "{{ doc('mlb_home_team_name') }}"
+      - name: home_team_abbr
+        description: "{{ doc('mlb_home_team_abbr') }}"
+      - name: away_team_id
+        description: "{{ doc('mlb_away_team_id') }}"
+      - name: away_team_name
+        description: "{{ doc('mlb_away_team_name') }}"
+      - name: away_team_abbr
+        description: "{{ doc('mlb_away_team_abbr') }}"
+      - name: home_probable_pitcher_id
+        description: "{{ doc('mlb_home_probable_pitcher_id') }}"
+      - name: home_probable_pitcher_name
+        description: "{{ doc('mlb_home_probable_pitcher_name') }}"
+      - name: home_probable_pitcher_throws
+        description: "{{ doc('mlb_home_probable_pitcher_throws') }}"
+      - name: away_probable_pitcher_id
+        description: "{{ doc('mlb_away_probable_pitcher_id') }}"
+      - name: away_probable_pitcher_name
+        description: "{{ doc('mlb_away_probable_pitcher_name') }}"
+      - name: away_probable_pitcher_throws
+        description: "{{ doc('mlb_away_probable_pitcher_throws') }}"
+      - name: has_probable_pitchers
+        description: "{{ doc('mlb_has_probable_pitchers') }}"
+      - name: is_interleague
+        description: "{{ doc('mlb_is_interleague') }}"
+      - name: day_night
+        description: "{{ doc('mlb_day_night') }}"
