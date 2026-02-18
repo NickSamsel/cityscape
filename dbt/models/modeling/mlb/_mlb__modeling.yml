@@ -1,0 +1,248 @@
+version: 2
+
+models:
+  - name: ml_mlb__final_features
+    description: "{{ doc('mlb_ml_mlb_final_features') }}"
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+
+      - name: got_hit
+        description: "{{ doc('mlb_ml_got_hit') }}"
+
+      - name: rolling_batting_avg_L7
+        description: "{{ doc('mlb_ml_rolling_batting_avg_L7') }}"
+      - name: rolling_batting_avg_L15
+        description: "{{ doc('mlb_ml_rolling_batting_avg_L15') }}"
+      - name: rolling_batting_avg_L30
+        description: "{{ doc('mlb_ml_rolling_batting_avg_L30') }}"
+      - name: games_with_hit_L5
+        description: "{{ doc('mlb_ml_games_with_hit_L5') }}"
+      - name: obp_L30
+        description: "{{ doc('mlb_ml_obp_L30') }}"
+      - name: slg_L30
+        description: "{{ doc('mlb_ml_slg_L30') }}"
+
+      - name: exit_velo_L15
+        description: "{{ doc('mlb_ml_exit_velo_L15') }}"
+      - name: hard_hit_rate_L15
+        description: "{{ doc('mlb_ml_hard_hit_rate_L15') }}"
+      - name: barrel_rate_L15
+        description: "{{ doc('mlb_ml_barrel_rate_L15') }}"
+
+      - name: career_avg_vs_pitcher
+        description: "{{ doc('mlb_ml_career_avg_vs_pitcher') }}"
+
+      - name: zone_matchup_score
+        description: "{{ doc('mlb_ml_zone_matchup_score') }}"
+      - name: normalized_zone_score
+        description: "{{ doc('mlb_ml_normalized_zone_score') }}"
+      - name: max_zone_advantage
+        description: "{{ doc('mlb_ml_max_zone_advantage') }}"
+
+      - name: high_zone_matchup
+        description: "{{ doc('mlb_ml_high_zone_matchup') }}"
+      - name: middle_zone_matchup
+        description: "{{ doc('mlb_ml_middle_zone_matchup') }}"
+      - name: low_zone_matchup
+        description: "{{ doc('mlb_ml_low_zone_matchup') }}"
+      - name: inside_zone_matchup
+        description: "{{ doc('mlb_ml_inside_zone_matchup') }}"
+      - name: outside_zone_matchup
+        description: "{{ doc('mlb_ml_outside_zone_matchup') }}"
+      - name: heart_zone_matchup
+        description: "{{ doc('mlb_ml_heart_zone_matchup') }}"
+      - name: overall_zone_matchup
+        description: "{{ doc('mlb_ml_overall_zone_matchup') }}"
+
+      - name: hitter_high_success
+        description: "{{ doc('mlb_ml_hitter_high_success') }}"
+      - name: hitter_low_success
+        description: "{{ doc('mlb_ml_hitter_low_success') }}"
+      - name: hitter_inside_success
+        description: "{{ doc('mlb_ml_hitter_inside_success') }}"
+      - name: hitter_outside_success
+        description: "{{ doc('mlb_ml_hitter_outside_success') }}"
+
+      - name: pitcher_high_freq
+        description: "{{ doc('mlb_ml_pitcher_high_freq') }}"
+      - name: pitcher_low_freq
+        description: "{{ doc('mlb_ml_pitcher_low_freq') }}"
+      - name: pitcher_inside_freq
+        description: "{{ doc('mlb_ml_pitcher_inside_freq') }}"
+      - name: pitcher_outside_freq
+        description: "{{ doc('mlb_ml_pitcher_outside_freq') }}"
+
+      - name: favorable_high
+        description: "{{ doc('mlb_ml_favorable_high') }}"
+      - name: favorable_outside
+        description: "{{ doc('mlb_ml_favorable_outside') }}"
+
+      - name: pitcher_era_L5
+        description: "{{ doc('mlb_ml_pitcher_era_L5') }}"
+      - name: pitcher_whip_L5
+        description: "{{ doc('mlb_ml_pitcher_whip_L5') }}"
+      - name: pitcher_fip_L15
+        description: "{{ doc('mlb_ml_pitcher_fip_L15') }}"
+
+      - name: home_vs_away
+        description: "{{ doc('mlb_ml_home_vs_away') }}"
+
+  - name: ml_mlb__matchups
+    description: "{{ doc('mlb_ml_mlb_matchups') }}"
+    columns:
+      - name: batter_id
+        description: "{{ doc('mlb_batter_id') }}"
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: total_matchups
+        description: "{{ doc('mlb_ml_total_matchups') }}"
+      - name: games_with_hit
+        description: "{{ doc('mlb_ml_games_with_hit') }}"
+      - name: total_hits
+        description: "{{ doc('mlb_ml_total_hits') }}"
+      - name: total_at_bats
+        description: "{{ doc('mlb_ml_total_at_bats') }}"
+      - name: total_home_runs
+        description: "{{ doc('mlb_ml_total_home_runs') }}"
+      - name: total_strikeouts
+        description: "{{ doc('mlb_ml_total_strikeouts') }}"
+      - name: career_avg_vs_pitcher
+        description: "{{ doc('mlb_ml_career_avg_vs_pitcher') }}"
+      - name: recent_hits
+        description: "{{ doc('mlb_ml_recent_hits') }}"
+      - name: recent_at_bats
+        description: "{{ doc('mlb_ml_recent_at_bats') }}"
+      - name: last_matchup_date
+        description: "{{ doc('mlb_ml_last_matchup_date') }}"
+      - name: last_matchup_hits
+        description: "{{ doc('mlb_ml_last_matchup_hits') }}"
+
+  - name: ml_mlb__rolling_batter_stats
+    description: "{{ doc('mlb_ml_mlb_rolling_batter_stats') }}"
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+
+      - name: hits_L7
+        description: "{{ doc('mlb_ml_hits_L7') }}"
+      - name: avg_L7
+        description: "{{ doc('mlb_ml_avg_L7') }}"
+      - name: games_with_hit_L7
+        description: "{{ doc('mlb_ml_games_with_hit_L7') }}"
+      - name: hits_L15
+        description: "{{ doc('mlb_ml_hits_L15') }}"
+      - name: avg_L15
+        description: "{{ doc('mlb_ml_avg_L15') }}"
+      - name: hits_L30
+        description: "{{ doc('mlb_ml_hits_L30') }}"
+      - name: avg_L30
+        description: "{{ doc('mlb_ml_avg_L30') }}"
+      - name: obp_L30
+        description: "{{ doc('mlb_ml_obp_L30') }}"
+      - name: slg_L30
+        description: "{{ doc('mlb_ml_slg_L30') }}"
+      - name: k_rate_L15
+        description: "{{ doc('mlb_ml_k_rate_L15') }}"
+      - name: bb_rate_L15
+        description: "{{ doc('mlb_ml_bb_rate_L15') }}"
+      - name: games_with_hit_L5
+        description: "{{ doc('mlb_ml_games_with_hit_L5') }}"
+      - name: total_hits_L3
+        description: "{{ doc('mlb_ml_total_hits_L3') }}"
+      - name: exit_velo_L15
+        description: "{{ doc('mlb_ml_exit_velo_L15') }}"
+      - name: hard_hit_rate_L15
+        description: "{{ doc('mlb_ml_hard_hit_rate_L15') }}"
+      - name: barrel_rate_L15
+        description: "{{ doc('mlb_ml_barrel_rate_L15') }}"
+
+  - name: ml_mlb__rolling_pitcher_stats
+    description: "{{ doc('mlb_ml_mlb_rolling_pitcher_stats') }}"
+    columns:
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+      - name: team_id
+        description: "{{ doc('mlb_team_id') }}"
+
+      - name: era_L5
+        description: "{{ doc('mlb_ml_era_L5') }}"
+      - name: whip_L5
+        description: "{{ doc('mlb_ml_whip_L5') }}"
+      - name: k9_L5
+        description: "{{ doc('mlb_ml_k9_L5') }}"
+      - name: bb9_L5
+        description: "{{ doc('mlb_ml_bb9_L5') }}"
+      - name: fip_L15
+        description: "{{ doc('mlb_ml_fip_L15') }}"
+      - name: velo_L15
+        description: "{{ doc('mlb_ml_velo_L15') }}"
+      - name: quality_starts_L5
+        description: "{{ doc('mlb_ml_quality_starts_L5') }}"
+      - name: k_pct_L5
+        description: "{{ doc('mlb_ml_k_pct_L5') }}"
+      - name: zone_rate_L5
+        description: "{{ doc('mlb_ml_zone_rate_L5') }}"
+
+  - name: ml_mlb__zone_matchup
+    description: "{{ doc('mlb_ml_mlb_zone_matchup') }}"
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: season
+        description: "{{ doc('mlb_season') }}"
+
+      - name: high_zone_matchup
+        description: "{{ doc('mlb_ml_high_zone_matchup') }}"
+      - name: middle_zone_matchup
+        description: "{{ doc('mlb_ml_middle_zone_matchup') }}"
+      - name: low_zone_matchup
+        description: "{{ doc('mlb_ml_low_zone_matchup') }}"
+      - name: inside_zone_matchup
+        description: "{{ doc('mlb_ml_inside_zone_matchup') }}"
+      - name: outside_zone_matchup
+        description: "{{ doc('mlb_ml_outside_zone_matchup') }}"
+      - name: heart_zone_matchup
+        description: "{{ doc('mlb_ml_heart_zone_matchup') }}"
+      - name: overall_zone_matchup
+        description: "{{ doc('mlb_ml_overall_zone_matchup') }}"
+
+      - name: hitter_high_success
+        description: "{{ doc('mlb_ml_hitter_high_success') }}"
+      - name: hitter_low_success
+        description: "{{ doc('mlb_ml_hitter_low_success') }}"
+      - name: hitter_inside_success
+        description: "{{ doc('mlb_ml_hitter_inside_success') }}"
+      - name: hitter_outside_success
+        description: "{{ doc('mlb_ml_hitter_outside_success') }}"
+
+      - name: pitcher_high_freq
+        description: "{{ doc('mlb_ml_pitcher_high_freq') }}"
+      - name: pitcher_low_freq
+        description: "{{ doc('mlb_ml_pitcher_low_freq') }}"
+      - name: pitcher_inside_freq
+        description: "{{ doc('mlb_ml_pitcher_inside_freq') }}"
+      - name: pitcher_outside_freq
+        description: "{{ doc('mlb_ml_pitcher_outside_freq') }}"
+
+      - name: favorable_high
+        description: "{{ doc('mlb_ml_favorable_high') }}"
+      - name: favorable_outside
+        description: "{{ doc('mlb_ml_favorable_outside') }}"
+
+  - name: ml_mlb__daily_predictions
+    description: "{{ doc('mlb_ml_mlb_daily_predictions') }}"
