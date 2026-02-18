@@ -1,8 +1,6 @@
 {{-
   config(
-    materialized='incremental',
-    unique_key=['game_id', 'player_id', 'team_side'],
-    on_schema_change='sync_all_columns',
+        materialized='view',
     tags=["mart", "mlb", "fact", "schedule"]
   )
 -}}
@@ -14,14 +12,6 @@
 with lineups as (
 
     select * from {{ ref('stg_mlb__game_lineups') }}
-    {% if is_incremental() %}
-    where not exists (
-        select 1 from {{ this }} as existing
-        where existing.game_id = stg_mlb__game_lineups.game_id
-          and existing.player_id = stg_mlb__game_lineups.player_id
-          and existing.team_side = stg_mlb__game_lineups.team_side
-    )
-    {% endif %}
 
 ),
 

@@ -43,13 +43,7 @@ This document outlines the complete dbt infrastructure for MLB Statcast data and
 - `int_mlb__career_batting_stats` - Career batting totals (AVG, OBP, SLG, OPS)
 - `int_mlb__career_pitching_stats` - Career pitching totals (ERA, WHIP, K/9, BB/9)
 
-### 3. Core Layer (`core_mlb__*`)
-**Purpose:** Single source of truth (pass-through selects)
-
-- `core_mlb__statcast_pitches` → from `int_mlb__statcast_pitches_enriched`
-- `core_mlb__statcast_batted_balls` → from `int_mlb__statcast_batted_balls_enriched`
-
-### 4. Marts Layer (`fct_mlb__*`, `dim_mlb__*`)
+### 3. Marts Layer (`fct_mlb__*`, `dim_mlb__*`)
 **Purpose:** Analytics-ready tables for BI tools
 
 #### Fact Tables

@@ -42,7 +42,7 @@ from src.utils.settings import get_settings
 
 
 @flow(name="mlb-season-ingestion", log_prints=False)
-def mlb_season_ingestion(*, season: int, game_types: str = "R") -> dict[str, int]:
+def mlb_season_ingestion(*, season: int, game_types: str = "R,F,D,L,W,S") -> dict[str, int]:
     """Prefect flow that ingests MLB season data into BigQuery.
 
     This wraps `ingest_mlb_season_bigquery` so logs are attached to the Prefect run.
@@ -64,7 +64,7 @@ def mlb_season_ingestion(*, season: int, game_types: str = "R") -> dict[str, int
 def mlb_daily_ingestion(
     *,
     season: int,
-    game_types: str = "R",
+    game_types: str = "R,F,D,L,W,S",
     lookback_days: int = 2,
 ) -> dict[str, int | str]:
     """Daily MLB ingestion.
@@ -118,7 +118,7 @@ def mlb_multi_season_ingestion(
     *,
     start_year: int,
     end_year: int,
-    game_types: str = "R",
+    game_types: str = "R,F,D,L,W,S",
 ) -> dict[str, int | list]:
     """Ingest MLB data for multiple seasons from start_year to end_year (inclusive).
 
@@ -134,7 +134,7 @@ def mlb_multi_season_ingestion(
 
 
 @task(name="fetch-single-season-data")
-def fetch_single_season_data_task(season: int, game_types: str = "R") -> dict[str, any]:
+def fetch_single_season_data_task(season: int, game_types: str = "R,F,D,L,W,S") -> dict[str, any]:
     """Task wrapper for fetching MLB season data (without writing to BigQuery).
     
     This allows parallel fetch operations without hitting BigQuery rate limits.
@@ -161,7 +161,7 @@ def mlb_multi_season_ingestion_parallel(
     *,
     start_year: int,
     end_year: int,
-    game_types: str = "R",
+    game_types: str = "R,F,D,L,W,S",
     max_workers: int = 10,
 ) -> dict[str, int | list]:
     """Ingest MLB teams and games for multiple seasons IN PARALLEL.

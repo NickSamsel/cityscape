@@ -1,13 +1,22 @@
 import argparse
 import logging
+import sys
 import warnings
 from datetime import datetime
+from pathlib import Path
 
 # Suppress noisy cleanup warnings
 logging.getLogger("sqlalchemy.pool").setLevel(logging.CRITICAL)
 logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", message=".*no active connection.*")
+
+
+# Allow running via: `python scripts/mlb/ingest_schedule.py ...`
+# without requiring an editable install.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def main() -> None:
@@ -30,9 +39,9 @@ def main() -> None:
     parser.add_argument(
         "--game-types",
         type=str,
-        default="R,F,L,D,W,S",
+        default="R,F,D,L,W,S",
         help=(
-            "Comma-separated game types to ingest (default: R,F,L,D,W,S). "
+            "Comma-separated game types to ingest (default: R,F,D,L,W,S). "
             "Refer to MLB API docs for valid game type codes."
         ),
     )

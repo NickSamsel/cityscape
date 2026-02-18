@@ -18,4 +18,4 @@
 -- Each row represents a single batted ball with exit velocity, launch angle, and outcomes
 
 select *
-from {{ ref('core_mlb__statcast_batted_balls') }}
+from {{ ref('int_mlb__statcast_batted_balls_enriched') }}

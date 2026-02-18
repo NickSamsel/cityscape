@@ -8,12 +8,10 @@ stg_mlb__statcast_pitches (740K rows)
 stg_mlb__statcast_batted_balls (250K rows)
     ↓
     ├── int_mlb__statcast_pitches_enriched (with game/player context)
-    │   └── core_mlb__statcast_pitches
-    │       └── fct_mlb__statcast_pitches ✅ USE FOR PITCH ANALYSIS
+    │   └── fct_mlb__statcast_pitches ✅ USE FOR PITCH ANALYSIS
     │
     ├── int_mlb__statcast_batted_balls_enriched (with game/player context)
-    │   └── core_mlb__statcast_batted_balls
-    │       └── fct_mlb__statcast_batted_balls ✅ USE FOR BATTED BALL ANALYSIS
+    │   └── fct_mlb__statcast_batted_balls ✅ USE FOR BATTED BALL ANALYSIS
     │
     ├── int_mlb__pitcher_statcast_metrics (aggregated by pitcher)
     │   └── fct_mlb__players (joined) ✅ USE FOR PLAYER PROFILES

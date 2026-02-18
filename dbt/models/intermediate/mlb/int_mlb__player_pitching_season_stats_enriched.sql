@@ -11,13 +11,13 @@
 
 with pitching_stats as (
 
-    select * from {{ ref('fct_mlb__player_pitching_stats') }}
+    select * from {{ ref('int_mlb__player_pitching_stats_enriched') }}
 
 ),
 
 games as (
 
-    select * from {{ ref('fct_mlb__games') }}
+    select * from {{ ref('int_mlb__games_enriched') }}
 
 ),
 

@@ -46,17 +46,12 @@ models:
       +tags: ["marts"]
       mlb:
         +schema: mlb_marts
-    core:
-      +materialized: table
-      +tags: ["core", "deprecated"]
-      mlb:
-        +schema: mlb_core
       nba:
-        +schema: nba_core
+        +schema: nba_marts
       nfl:
-        +schema: nfl_core
+        +schema: nfl_marts
       nhl:
-        +schema: nhl_core
+        +schema: nhl_marts
     modeling:
       +materialized: table
       +tags: ["modeling"]

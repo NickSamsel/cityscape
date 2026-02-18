@@ -10,7 +10,7 @@
 
 with batting_stats as (
 
-    select * from {{ ref('fct_mlb__player_batting_stats') }}
+    select * from {{ ref('int_mlb__player_batting_stats_enriched') }}
 
 ),
 

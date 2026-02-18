@@ -57,13 +57,13 @@ The dbt project lives in `dbt/` and is structured for:
 
 - `models/staging/<league>` (stg)
 - `models/intermediate/<league>` (int)
-- `models/core/<league>` (core)
+- `models/marts/<league>` (marts)
 
 Naming convention (standardized prefixes):
 
 - Staging: `stg_<league>__<entity>`
 - Intermediate: `int_<league>__<entity>`
-- Core: `core_<league>__<entity>`
+- Marts: `dim_<league>__<entity>`, `fct_<league>__<entity>`
 
 SQL portability (ANSI-leaning):
 

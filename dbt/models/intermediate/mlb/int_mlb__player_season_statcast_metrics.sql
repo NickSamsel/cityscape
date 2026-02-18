@@ -11,7 +11,7 @@
 
 with batted_balls as (
 
-    select * from {{ ref('fct_mlb__statcast_batted_balls') }}
+  select * from {{ ref('int_mlb__statcast_batted_balls_enriched') }}
 
 ),
 

@@ -21,4 +21,4 @@
 -- This is a slowly changing dimension (Type 2) with season as the effective date
 
 select *
-from {{ ref('core_mlb__venues') }}
+from {{ ref('int_mlb__venues_enriched') }}

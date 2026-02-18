@@ -11,4 +11,4 @@
 -- Analytics-ready view built from core model
 
 select *
-from {{ ref('core_mlb__divisions') }}
+from {{ ref('int_mlb__divisions_enriched') }}

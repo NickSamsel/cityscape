@@ -11,19 +11,19 @@
 
 with statcast_metrics as (
 
-    select * from {{ ref('core_mlb__player_season_statcast_metrics') }}
+    select * from {{ ref('int_mlb__player_season_statcast_metrics') }}
 
 ),
 
 batting_stats as (
 
-    select * from {{ ref('fct_mlb__player_batting_stats') }}
+    select * from {{ ref('int_mlb__player_batting_stats_enriched') }}
 
 ),
 
 games as (
 
-    select * from {{ ref('fct_mlb__games') }}
+    select * from {{ ref('int_mlb__games_enriched') }}
 
 ),
 

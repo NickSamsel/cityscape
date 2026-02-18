@@ -12,4 +12,4 @@
 -- Each row represents a single game with full team and outcome information
 
 select *
-from {{ ref('core_mlb__games') }}
+from {{ ref('int_mlb__games_enriched') }}

@@ -12,4 +12,4 @@
 -- Each row represents a batter's performance in a single game
 
 select *
-from {{ ref('core_mlb__player_batting_stats') }}
+from {{ ref('int_mlb__player_batting_stats_enriched') }}

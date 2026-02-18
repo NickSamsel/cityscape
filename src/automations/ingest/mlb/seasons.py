@@ -20,10 +20,14 @@ from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
 
 
+DEFAULT_MLB_GAME_TYPES = "R,F,D,L,W,S"
+FINAL_GAME_STATUS = "Final"
+
+
 def fetch_mlb_season_data(
     *,
     season: int,
-    game_types: str = "R",
+    game_types: str = DEFAULT_MLB_GAME_TYPES,
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> tuple[list[dict], list[dict]]:
@@ -50,6 +54,10 @@ def fetch_mlb_season_data(
         logger.info(f"Fetching MLB games season={season} game_types={game_types}")
 
     games = api.list_games(season=season, game_types=game_types, start_date=start_date, end_date=end_date)
+
+    before = len(games)
+    games = [g for g in games if g.status == FINAL_GAME_STATUS]
+    logger.info(f"Filtered games to status={FINAL_GAME_STATUS}: {len(games)}/{before}")
 
     team_rows = [
         {
@@ -129,7 +137,7 @@ def fetch_mlb_reference_data() -> tuple[list[dict], list[dict]]:
 def ingest_mlb_season_bigquery(
     *,
     season: int,
-    game_types: str = "R,F,D,L,W",
+    game_types: str = DEFAULT_MLB_GAME_TYPES,
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> tuple[int, int, int, int]:
@@ -189,7 +197,7 @@ def ingest_mlb_multi_season_bigquery(
     *,
     start_year: int,
     end_year: int,
-    game_types: str = "R,F,D,L,W",
+    game_types: str = DEFAULT_MLB_GAME_TYPES,
     parallel: bool = False,
     max_workers: int = 10,
 ) -> dict[str, int | list[int]]:

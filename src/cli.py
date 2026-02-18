@@ -30,8 +30,8 @@ def _build_parser() -> argparse.ArgumentParser:
     ingest_mlb.add_argument("--season", type=int, required=True, help="Season year, e.g. 2024")
     ingest_mlb.add_argument(
         "--game-types",
-        default="R",
-        help="Comma-separated gameTypes for MLB Stats API (default: R=regular season)",
+        default="R,F,D,L,W,S",
+        help="Comma-separated gameTypes for MLB Stats API (default: R,F,D,L,W,S)",
     )
     ingest_mlb.add_argument(
         "--start-date",

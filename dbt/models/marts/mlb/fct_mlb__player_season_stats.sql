@@ -10,4 +10,4 @@
 -- Each row represents a player's performance for their primary team in a season
 
 select *
-from {{ ref('core_mlb__player_season_stats') }}
+from {{ ref('int_mlb__player_season_stats_enriched') }}

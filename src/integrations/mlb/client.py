@@ -710,7 +710,9 @@ class MlbStatsApi:
         self,
         *,
         season: int,
-        game_types: str = "R",
+        game_types: str = "R,F,D,L,W,S",
+        start_date: date | None = None,
+        end_date: date | None = None,
     ) -> Tuple[list["MlbScheduleEntry"], list["MlbBroadcast"], list["MlbLineupEntry"]]:
         """Fetch the entire season's schedule with all hydrations."""
         
@@ -721,6 +723,11 @@ class MlbStatsApi:
             "gameTypes": game_types,
             "hydrate": "probablePitcher,broadcasts,venue,lineups",
         }
+
+        if start_date is not None:
+            params["startDate"] = start_date.isoformat()
+        if end_date is not None:
+            params["endDate"] = end_date.isoformat()
 
         payload = self._get_json("schedule", params)
 

@@ -18,27 +18,51 @@ from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
 
 
+DEFAULT_MLB_GAME_TYPES = "R,F,D,L,W,S"
+SCHEDULED_GAME_STATUS = "Scheduled"
+
+
 def ingest_mlb_schedule_bigquery(
     *,
     season: int,
-    game_types: str = "R",
+    game_types: str = DEFAULT_MLB_GAME_TYPES,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> tuple[int, int, int]:
-    """Fetch the full MLB season schedule and upsert into BigQuery."""
+    """Fetch MLB schedule (with broadcasts + lineups) and upsert into BigQuery.
+
+    By default, ingests *all* game types but filters to only games with
+    status "Scheduled".
+    """
 
     logger = get_run_logger()
     settings = get_settings()
     api = MlbStatsApi()
 
-    logger.info(f"Fetching full MLB schedule for season={season}, game_types={game_types}")
+    logger.info(
+        f"Fetching MLB schedule for season={season}, game_types={game_types}, "
+        f"start_date={start_date}, end_date={end_date}"
+    )
 
-    # Updated call: no more start_date/end_date arguments needed
     schedule_entries, broadcasts, lineup_entries = api.list_schedule(
         season=season,
         game_types=game_types,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     logger.info(
         f"Fetched from API: schedule={len(schedule_entries)} "
+        f"broadcasts={len(broadcasts)} lineups={len(lineup_entries)}"
+    )
+
+    before = len(schedule_entries)
+    schedule_entries = [e for e in schedule_entries if e.status == SCHEDULED_GAME_STATUS]
+    scheduled_game_ids = {e.game_id for e in schedule_entries}
+    broadcasts = [b for b in broadcasts if b.game_id in scheduled_game_ids]
+    lineup_entries = [l for l in lineup_entries if l.game_id in scheduled_game_ids]
+    logger.info(
+        f"Filtered schedule to status={SCHEDULED_GAME_STATUS}: schedule={len(schedule_entries)}/{before} "
         f"broadcasts={len(broadcasts)} lineups={len(lineup_entries)}"
     )
 

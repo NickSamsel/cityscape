@@ -26,8 +26,17 @@ Example usage:
 
 import argparse
 import logging
+import sys
 import warnings
 from datetime import date, datetime
+from pathlib import Path
+
+
+# Allow running via: `python scripts/mlb/ingest_teams_and_games.py ...`
+# without requiring an editable install.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.automations.ingest.mlb import ingest_mlb_multi_season_bigquery, ingest_mlb_season_bigquery
 
@@ -96,10 +105,10 @@ Examples:
     parser.add_argument(
         "--game-types",
         type=str,
-        default="R,F,D,L,W",
+        default="R,F,D,L,W,S",
         help=(
             "Game types to ingest: R=regular, F=wild card, D=division, L=league championship, W=world series "
-            "(default: R,F,D,L,W)"
+            "(default: R,F,D,L,W,S)"
         ),
     )
     parser.add_argument(

@@ -41,8 +41,8 @@ def main() -> int:
     parser.add_argument(
         "--game-types",
         type=str,
-        default="R",
-        help="Game type filter (default: R for regular season)",
+        default="R,F,D,L,W,S",
+        help="Game type filter (default: R,F,D,L,W,S)",
     )
     parser.add_argument(
         "--skip-statcast",

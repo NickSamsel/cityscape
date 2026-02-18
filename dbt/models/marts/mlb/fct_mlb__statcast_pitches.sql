@@ -12,4 +12,4 @@
 -- Each row represents a single pitch with pitcher, batter, and game details
 
 select *
-from {{ ref('core_mlb__statcast_pitches') }}
+from {{ ref('int_mlb__statcast_pitches_enriched') }}

@@ -1,8 +1,6 @@
 {{-
   config(
-    materialized='incremental',
-    unique_key=['game_id', 'player_id', 'team_side'],
-    on_schema_change='sync_all_columns',
+    materialized='view',
     tags=["stg", "mlb", "schedule"]
   )
 -}}
@@ -20,15 +18,6 @@ with source as (
       order by loaded_at desc
     ) as row_num
   from {{ source('raw', 'mlb_game_lineups') }}
-
-  {% if is_incremental() %}
-  where not exists (
-    select 1 from {{ this }} as existing
-    where existing.game_id = {{ cast_string('game_id') }}
-      and existing.player_id = {{ cast_string('player_id') }}
-      and existing.team_side = {{ cast_string('team_side') }}
-  )
-  {% endif %}
 )
 
 select * except(row_num)

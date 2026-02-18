@@ -1,8 +1,6 @@
 {{-
   config(
-    materialized='incremental',
-    unique_key=['game_id', 'broadcast_name'],
-    on_schema_change='sync_all_columns',
+    materialized='view',
     tags=["mart", "mlb", "fact", "schedule"]
   )
 -}}
@@ -13,14 +11,7 @@
 
 with broadcasts as (
 
-    select * from {{ ref('stg_mlb__game_broadcasts') }}
-    {% if is_incremental() %}
-    where not exists (
-        select 1 from {{ this }} as existing
-        where existing.game_id = stg_mlb__game_broadcasts.game_id
-          and existing.broadcast_name = stg_mlb__game_broadcasts.broadcast_name
-    )
-    {% endif %}
+  select * from {{ ref('stg_mlb__game_broadcasts') }}
 
 ),
 
