@@ -98,19 +98,17 @@ final as (
         s.series_description
 
     from schedule as s
-    left join home_teams as home_t
+    join home_teams as home_t
         on s.home_team_id = home_t.team_id
-        and s.season = home_t.season
-    left join away_teams as away_t
+    join away_teams as away_t
         on s.away_team_id = away_t.team_id
-        and s.season = away_t.season
-    left join leagues as home_lg
+    join leagues as home_lg
         on home_t.league_id = home_lg.league_id
-    left join leagues as away_lg
+    join leagues as away_lg
         on away_t.league_id = away_lg.league_id
-    left join divisions as home_div
+    join divisions as home_div
         on home_t.division_id = home_div.division_id
-    left join divisions as away_div
+    join divisions as away_div
         on away_t.division_id = away_div.division_id
     left join home_players as home_p
         on s.home_probable_pitcher_id = home_p.player_id
