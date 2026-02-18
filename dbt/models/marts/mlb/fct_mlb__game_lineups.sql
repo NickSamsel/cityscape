@@ -1,6 +1,9 @@
 {{-
   config(
-        materialized='view',
+        materialized='incremental',
+        incremental_strategy='merge',
+        unique_key=['game_id', 'player_id', 'team_side'],
+        on_schema_change='sync_all_columns',
     tags=["mart", "mlb", "fact", "schedule"]
   )
 -}}
