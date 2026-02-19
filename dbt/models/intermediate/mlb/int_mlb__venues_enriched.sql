@@ -39,20 +39,23 @@ venue_primary_team as (
 team_names as (
     select 
         team_id,
+        season,
         team_name
     from {{ ref('stg_mlb__teams') }}
 )
 
-select distinct
+select
     v.*,
     h.primary_home_team_id,
     t.team_name as primary_home_team_name
 from primary_fields v
 left join venue_primary_team h 
     on v.venue_id = h.venue_id
+    and v.season = h.season
 left join team_names t
     on h.primary_home_team_id = t.team_id
-where h.popularity_rank = 1
+    and h.season = t.season
+where h.popularity_rank = 1 or h.popularity_rank is null
 
 {% if is_incremental() %}
   and not exists (

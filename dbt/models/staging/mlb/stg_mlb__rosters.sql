@@ -19,7 +19,7 @@ renamed as (
     select
         cast(team_id as int64) as team_id,
         cast(player_id as int64) as player_id,
-        season,
+        cast(season as int64) as season,
         player_name,
         position_code,
         position_name,

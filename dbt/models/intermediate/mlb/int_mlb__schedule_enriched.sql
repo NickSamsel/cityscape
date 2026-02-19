@@ -100,8 +100,10 @@ final as (
     from schedule as s
     join home_teams as home_t
         on s.home_team_id = home_t.team_id
+        and s.season = home_t.season
     join away_teams as away_t
         on s.away_team_id = away_t.team_id
+        and s.season = away_t.season
     join leagues as home_lg
         on home_t.league_id = home_lg.league_id
     join leagues as away_lg
