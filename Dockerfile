@@ -6,6 +6,7 @@ RUN apt-get update && \
     build-essential \
     git \
     curl \
+    wget \
     unzip \
     libpq-dev \
     ca-certificates \
