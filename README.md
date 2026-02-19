@@ -2,6 +2,32 @@
 
 Python workspace for orchestration + analytics.
 
+## 🚀 Quick Start: MLB Data Pipeline
+
+**Two-phase approach for loading and maintaining MLB data:**
+
+### Phase 1: Historical Backfill (One-Time)
+Load complete historical data from 2000-2026 in ~20-30 minutes:
+
+```bash
+# Run inside dev container
+uv run python scripts/mlb/ingest_historical_backfill.py \
+  --start-year 2000 \
+  --end-year 2026 \
+  --skip-statcast  # Optional: faster initial load
+```
+
+### Phase 2: Daily Updates (Automated via GitHub Actions)
+After initial load, GitHub Actions automatically:
+- Runs every morning at 6 AM ET
+- Fetches last 3 days (catches stat corrections)
+- Updates rosters weekly (Mondays)
+- Only runs during season (March-October)
+
+**📖 Complete guide:** [docs/mlb_deployment_guide.md](docs/mlb_deployment_guide.md)
+
+---
+
 ## Quickstart (dev container)
 
 - Start services: `docker compose up -d`
@@ -15,41 +41,16 @@ Inside the container:
 - Run tests: `uv run pytest`
 - Run CLI: `uv run cityscape hello`
 
-## Prefect
+## Orchestration
 
-The compose file starts Prefect Server on `http://localhost:4200` and sets `PREFECT_API_URL` in the dev container.
+Data pipelines are orchestrated via **GitHub Actions**:
+- Daily MLB data ingestion runs automatically at 6 AM ET (scheduled via cron)
+- Manual triggers available via workflow_dispatch for backfills
+- See [.github/workflows/mlb-daily-ingest.yml](.github/workflows/mlb-daily-ingest.yml)
 
-### Running flows
-
-- Local run (inside dev container): `uv run python -m src.automations.prefect.mlb`
-
-### Scheduling (yes, you can)
-
-Prefect schedules are managed via **deployments**. A deployment has:
-
-- an entrypoint (your flow function)
-- optional parameters
-- an optional schedule (cron/interval)
-
-To actually execute scheduled runs, you also run a Prefect **worker** connected to your local server.
-
-This repo includes a deployment definition at `prefect.yaml` and a compose service `prefect-worker`.
-
-The MLB deployment uses a daily schedule, but the flow is **season-aware**:
-
-- It calls the free MLB Stats API to determine the regular season start/end dates.
-- If the season hasn’t started yet, the scheduled run logs a message and exits successfully.
-- It ingests a small rolling window (`lookback_days`) for robustness.
-
-Typical flow:
-
-- `make prefect-pool` (create the local process work pool once)
-- `make prefect-deploy` (apply deployments from `prefect.yaml`)
-- `docker compose up -d prefect-worker` (start polling/executing scheduled runs)
-
-Note: when running `prefect deploy` in the dev container, choose **not** to build a custom Docker image.
-
-This project uses a **process** work pool/worker by default (runs flows as Python processes inside the worker container). A **docker** work pool is a different setup and typically requires Docker daemon access from the worker.
+For local/manual execution, use the scripts in `scripts/mlb/`:
+- `daily_ingest.py` - Daily updates (what GitHub Actions runs)
+- `ingest_historical_backfill.py` - One-time historical data load
 
 ## dbt
 
@@ -102,9 +103,8 @@ The Python code uses a single installable package under `src/`, organized as:
 - `integrations/` — API clients, database clients, external system adapters
   - `mlb/` — MLB Stats API client with models, exceptions, and utilities
   - `http.py` — HTTP utilities
-- `automations/` — orchestration (e.g., Prefect flows/jobs)
+- `automations/` — ingestion pipelines and orchestration logic
   - `ingest/mlb/` — MLB-specific ingestion functions
-  - `prefect/` — Prefect flow definitions
 - `utils/` — shared helpers (settings, logging, BigQuery, database utilities)
 
 ## MLB ingestion
@@ -181,61 +181,81 @@ This standalone run ingests (at minimum):
 # Full season (all parks teams played in)
 uv run python -m scripts.mlb.ingest_venues --season 2024 --game-types R,P
 
-# Or derive venue IDs from schedule in a small date window
-uv run python -m scripts.mlb.ingest_venues --season 2024 --start-date 2024-04-01 --end-date 2024-04-07
+### MLB Data Pipeline (Complete Historical + Daily Updates)
 
-# Or pass explicit venue IDs
-uv run python -m scripts.mlb.ingest_venues --season 2024 --venue-ids 3,10,12
+**RECOMMENDED APPROACH: Two-Phase Deployment**
+
+See comprehensive guide: **[docs/mlb_deployment_guide.md](docs/mlb_deployment_guide.md)**
+
+**Phase 1: Historical Backfill (One-Time)**
+```bash
+# Load all data from 2000-2026 in ~20-30 minutes
+uv run python scripts/mlb/ingest_historical_backfill.py \
+  --start-year 2000 \
+  --end-year 2026 \
+  --skip-statcast  # Optional: faster initial load
 ```
 
-### Team & Game Data (BigQuery)
+**Phase 2: Daily Updates (Automated)**
+- GitHub Actions runs automatically at 6 AM ET
+- Fetches last 3 days (catches stat corrections)
+- Updates rosters weekly (Mondays)
+- See: `.github/workflows/mlb-daily-ingest.yml`
 
-Fetch MLB season data from the free MLB Stats API and land it into BigQuery raw tables:
+**Manual daily update:**
+```bash
+uv run python scripts/mlb/daily_ingest.py --lookback-days 3 --update-rosters-weekly
+```
 
-- `raw.mlb_teams`
-- `raw.mlb_games`
+**Transform with dbt:**
+```bash
+cd dbt
+uv run dbt run --select tag:mlb
+```
 
-Run inside the dev container:
+**Documentation:**
+- 📖 [Deployment Guide](docs/mlb_deployment_guide.md) - Complete setup instructions
+- 📋 [Quick Reference](docs/mlb_quick_reference.md) - Commands cheat sheet
+- ⚡ [Optimization Guide](docs/mlb_roster_optimization.md) - Technical details
+- 📊 [Optimization Summary](OPTIMIZATION_SUMMARY.md) - What changed
 
+### Individual Data Fetches (Advanced)
+
+If you need to run specific data fetches separately:
+
+**Rosters (Optimized - Start Here):**
+```bash
+uv run python scripts/mlb/ingest_rosters.py --season 2024
+```
+
+**Teams & Games:**
 ```bash
 uv run python scripts/mlb/ingest_teams_and_games.py --season 2024
 ```
 
-Then build dbt models:
-
+**Players (from rosters):**
 ```bash
-make dbt-run  # or: cd dbt && uv run dbt run -s tag:mlb
+uv run python scripts/mlb/ingest_players.py --season 2024
 ```
 
-### Player Stats (BigQuery)
-
-Fetch player game-by-game statistics and land them into BigQuery:
-
-- `raw.mlb_player_batting_stats`
-- `raw.mlb_player_pitching_stats`
-
-**Quick start:**
-
+**Standings:**
 ```bash
-# Ingest last 20 years (parallel, ~60 minutes)
-uv run python scripts/mlb/ingest_historical_player_stats.py
-
-# Specific year range
-uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2020 --end-year 2024
-
-# Single season
-uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
-
-# Show all options
-uv run python scripts/mlb/ingest_historical_player_stats.py --help
+# Run via Python module
+python -c "from src.automations.ingest.mlb import ingest_standings_bulk_historical; ingest_standings_bulk_historical(start_season=2020, end_season=2024)"
 ```
 
-Then build dbt models:
-
+**Schedule:**
 ```bash
-cd dbt
-uv run dbt run --select tag:player_stats
-uv run dbt test --select tag:player_stats
+python -c "from src.automations.ingest.mlb import ingest_mlb_schedule_bigquery; ingest_mlb_schedule_bigquery(season=2024)"
 ```
 
-See [MLB_PLAYER_STATS_PIPELINE.md](./MLB_PLAYER_STATS_PIPELINE.md) for detailed documentation.
+**Venues:**
+```bash
+# All venues (static data)
+python -c "from src.automations.ingest.mlb.venues import ingest_mlb_venues_bigquery; ingest_mlb_venues_bigquery()"
+
+# Or derive from schedule in a date window
+uv run python -m scripts.mlb.ingest_venues --season 2024 --start-date 2024-04-01 --end-date 2024-04-07
+```
+
+**All scripts:** See [scripts/README.md](scripts/README.md)

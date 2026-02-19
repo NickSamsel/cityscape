@@ -281,3 +281,58 @@ class MlbLineupEntry:
     position_abbreviation: str | None
     batting_order: int
     raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbPersonRef:
+    """Reference to an MLB person (player/coach/official) returned by the Stats API."""
+
+    person_id: int
+    full_name: str
+    link: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbPosition:
+    """Position object returned by the Stats API (e.g. roster/boxscore position)."""
+
+    code: str | None
+    name: str | None
+    type: str | None
+    abbreviation: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbStatus:
+    """Generic code/description status object returned by the Stats API."""
+
+    code: str | None
+    description: str | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbRosterApiEntry:
+    """Roster entry as returned by the MLB Stats API roster endpoints."""
+
+    person: MlbPersonRef
+    jersey_number: str | None
+    position: MlbPosition | None
+    status: MlbStatus | None
+    parent_team_id: int | None
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class MlbRosterEntry:
+    """Roster entry for an MLB team."""
+    team_id: int
+    player_id: int
+    season: int
+    player_name: str
+    position_code: str | None
+    position_name: str | None
+    position_abbr: str | None
+    raw: dict[str, Any]

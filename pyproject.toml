@@ -10,7 +10,6 @@ description = "Cityscape: data platform + orchestration workspace"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-	"prefect>=2.16",
 	"dbt-postgres>=1.7",
 	"dbt-bigquery>=1.7",
 	"MLB-StatsAPI",

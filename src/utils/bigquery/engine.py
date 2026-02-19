@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Mapping, Sequence
 
 import pandas as pd
 from google.cloud import bigquery
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import BadRequest, NotFound
 
 
 # Sentinel used to mean "use cfg.schema for staging loads".
@@ -75,8 +76,8 @@ class UpsertTableConfig:
     def table_id(self, project_id: str) -> str:
         return f"{project_id}.{self.dataset}.{self.table}"
 
-    def staging_table_id(self, project_id: str) -> str:
-        return f"{self.table_id(project_id)}_temp"
+    def staging_table_id(self, project_id: str, suffix: str = "temp") -> str:
+        return f"{self.table_id(project_id)}_{suffix}"
 
     def resolved_on_clause(self) -> str:
         if self.on_clause:
@@ -99,7 +100,11 @@ def upsert_dataframe(
         return
 
     target_table_id = cfg.table_id(project_id)
-    staging_table_id = cfg.staging_table_id(project_id)
+    
+    # Use unique staging table name to avoid conflicts in parallel processing
+    import uuid
+    staging_suffix = f"temp_{uuid.uuid4().hex[:8]}"
+    staging_table_id = cfg.staging_table_id(project_id, suffix=staging_suffix)
 
     job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
 
@@ -110,27 +115,47 @@ def upsert_dataframe(
     if staging_schema is not None:
         job_config.schema = list(staging_schema)
 
-    load_job = client.load_table_from_dataframe(df, staging_table_id, job_config=job_config)
-    load_job.result()
+    try:
+        load_job = client.load_table_from_dataframe(df, staging_table_id, job_config=job_config)
+        load_job.result()
 
-    insert_columns: list[str] = list(df.columns)
-    update_columns = [c for c in insert_columns if c not in set(cfg.key_columns)]
+        insert_columns: list[str] = list(df.columns)
+        update_columns = [c for c in insert_columns if c not in set(cfg.key_columns)]
 
-    merge_sql = build_merge_sql(
-        target_table_id=target_table_id,
-        staging_table_id=staging_table_id,
-        on_clause=cfg.resolved_on_clause(),
-        update_columns=update_columns,
-        insert_columns=insert_columns,
-        update_expressions=cfg.update_expressions,
-        insert_expressions=cfg.insert_expressions,
-    )
+        merge_sql = build_merge_sql(
+            target_table_id=target_table_id,
+            staging_table_id=staging_table_id,
+            on_clause=cfg.resolved_on_clause(),
+            update_columns=update_columns,
+            insert_columns=insert_columns,
+            update_expressions=cfg.update_expressions,
+            insert_expressions=cfg.insert_expressions,
+        )
 
-    query_job = client.query(merge_sql)
-    query_job.result()
-
-    if cleanup_staging:
-        client.delete_table(staging_table_id, not_found_ok=True)
+        # Retry MERGE with exponential backoff for concurrent update conflicts
+        max_retries = 5
+        base_delay = 2.0  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                query_job = client.query(merge_sql)
+                query_job.result()
+                break  # Success - exit retry loop
+            except BadRequest as e:
+                # Check if this is a concurrent update conflict
+                if "concurrent update" in str(e).lower() and attempt < max_retries - 1:
+                    # Exponential backoff with jitter
+                    import random
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    time.sleep(delay)
+                    continue
+                else:
+                    # Not a concurrent update error, or max retries exceeded
+                    raise
+    finally:
+        # Always cleanup staging table, even if there was an error
+        if cleanup_staging:
+            client.delete_table(staging_table_id, not_found_ok=True)
 
 
 def ensure_table(*, client: bigquery.Client, project_id: str, cfg: UpsertTableConfig) -> None:

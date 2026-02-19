@@ -152,6 +152,26 @@ MLB_GAME_LINEUPS = UpsertTableConfig(
 )
 
 
+MLB_ROSTERS = UpsertTableConfig(
+    dataset="raw",
+    table="mlb_rosters",
+    key_columns=("team_id", "player_id", "season"),
+    schema=(
+        bigquery.SchemaField("team_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("season", "INT64", mode="REQUIRED"),
+        bigquery.SchemaField("player_name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("position_code", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("position_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("position_abbr", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("raw", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("loaded_at", "TIMESTAMP", mode="REQUIRED"),
+    ),
+    update_expressions={"loaded_at": _ts("S.`loaded_at`")},
+    insert_expressions={"loaded_at": _ts("S.`loaded_at`")},
+)
+
+
 MLB_TEAMS = UpsertTableConfig(
     dataset="raw",
     table="mlb_teams",
@@ -518,6 +538,7 @@ def ensure_mlb_tables(client: bigquery.Client, project_id: str) -> None:
         MLB_LEAGUES,
         MLB_DIVISIONS,
         MLB_PLAYERS,
+        MLB_ROSTERS,
         MLB_STATCAST_PITCHES,
         MLB_STATCAST_BATTED_BALLS,
         MLB_STANDINGS,
@@ -1103,4 +1124,38 @@ def upsert_mlb_game_lineups(client: bigquery.Client, project_id: str, rows: Iter
         get_run_logger().warning(f"Removed {initial_count - len(df)} duplicate lineup records")
 
     upsert_dataframe(client=client, project_id=project_id, cfg=MLB_GAME_LINEUPS, df=df)
+    return len(df)
+
+
+def upsert_mlb_rosters(client: bigquery.Client, project_id: str, rows: Iterable[dict[str, Any]]) -> int:
+    """Upsert roster data into BigQuery."""
+    if not rows:
+        return 0
+
+    import json
+    from datetime import datetime as dt
+
+    data: list[dict[str, Any]] = []
+    for r in rows:
+        data.append(
+            {
+                "team_id": str(r["team_id"]),
+                "player_id": str(r["player_id"]),
+                "season": r["season"],
+                "player_name": r["player_name"],
+                "position_code": r.get("position_code"),
+                "position_name": r.get("position_name"),
+                "position_abbr": r.get("position_abbr"),
+                "raw": json.dumps(r["raw"]),
+                "loaded_at": dt.utcnow(),
+            }
+        )
+
+    df = pd.DataFrame(data)
+    initial_count = len(df)
+    df = df.drop_duplicates(subset=["team_id", "player_id", "season"], keep="last")
+    if initial_count > len(df):
+        get_run_logger().warning(f"Removed {initial_count - len(df)} duplicate roster records")
+
+    upsert_dataframe(client=client, project_id=project_id, cfg=MLB_ROSTERS, df=df)
     return len(df)

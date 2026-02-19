@@ -244,5 +244,26 @@ models:
       - name: favorable_outside
         description: "{{ doc('mlb_ml_favorable_outside') }}"
 
+  - name: ml_mlb__prediction_dataset
+    description: |
+      Feature table for *future* MLB batter vs probable-pitcher matchups on the next scheduled game date.
+      Uses the latest available rolling hitter/pitcher stats as-of build time (not per-game realized stats).
+      You can override the date by running with `--vars '{prediction_date: YYYY-MM-DD}'`.
+    columns:
+      - name: player_id
+        description: "{{ doc('mlb_player_id') }}"
+      - name: game_date
+        description: "{{ doc('mlb_game_date') }}"
+      - name: pitcher_id
+        description: "{{ doc('mlb_pitcher_id') }}"
+      - name: game_id
+        description: "{{ doc('mlb_game_id') }}"
+      - name: home_vs_away
+        description: "{{ doc('mlb_ml_home_vs_away') }}"
+      - name: batter_features_asof_date
+        description: "Most recent game_date used to source hitter rolling features."
+      - name: pitcher_features_asof_date
+        description: "Most recent game_date used to source pitcher rolling features."
+
   - name: ml_mlb__daily_predictions
     description: "{{ doc('mlb_ml_mlb_daily_predictions') }}"

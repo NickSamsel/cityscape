@@ -6,9 +6,8 @@ and load them into BigQuery raw tables.
 
 from __future__ import annotations
 
+import time
 from typing import Any
-
-from prefect import task
 
 from src.integrations.mlb import MlbStatsApi
 from src.utils.bigquery import (
@@ -22,12 +21,12 @@ from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
 
 
-@task(retries=2, retry_delay_seconds=3, log_prints=False)
-def fetch_player_info(player_id: int) -> dict[str, Any] | None:
-    """Fetch player information for a single player (Prefect task for parallelization).
+def fetch_player_info(player_id: int, retries: int = 2) -> dict[str, Any] | None:
+    """Fetch player information for a single player with retry logic.
     
     Args:
         player_id: The MLB player ID to fetch info for
+        retries: Number of retries on failure (default: 2)
         
     Returns:
         Dictionary with player data, or None if fetch failed
@@ -252,19 +251,20 @@ def ingest_players_parallel(player_ids: list[int], batch_size: int = 100, max_wo
         
         logger.info(f"Processing chunk {chunk_start//chunk_size + 1}: players {chunk_start+1}-{chunk_end} of {len(player_ids)}")
         
-        # Fetch player data in parallel using Prefect tasks
-        player_data_futures = [fetch_player_info.submit(player_id) for player_id in chunk]
-    
-        # Wait for chunk tasks to complete
+        # Fetch player data in parallel using ThreadPoolExecutor
         chunk_rows = []
         chunk_failed = 0
-        
-        for future in player_data_futures:
-            result = future.result()
-            if result:
-                chunk_rows.append(result)
-            else:
-                chunk_failed += 1
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(fetch_player_info, player_id): player_id for player_id in chunk}
+            
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    chunk_rows.append(result)
+                else:
+                    chunk_failed += 1
         
         all_player_rows.extend(chunk_rows)
         total_failed += chunk_failed
@@ -281,6 +281,110 @@ def ingest_players_parallel(player_ids: list[int], batch_size: int = 100, max_wo
     
     player_rows = all_player_rows
     failed_count = total_failed
+    
+    # Upsert to BigQuery in batches
+    if player_rows:
+        total_upserted = 0
+        for i in range(0, len(player_rows), batch_size):
+            batch = player_rows[i:i + batch_size]
+            rows_upserted = upsert_mlb_players(client, cfg.project_id, batch)
+            total_upserted += rows_upserted
+            logger.info(f"Upserted batch {i//batch_size + 1}: {rows_upserted} players")
+        
+        logger.info(f"✓ Total upserted: {total_upserted} players to raw.mlb_players")
+        return total_upserted
+    else:
+        logger.warning("No player data to upload")
+        return 0
+
+
+def ingest_players_from_rosters(season: int, batch_size: int = 100) -> int:
+    """Fetch player info for all players found in roster table (more efficient than stats-based discovery).
+    
+    This is the recommended approach as rosters provide a direct team-to-player mapping
+    without needing to iterate through thousands of game stats.
+    
+    Comparison:
+    - Roster-based: Query 1 table (raw.mlb_rosters)
+    - Stats-based: Query 2 tables (raw.mlb_player_batting_stats + raw.mlb_player_pitching_stats)
+    
+    Args:
+        season: The MLB season year to fetch players for
+        batch_size: Number of players to process in each BigQuery upsert batch
+        
+    Returns:
+        Number of players successfully loaded
+    """
+    logger = get_run_logger()
+    settings = get_settings()
+    cfg = BigQueryConfig(
+        project_id=settings.gcp_project_id,
+        credentials_path=settings.gcp_credentials_path,
+        service_account_key=settings.gcp_service_account_key
+    )
+    
+    # Setup BigQuery tables
+    client = get_client(cfg)
+    ensure_raw_dataset(client, cfg.project_id)
+    ensure_mlb_tables(client, cfg.project_id)
+    
+    # Get unique player IDs from rosters table
+    from .rosters import get_unique_player_ids_from_rosters
+    player_ids = get_unique_player_ids_from_rosters(season=season)
+    
+    if not player_ids:
+        logger.warning(f"No player IDs found in rosters for season {season}")
+        return 0
+    
+    logger.info(f"Fetching dimension data for {len(player_ids)} players from rosters...")
+    
+    # Fetch player data sequentially
+    player_rows = []
+    failed_count = 0
+    
+    for i, player_id in enumerate(sorted(player_ids), 1):
+        if i % 100 == 0:
+            logger.info(f"Processing player {i}/{len(player_ids)}...")
+        
+        try:
+            api = MlbStatsApi()
+            player = api.get_player_info(player_id=player_id)
+            
+            if player:
+                player_rows.append({
+                    "player_id": player.player_id,
+                    "full_name": player.full_name,
+                    "first_name": player.first_name,
+                    "last_name": player.last_name,
+                    "primary_number": player.primary_number,
+                    "birth_date": player.birth_date,
+                    "current_age": player.current_age,
+                    "birth_city": player.birth_city,
+                    "birth_state_province": player.birth_state_province,
+                    "birth_country": player.birth_country,
+                    "height": player.height,
+                    "weight": player.weight,
+                    "primary_position_code": player.primary_position_code,
+                    "primary_position_name": player.primary_position_name,
+                    "primary_position_abbr": player.primary_position_abbr,
+                    "bat_side_code": player.bat_side_code,
+                    "bat_side_description": player.bat_side_description,
+                    "pitch_hand_code": player.pitch_hand_code,
+                    "pitch_hand_description": player.pitch_hand_description,
+                    "mlb_debut_date": player.mlb_debut_date,
+                    "active": player.active,
+                    "raw": player.raw,
+                })
+            else:
+                failed_count += 1
+                
+        except Exception as e:
+            logger.warning(f"Error fetching player_id={player_id}: {e}")
+            failed_count += 1
+    
+    logger.info(f"Successfully fetched {len(player_rows)} players")
+    if failed_count > 0:
+        logger.warning(f"Failed to fetch {failed_count} players")
     
     # Upsert to BigQuery in batches
     if player_rows:

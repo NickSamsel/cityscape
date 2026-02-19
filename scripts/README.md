@@ -17,6 +17,91 @@ scripts/
 
 ## MLB Scripts
 
+### `mlb/ingest_historical_backfill.py` 🚀 ALL-IN-ONE SOLUTION
+**THE EASIEST WAY** to load historical data for multiple seasons. One script does everything!
+
+**What it does:**
+1. ✅ Rosters (optimized - 30 API calls per season)
+2. ✅ Teams & games
+3. ✅ Standings
+4. ✅ Schedule
+5. ✅ Statcast data (2015+ only, where available)
+6. ✅ Player dimension data (from rosters)
+7. ✅ Venues
+
+**Perfect for:**
+- Initial data load (2000-2026)
+- Multi-year historical backfills
+- Setting up a new environment
+- "Just load everything" scenarios
+
+**Usage:**
+```bash
+# Full historical backfill (2000 to current year)
+uv run python scripts/mlb/ingest_historical_backfill.py
+
+# Specific range (e.g., 2000-2026)
+uv run python scripts/mlb/ingest_historical_backfill.py --start-year 2000 --end-year 2026
+
+# Skip Statcast for faster ingestion (Statcast is slow!)
+uv run python scripts/mlb/ingest_historical_backfill.py --start-year 2000 --end-year 2026 --skip-statcast
+
+# Just recent years with everything
+uv run python scripts/mlb/ingest_historical_backfill.py --start-year 2020 --end-year 2026
+
+# Dry run to see what would be executed
+uv run python scripts/mlb/ingest_historical_backfill.py --start-year 2000 --end-year 2026 --dry-run
+
+# Skip specific steps if already loaded
+uv run python scripts/mlb/ingest_historical_backfill.py \
+  --start-year 2024 --end-year 2026 \
+  --skip-rosters \
+  --skip-venues
+```
+
+**Options:**
+- `--start-year`: First season (default: 2000)
+- `--end-year`: Last season (default: current year)
+- `--skip-statcast`: Skip Statcast (much faster, but incomplete for 2015+)
+- `--skip-rosters`: Skip roster ingestion
+- `--skip-teams-games`: Skip teams and games
+- `--skip-standings`: Skip standings
+- `--skip-schedule`: Skip schedule
+- `--skip-players`: Skip player dimension
+- `--skip-venues`: Skip venues
+- `--game-types`: Game types (default: R,F,D,L,W - regular + playoffs)
+- `--dry-run`: Show what would be executed without running
+- `--verbose`: Enable detailed logging
+
+**Performance:**
+- ~30-60 seconds per season (without Statcast)
+- ~2-5 minutes per season (with Statcast for 2015+)
+- **Estimated for 2000-2026 (26 seasons):**
+  - Without Statcast: ~20-30 minutes
+  - With Statcast: ~60-90 minutes
+
+**Example for your use case (2000-2026):**
+```bash
+# Recommended: Skip Statcast initially, load it later if needed
+uv run python scripts/mlb/ingest_historical_backfill.py \
+  --start-year 2000 \
+  --end-year 2026 \
+  --skip-statcast
+
+# Later, if you want Statcast for recent years only
+uv run python scripts/mlb/ingest_historical_backfill.py \
+  --start-year 2015 \
+  --end-year 2026 \
+  --skip-rosters \
+  --skip-teams-games \
+  --skip-standings \
+  --skip-schedule \
+  --skip-players \
+  --skip-venues
+```
+
+---
+
 ### `mlb/ingest_teams_and_games.py`
 Ingest MLB teams and games data for one or more seasons.
 
@@ -57,35 +142,164 @@ uv run python scripts/mlb/ingest_teams_and_games.py --start-year 2000 --end-year
 - Parallel: Fetches 10 seasons concurrently (~10-15 seconds total for 10 seasons)
   - Uses batch write to avoid BigQuery rate limits
 
-### `mlb/ingest_historical_player_stats.py`
-Ingest historical MLB player game-by-game statistics for multiple seasons using parallel processing.
+### `mlb/ingest_rosters.py` ⭐ RECOMMENDED - Start Here!
+Ingest MLB team rosters (team-player mappings) for efficient player discovery.
+
+**Why start here?**
+- **99.4% fewer API calls** than game-by-game stats (30 vs 4,860+)
+- Direct team-player relationships without deriving from game stats
+- Includes position information for each player-team combination
+- Foundation for the optimized workflow
 
 **Usage:**
 ```bash
-# Default: last 20 years
-uv run python scripts/mlb/ingest_historical_player_stats.py
+# Default: current season, all teams, parallel
+uv run python scripts/mlb/ingest_rosters.py
 
-# Specific range
-uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2010 --end-year 2024
+# Specific season
+uv run python scripts/mlb/ingest_rosters.py --season 2024
 
-# Single season
-uv run python scripts/mlb/ingest_historical_player_stats.py --start-year 2024 --end-year 2024
+# Sequential mode (more stable, slower)
+uv run python scripts/mlb/ingest_rosters.py --season 2024 --sequential
 
-# Custom settings
-uv run python scripts/mlb/ingest_historical_player_stats.py \
-  --start-year 2020 \
-  --end-year 2024 \
-  --max-workers 30 \
-  --game-types R,F
+# Specific teams only (NYY=147, LAD=119, BOS=111)
+uv run python scripts/mlb/ingest_rosters.py --season 2024 --team-ids 147,119,111
+
+# More workers for faster processing
+uv run python scripts/mlb/ingest_rosters.py --season 2024 --max-workers 10
 ```
 
 **Options:**
+- `--season`: Season year (default: current year)
+- `--team-ids`: Comma-separated team IDs (omit for all teams)
+- `--sequential`: Use sequential instead of parallel processing
+- `--max-workers`: Number of concurrent workers (default: 5, max: 10)
+- `--verbose`: Enable detailed logging
+
+**Performance:** ~5-10 seconds for all 30 teams (parallel mode)
+
+### `mlb/ingest_players.py` - Player Discovery (OPTIMIZED!)
+Fetch player details using roster-based discovery (recommended) or legacy stats-based discovery.
+
+**Recommended Usage (Roster-Based):**
+```bash
+# Fetch players from rosters (requires rosters to be loaded first)
+uv run python scripts/mlb/ingest_players.py --season 2024
+
+# Multiple seasons
+uv run python scripts/mlb/ingest_players.py --season 2024 --season 2023 --season 2022
+```
+
+**Legacy Usage (Stats-Based - Slower):**
+```bash
+# Old method: query stats tables for player discovery
+uv run python scripts/mlb/ingest_players.py --from-stats
+```
+
+**Options:**
+- `--season`: Season(s) to fetch players for (can specify multiple times)
+- `--from-stats`: Use legacy stats-based discovery (slower)
+- `--player-ids`: Comma-separated player IDs for specific players
+- `--verbose`: Enable detailed logging
+
+### `mlb/daily_ingest.py` - Daily Updates (NOW WITH ROSTERS!)
+Daily MLB data ingestion pipeline with automatic roster updates.
+
+**Usage:**
+```bash
+# Default: current season with roster updates
+uv run python scripts/mlb/daily_ingest.py
+
+# Custom lookback window
+uv run python scripts/mlb/daily_ingest.py --lookback-days 3
+
+# Skip roster updates (if manually run recently)
+uv run python scripts/mlb/daily_ingest.py --skip-rosters
+
+# Update rosters weekly only (Mondays)
+uv run python scripts/mlb/daily_ingest.py --update-rosters-weekly
+
+# Skip Statcast (faster)
+uv run python scripts/mlb/daily_ingest.py --skip-statcast
+```
+
+**Options:**
+- `--season`: Season year (default: current year)
+- `--lookback-days`: Days to look back for updates (default: 2)
+- `--skip-rosters`: Skip roster ingestion
+- `--update-rosters-weekly`: Only update rosters on Mondays
+- `--skip-statcast`: Skip Statcast data ingestion
+- `--game-types`: Game type filter (default: R,F,D,L,W,S)
+
+**New in this version:**
+- Step 0: Automatic roster updates (can be configured)
+- Step 6: Player dimension updates from rosters
+- Roster updates can be skipped or scheduled weekly
+
+**Recommended Workflow:**
+```bash
+# Beginning of season: Load all rosters once
+uv run python scripts/mlb/ingest_rosters.py --season 2024
+
+# Daily: Update game stats (rosters auto-update on Mondays)
+uv run python scripts/mlb/daily_ingest.py --update-rosters-weekly
+```
+
+### `mlb/ingest_teams_and_games.py`
+Ingest MLB teams and games data for one or more seasons.
+
+**Usage:**
+```bash
+# Default: last completed season
+uv run python scripts/mlb/ingest_teams_and_games.py
+
+# Specific season
+uv run python scripts/mlb/ingest_teams_and_games.py --season 2024
+
+# Multiple seasons
+uv run python scripts/mlb/ingest_teams_and_games.py --start-year 2020 --end-year 2024
+```
+
+**Options:**
+- `--season`: Season year (default: last completed season)
 - `--start-year`: First season to ingest
 - `--end-year`: Last season to ingest (inclusive)
-- `--max-workers`: Number of parallel workers (default: 20)
-- `--game-types`: Game types (R=regular, S=spring, F=wild card, etc.)
 
-**Performance:** ~3 minutes per season with parallel processing
+---
+
+### ⚠️ DEPRECATED: `mlb/ingest_historical_player_stats.py`
+
+**This script has been deprecated in favor of the roster-based workflow.**
+
+**Old approach (DELETED):**
+```bash
+# ❌ DELETED - The old ingest_historical_player_stats.py script has been removed
+# It fetched 4,860+ games per season - very inefficient!
+```
+
+**New approach (RECOMMENDED):**
+```bash
+# ✅ Fetch rosters (30 API calls per season)
+for year in {2020..2024}; do
+  uv run python scripts/mlb/ingest_rosters.py --season $year
+done
+
+# ✅ Discover and fetch players from rosters
+uv run python scripts/mlb/ingest_players.py --season 2024 --season 2023 --season 2022 --season 2021 --season 2020
+
+# ✅ Run daily ingestion for each season to get stats
+for year in {2020..2024}; do
+  uv run python scripts/mlb/daily_ingest.py --season $year --skip-rosters
+done
+```
+
+**Why the change?**
+- **99.4% fewer API calls** (30 vs 4,860+ per season)
+- More reliable roster data (official team lists vs derived from game stats)
+- Better position information for players
+- See [docs/mlb_roster_optimization.md](../docs/mlb_roster_optimization.md) for full details
+
+---
 
 ## NBA Scripts
 

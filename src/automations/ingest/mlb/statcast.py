@@ -188,8 +188,12 @@ def ingest_mlb_statcast_data_bigquery(
 ) -> tuple[int, int]:
     """Fetch and load MLB Statcast data into BigQuery in batches with parallel processing.
 
+    NOTE: 
+    - Statcast data is only available from 2015 onwards. Earlier seasons will return 0 records.
+    - Scheduled games are automatically filtered out (Statcast only exists for completed games).
+
     Args:
-        season: MLB season year
+        season: MLB season year (Statcast available 2015+)
         start_date: Optional start date filter
         end_date: Optional end date filter
         game_ids: Specific game IDs to fetch
@@ -207,6 +211,11 @@ def ingest_mlb_statcast_data_bigquery(
     if game_ids is None:
         if season is None:
             raise ValueError("Either season or game_ids must be provided")
+        
+        # Statcast data only available from 2015 onwards
+        if season < 2015:
+            logger.info(f"Skipping Statcast for season {season} (Statcast only available 2015+)")
+            return (0, 0)
 
         logger.info(
             f"Fetching games for Statcast data: season={season} "
@@ -218,8 +227,15 @@ def ingest_mlb_statcast_data_bigquery(
             start_date=start_date,
             end_date=end_date,
         )
-        game_ids = [g.game_id for g in games]
-        logger.info(f"Found {len(game_ids)} games to process")
+        
+        # Filter out scheduled games - Statcast only available for completed games
+        completed_games = [g for g in games if g.status and g.status.lower() != "scheduled"]
+        skipped = len(games) - len(completed_games)
+        if skipped > 0:
+            logger.info(f"Skipped {skipped} scheduled games (Statcast only for completed games)")
+        
+        game_ids = [g.game_id for g in completed_games]
+        logger.info(f"Found {len(game_ids)} completed games to process")
     else:
         logger.info(f"Processing {len(game_ids)} specified game IDs")
 

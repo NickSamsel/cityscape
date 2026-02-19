@@ -54,10 +54,6 @@ services:
       
       echo 'Installing project dependencies...'
       (cd /workspaces/cityscape && uv sync --no-cache) || echo 'uv sync failed'
-
-      # 4. Start Prefect in background
-      echo 'Starting Prefect server...'
-      prefect server start --host 0.0.0.0 > /tmp/prefect-server.log 2>&1 &
       
       echo 'Setup complete. Keeping container alive.'
       tail -f /dev/null"
@@ -71,9 +67,6 @@ services:
       - DBT_PASSWORD=${GCP_DB_PASSWORD}
       - DBT_DBNAME=${GCP_DB_NAME}
       - DBT_PROFILES_DIR=/workspaces/cityscape/dbt
-      - PREFECT_API_URL=http://localhost:4200/api
-    ports:
-      - "4200:4200"
     volumes:
       - .:/workspaces/cityscape:cached
       - /var/run/docker.sock:/var/run/docker.sock

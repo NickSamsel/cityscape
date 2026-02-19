@@ -6,10 +6,9 @@ and load them into BigQuery raw tables.
 
 from __future__ import annotations
 
+import time
 from datetime import date
 from typing import Any
-
-from prefect import task
 
 from src.integrations.mlb import MlbStatsApi
 from src.utils.bigquery import (
@@ -24,12 +23,12 @@ from src.utils.logger import get_run_logger
 from src.utils.settings import get_settings
 
 
-@task(retries=3, retry_delay_seconds=5)
-def fetch_game_player_stats(game_id: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Fetch player stats for a single game (Prefect task for parallelization).
+def fetch_game_player_stats(game_id: int, retries: int = 3) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fetch player stats for a single game with retry logic.
     
     Args:
         game_id: The MLB game ID to fetch stats for
+        retries: Number of retries on failure (default: 3)
         
     Returns:
         Tuple of (batting_rows, pitching_rows) as dictionaries
@@ -37,8 +36,20 @@ def fetch_game_player_stats(game_id: int) -> tuple[list[dict[str, Any]], list[di
     api = MlbStatsApi()
     logger = get_run_logger()
     
+    for attempt in range(retries):
+        try:
+            batting_stats, pitching_stats = api.get_player_game_stats(game_id=game_id)
+            break
+        except Exception as e:
+            if attempt < retries - 1:
+                time.sleep(5)
+                continue
+            # Last attempt failed
+            logger.warning(f"Failed to fetch stats for game_id={game_id} after {retries} attempts: {e}")
+            return [], []
+    
     try:
-        batting_stats, pitching_stats = api.get_player_game_stats(game_id=game_id)
+        batting_stats, pitching_stats
         
         batting_rows = [
             {
@@ -106,7 +117,7 @@ def ingest_player_stats_parallel(
 ) -> tuple[int, int]:
     """Fetch MLB player stats for multiple games in parallel and load to BigQuery.
     
-    This function uses Prefect task mapping to fetch player statistics from multiple
+    This function uses concurrent.futures to fetch player statistics from multiple
     games concurrently, significantly reducing total ingestion time.
     
     Args:
@@ -149,22 +160,21 @@ def ingest_player_stats_parallel(
     # Extract game IDs for parallel processing
     game_ids = [game.game_id for game in games]
     
-    # Fetch stats for all games in parallel using Prefect's task mapping
+    # Fetch stats for all games in parallel using ThreadPoolExecutor
     logger.info(f"Starting parallel fetch of player stats for {len(game_ids)} games...")
-    futures = fetch_game_player_stats.map(game_ids)
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     
-    # Wait for all futures to complete
-    from prefect.futures import wait
-    wait(futures)
-    
-    # Collect all results
     all_batting_rows = []
     all_pitching_rows = []
     
-    for future in futures:
-        batting_rows, pitching_rows = future.result()
-        all_batting_rows.extend(batting_rows)
-        all_pitching_rows.extend(pitching_rows)
+    # Increased from 10 to 30 - MLB API can handle this
+    with ThreadPoolExecutor(max_workers=30) as executor:
+        futures = {executor.submit(fetch_game_player_stats, game_id): game_id for game_id in game_ids}
+        
+        for future in as_completed(futures):
+            batting_rows, pitching_rows = future.result()
+            all_batting_rows.extend(batting_rows)
+            all_pitching_rows.extend(pitching_rows)
 
     logger.info(
         f"Fetched {len(all_batting_rows)} batting stat records and "

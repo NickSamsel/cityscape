@@ -8,8 +8,14 @@ from .player_stats import (
 from .players import (
     fetch_player_info,
     get_unique_player_ids_from_bigquery,
+    ingest_players_from_rosters,
     ingest_players_from_stats,
     ingest_players_parallel,
+)
+from .rosters import (
+    fetch_team_roster,
+    get_unique_player_ids_from_rosters,
+    ingest_mlb_rosters_bigquery,
 )
 from .schedule import (
     ingest_mlb_schedule_bigquery,
@@ -44,6 +50,10 @@ __all__ = [
     "ingest_mlb_schedule_bigquery",
     # venues
     "ingest_mlb_venues_bigquery",
+    # rosters
+    "fetch_team_roster",
+    "get_unique_player_ids_from_rosters",
+    "ingest_mlb_rosters_bigquery",
     # player_stats
     "fetch_game_player_stats",
     "ingest_player_stats_parallel",
@@ -51,6 +61,7 @@ __all__ = [
     # players
     "fetch_player_info",
     "get_unique_player_ids_from_bigquery",
+    "ingest_players_from_rosters",
     "ingest_players_from_stats",
     "ingest_players_parallel",
     # standings

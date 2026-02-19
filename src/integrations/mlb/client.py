@@ -23,6 +23,7 @@ from .models import (
     MlbStatcastPitch,
     MlbTeam,
     MlbVenue,
+    MlbRosterEntry,
 )
 from .utils import extract_score, extract_team_id, parse_int_or_none, parse_str_or_none
 
@@ -873,7 +874,43 @@ class MlbStatsApi:
             )
 
         return venues
+    def get_roster(self, *, team_id: int, season: int) -> list[MlbRosterEntry]:
+        """Fetch the roster for a given team and season."""
+        params = {
+            "teamId": team_id,
+            "season": season,
+        }
+        payload = self._get_json("team_roster", params)
 
+        roster: list[MlbRosterEntry] = []
+        for p in payload.get("roster", []):
+            if not isinstance(p, dict):
+                continue
+
+            person = p.get("person", {})
+            if not isinstance(person, dict):
+                continue
+
+            player_id = parse_int_or_none(person.get("id"))
+            if player_id is None:
+                continue
+
+            position = p.get("position", {})
+            roster.append(
+                MlbRosterEntry(
+                    team_id=team_id,
+                    season=season,
+                    player_id=player_id,
+                    player_name=person.get("fullName"),
+                    position_code=position.get("code") if isinstance(position, dict) else None,
+                    position_name=position.get("name") if isinstance(position, dict) else None,
+                    position_abbr=position.get("abbreviation") if isinstance(position, dict) else None,
+                    raw=p,
+                )
+            )
+
+        return roster
+    
     def _safe_float(self, value: Any) -> float | None:
         """Safely convert value to float, returning None if invalid."""
         if value is None:

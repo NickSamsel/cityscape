@@ -15,8 +15,6 @@ import time
 from datetime import date, timedelta
 from typing import Any
 
-from prefect import task
-
 from src.integrations.mlb import MlbStatsApi
 from src.utils.bigquery import (
     BigQueryConfig,
@@ -59,25 +57,29 @@ def _standings_to_rows(records: list, standings_date: date) -> list[dict[str, An
     return rows
 
 
-@task(retries=2, retry_delay_seconds=3, log_prints=False)
-def _fetch_standings_for_date(season: int, standings_date: date) -> tuple[date, list[dict[str, Any]] | None]:
-    """Fetch standings for a single date (Prefect task for parallelization).
+def _fetch_standings_for_date(season: int, standings_date: date, retries: int = 2) -> tuple[date, list[dict[str, Any]] | None]:
+    """Fetch standings for a single date with retry logic.
     
     Args:
         season: MLB season year
         standings_date: Date to fetch standings for
+        retries: Number of retries on failure (default: 2)
         
     Returns:
         Tuple of (date, rows) where rows is None if fetch failed
     """
     api = MlbStatsApi()
-    try:
-        records = api.list_standings(season=season, standings_date=standings_date)
-        if records:
-            return standings_date, _standings_to_rows(records, standings_date)
-        return standings_date, None
-    except Exception:
-        return standings_date, None
+    for attempt in range(retries):
+        try:
+            records = api.list_standings(season=season, standings_date=standings_date)
+            if records:
+                return standings_date, _standings_to_rows(records, standings_date)
+            return standings_date, None
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(3)
+                continue
+            return standings_date, None
 
 
 def ingest_standings_snapshot(
@@ -283,7 +285,9 @@ def ingest_standings_historical_parallel(
     ensure_raw_dataset(client, cfg.project_id)
     ensure_mlb_tables(client, cfg.project_id)
 
-    # Fetch standings in parallel using Prefect tasks
+    # Fetch standings in parallel using ThreadPoolExecutor
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    
     chunk_size = max_workers * 2
     total_inserted = 0
     snapshot_count = 0
@@ -293,17 +297,18 @@ def ingest_standings_historical_parallel(
         chunk = dates_to_fetch[chunk_start:chunk_end]
 
         # Submit parallel tasks
-        futures = [_fetch_standings_for_date.submit(season, dt) for dt in chunk]
-
-        # Collect results and batch insert
-        batch_rows = []
-        for future in futures:
-            standings_date, rows = future.result()
-            if rows:
-                batch_rows.extend(rows)
-                snapshot_count += 1
-            else:
-                logger.warning(f"No standings data for {standings_date}")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_fetch_standings_for_date, season, dt): dt for dt in chunk}
+            
+            # Collect results and batch insert
+            batch_rows = []
+            for future in as_completed(futures):
+                standings_date, rows = future.result()
+                if rows:
+                    batch_rows.extend(rows)
+                    snapshot_count += 1
+                else:
+                    logger.warning(f"No standings data for {standings_date}")
 
         # Batch insert to BigQuery
         if batch_rows:
@@ -329,6 +334,8 @@ def ingest_standings_bulk_historical(
     end_season: int = 2025,
     interval_days: int = 7,
     delay_seconds: float = 0.5,
+    parallel: bool = True,
+    max_workers: int = 10,
 ) -> dict[int, int]:
     """Backfill standings for multiple seasons.
 
@@ -336,7 +343,9 @@ def ingest_standings_bulk_historical(
         start_season: First season to backfill (default: 2000)
         end_season: Last season to backfill (default: 2025)
         interval_days: Days between snapshots per season
-        delay_seconds: Delay between API calls
+        delay_seconds: Delay between API calls (only used if parallel=False)
+        parallel: Use parallel processing for each season (default: True, much faster!)
+        max_workers: Number of concurrent workers for parallel mode (default: 10)
 
     Returns:
         Dict mapping season -> number of records inserted.
@@ -347,11 +356,20 @@ def ingest_standings_bulk_historical(
     for season in range(start_season, end_season + 1):
         logger.info(f"--- Starting season {season} ---")
         try:
-            count = ingest_standings_historical(
-                season=season,
-                interval_days=interval_days,
-                delay_seconds=delay_seconds,
-            )
+            if parallel:
+                # Use parallel version - MUCH faster!
+                count = ingest_standings_historical_parallel(
+                    season=season,
+                    interval_days=interval_days,
+                    max_workers=max_workers,
+                )
+            else:
+                # Use sequential version with delays
+                count = ingest_standings_historical(
+                    season=season,
+                    interval_days=interval_days,
+                    delay_seconds=delay_seconds,
+                )
             results[season] = count
             logger.info(f"Season {season} complete: {count} records")
         except Exception as e:

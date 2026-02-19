@@ -27,6 +27,7 @@ from .mlb import (
     upsert_mlb_player_batting_stats,
     upsert_mlb_player_pitching_stats,
     upsert_mlb_players,
+    upsert_mlb_rosters,
     upsert_mlb_schedule,
     upsert_mlb_standings,
     upsert_mlb_statcast_batted_balls,

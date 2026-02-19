@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class Settings:
-    prefect_api_url: str | None = None
     postgres_host: str | None = None
     postgres_port: int | None = None
     postgres_user: str | None = None
@@ -19,7 +18,6 @@ class Settings:
 
 def get_settings() -> Settings:
     return Settings(
-        prefect_api_url=os.getenv("PREFECT_API_URL"),
         postgres_host=os.getenv("DBT_HOST") or os.getenv("POSTGRES_HOST") or os.getenv("PGHOST"),
         postgres_port=(
             int(os.getenv("DBT_PORT"))

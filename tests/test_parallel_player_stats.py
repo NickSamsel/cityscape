@@ -3,15 +3,11 @@ Quick test of parallel player stats ingestion with a specific date range.
 """
 from datetime import date, timedelta
 
-from prefect import flow
-from prefect.task_runners import ConcurrentTaskRunner
-
 from src.automations.ingest.mlb import (
     ingest_player_stats_parallel,
 )
 
 
-@flow(task_runner=ConcurrentTaskRunner(max_workers=20))
 def test_parallel_with_date_range():
     """Test parallel ingestion with a small date range (Sept 1-2, 2024)."""
     

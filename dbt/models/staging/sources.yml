@@ -22,6 +22,7 @@ sources:
       - name: mlb_leagues
       - name: mlb_divisions
       - name: mlb_players
+      - name: mlb_rosters
       - name: mlb_player_batting_stats
       - name: mlb_player_pitching_stats
       - name: mlb_statcast_pitches
