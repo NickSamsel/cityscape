@@ -32,6 +32,7 @@ from src.automations.ingest.mlb import (
     ingest_mlb_schedule_bigquery,
     ingest_mlb_season_bigquery,
     ingest_mlb_statcast_data_bigquery,
+    ingest_player_stats_parallel,
     ingest_players_from_rosters,
     ingest_standings_bulk_historical,
 )
@@ -100,6 +101,21 @@ def ingest_season_data(season: int, game_types: str, skip_statcast: bool) -> dic
             result["errors"].append(error_msg)
             result["failed_steps"].append("schedule")
             logger.error(f"[{season}] Schedule ingestion failed: {e}")
+        
+        # Player Stats (batting & pitching)
+        logger.info(f"[{season}] Ingesting player stats...")
+        try:
+            batting, pitching = ingest_player_stats_parallel(
+                season=season,
+                game_types=game_types,
+            )
+            result.update({"batting_stats": batting, "pitching_stats": pitching})
+            result["completed_steps"].append("player_stats")
+        except Exception as e:
+            error_msg = f"Player Stats: {str(e)[:100]}"
+            result["errors"].append(error_msg)
+            result["failed_steps"].append("player_stats")
+            logger.error(f"[{season}] Player stats ingestion failed: {e}")
         
         # Statcast (2015+ only)
         if not skip_statcast and season >= 2015:
@@ -258,12 +274,15 @@ def main() -> int:
             # Suggest specific re-run commands
             if "rosters" in failed:
                 logger.info(f"    Fix rosters: uv run python scripts/mlb/ingest_rosters.py --season {r['season']}")
+            if "player_stats" in failed:
+                logger.info(f"    Fix player stats: uv run python -c \"from src.automations.ingest.mlb import ingest_player_stats_parallel; "
+                           f"ingest_player_stats_parallel(season={r['season']}, game_types='R')\"")
             if "statcast" in failed:
                 logger.info(f"    Fix Statcast: uv run python -c \"from src.automations.ingest.mlb import ingest_mlb_statcast_data_bigquery; "
                            f"ingest_mlb_statcast_data_bigquery(season={r['season']})\"")
             if "schedule" in failed:
                 logger.info(f"    Fix schedule: uv run python -c \"from src.automations.ingest.mlb import ingest_mlb_schedule_bigquery; "
-                           f"ingest_mlb_schedule_bigquery(season={r['season']})\"")
+                           f"ingest_mlb_schedule_bigquery(season={r['season']}, game_types='R')\"")
     
     # Global failures
     if players_failed:
