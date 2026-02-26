@@ -295,6 +295,10 @@ Rolling average FIP over the last 15 days.
 Rolling average pitch velocity over the last 15 days.
 {% enddocs %}
 
+{% docs mlb_ml_opp_avg_L15 %}
+Rolling opponent batting average over the last 15 days. Calculated as hits allowed divided by estimated batters faced.
+{% enddocs %}
+
 {% docs mlb_ml_quality_starts_L5 %}
 Rolling count of quality starts over the last 5 starts.
 {% enddocs %}

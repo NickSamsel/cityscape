@@ -64,13 +64,19 @@ models:
   - name: dim_mlb__venues
     description: |
       Dimension table containing MLB venue (ballpark) attributes.
-      One row per venue_id using the latest available season.
+      Type 2 Slowly Changing Dimension - one row per venue_id per season.
+      Tracks venue attribute changes over time (capacity, turf, dimensions, etc).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - venue_id
+              - season
     columns:
       - name: venue_id
         description: "{{ doc('mlb_venue_id') }}"
         tests:
           - not_null
-          - unique
       - name: venue_name
         description: "{{ doc('mlb_venue_name') }}"
       - name: city

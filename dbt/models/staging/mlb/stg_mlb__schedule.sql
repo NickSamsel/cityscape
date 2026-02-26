@@ -28,6 +28,14 @@ with source_data as (
         {{ cast_integer('scheduled_innings') }} as scheduled_innings,
         {{ cast_string('series_description') }} as series_description
     from {{ source('raw', 'mlb_schedule') }}
+
+    {% if is_incremental() %}
+    where not exists (
+        select 1
+        from {{ this }} as existing
+        where existing.game_id = {{ cast_string('game_id') }}
+    )
+    {% endif %}
 ),
 
 deduplicated as (

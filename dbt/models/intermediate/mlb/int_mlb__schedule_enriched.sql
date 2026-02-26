@@ -116,6 +116,14 @@ final as (
         on s.home_probable_pitcher_id = home_p.player_id
     left join away_players as away_p
         on s.away_probable_pitcher_id = away_p.player_id
+
+    {% if is_incremental() %}
+    where not exists (
+        select 1
+        from {{ this }} as existing
+        where existing.game_id = s.game_id
+    )
+    {% endif %}
 )
 
 select * from final

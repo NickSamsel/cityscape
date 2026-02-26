@@ -26,6 +26,14 @@ SELECT
   AVG(fip) OVER (PARTITION BY player_id ORDER BY game_date, game_id ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as fip_L15,
   AVG(avg_pitch_velocity) OVER (PARTITION BY player_id ORDER BY game_date, game_id ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as velo_L15,
 
+  -- Opponent batting average (last 15 days)
+  AVG(
+    SAFE_DIVIDE(
+      hits,
+      (innings_pitched_decimal * 3) + hits + walks
+    )
+  ) OVER (PARTITION BY player_id ORDER BY game_date, game_id ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as opp_avg_L15,
+
   -- Quality starts (BOOLEAN needs CAST to INT or IF)
   SUM(CASE WHEN is_quality_start = TRUE THEN 1 ELSE 0 END) OVER (PARTITION BY player_id ORDER BY game_date, game_id ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as quality_starts_L5,
 

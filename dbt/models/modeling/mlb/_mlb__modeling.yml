@@ -189,6 +189,8 @@ models:
         description: "{{ doc('mlb_ml_fip_L15') }}"
       - name: velo_L15
         description: "{{ doc('mlb_ml_velo_L15') }}"
+      - name: opp_avg_L15
+        description: "{{ doc('mlb_ml_opp_avg_L15') }}"
       - name: quality_starts_L5
         description: "{{ doc('mlb_ml_quality_starts_L5') }}"
       - name: k_pct_L5
