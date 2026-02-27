@@ -136,6 +136,82 @@ jobs:
           uv run dbt deps
           uv run dbt build --select tag:mlb --target dev
 
+      - name: Build prediction dataset
+        if: steps.season_check.outputs.skip != 'true'
+        working-directory: dbt
+        run: |
+          # Build the prediction dataset for today's games
+          uv run dbt run --select ml_mlb__prediction_dataset --target dev
+          echo "Prediction dataset built successfully"
+
+      - name: Trigger ML inference workflow
+        if: steps.season_check.outputs.skip != 'true'
+        run: |
+          # Trigger the ML repo's daily prediction workflow
+          # This assumes the ML repo workflow is set up to accept repository_dispatch events
+
+          # Get today's date for prediction
+          PREDICTION_DATE=$(date +%Y-%m-%d)
+
+          echo "Triggering ML inference for date: $PREDICTION_DATE"
+
+          # Option 1: Using repository_dispatch (recommended)
+          # Uncomment and configure the following once ML repo workflow_dispatch is set up:
+          # curl -X POST \
+          #   -H "Authorization: token ${{ secrets.ML_REPO_DISPATCH_TOKEN }}" \
+          #   -H "Accept: application/vnd.github.v3+json" \
+          #   https://api.github.com/repos/${{ secrets.ML_REPO_OWNER }}/beat-the-streak-ml/dispatches \
+          #   -d "{\"event_type\":\"run_predictions\",\"client_payload\":{\"date\":\"$PREDICTION_DATE\"}}"
+
+          # For now, log that this step would trigger inference
+          echo "ML inference trigger placeholder - configure secrets.ML_REPO_DISPATCH_TOKEN and secrets.ML_REPO_OWNER"
+          echo "Once configured, this will trigger predictions for $PREDICTION_DATE"
+
+      - name: Wait for predictions (with timeout)
+        if: steps.season_check.outputs.skip != 'true'
+        run: |
+          # Wait for ML predictions to be written to BigQuery
+          # This is a polling mechanism with timeout
+
+          PREDICTION_DATE=$(date +%Y-%m-%d)
+          TIMEOUT=600  # 10 minutes
+          ELAPSED=0
+          CHECK_INTERVAL=30  # Check every 30 seconds
+
+          echo "Waiting for predictions to appear in mlb_modeling.ml_mlb__model_predictions_raw for $PREDICTION_DATE..."
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            # Check if predictions exist for today
+            COUNT=$(bq query --use_legacy_sql=false --format=csv --quiet \
+              "SELECT COUNT(*) as cnt FROM \`${{ secrets.GCP_PROJECT_ID }}.mlb_modeling.ml_mlb__model_predictions_raw\` WHERE game_date = '$PREDICTION_DATE'" \
+              | tail -n 1)
+
+            if [ "$COUNT" -gt 0 ]; then
+              echo "Found $COUNT predictions for $PREDICTION_DATE"
+              break
+            fi
+
+            echo "No predictions yet (elapsed: ${ELAPSED}s / ${TIMEOUT}s)..."
+            sleep $CHECK_INTERVAL
+            ELAPSED=$((ELAPSED + CHECK_INTERVAL))
+          done
+
+          if [ $ELAPSED -ge $TIMEOUT ]; then
+            echo "WARNING: Timeout waiting for predictions. Continuing anyway..."
+            echo "Check ml_mlb__model_predictions_raw table manually."
+            # Don't fail the workflow - predictions might come later
+          else
+            echo "Predictions are ready!"
+          fi
+
+      - name: Build prediction models (daily predictions and outcomes)
+        if: steps.season_check.outputs.skip != 'true'
+        working-directory: dbt
+        run: |
+          # Build the downstream prediction models
+          uv run dbt run --select ml_mlb__daily_predictions ml_mlb__prediction_outcomes --target dev
+          echo "Prediction models built successfully"
+
       - name: Cleanup credentials
         if: always()
         run: rm -f /tmp/gcp-key.json

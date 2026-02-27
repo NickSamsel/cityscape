@@ -16,7 +16,8 @@
       "Bash(gh run list --limit 10)",
       "Bash(cat /workspaces/cityscape/dbt/target/compiled/cityscape/models/marts/mlb/_mlb__marts.yml/unique_dim_mlb__venues_venue_id.sql)",
       "Bash(cat /workspaces/cityscape/dbt/target/compiled/cityscape/models/marts/mlb/_mlb__marts.yml/unique_fct_mlb__schedule_game_id.sql)",
-      "Bash(cat /workspaces/cityscape/dbt/target/compiled/cityscape/models/marts/mlb/_mlb__marts.yml/dbt_utils_unique_combination_o_261fa70d7af111e50a16c3ffcc289531.sql)"
+      "Bash(cat /workspaces/cityscape/dbt/target/compiled/cityscape/models/marts/mlb/_mlb__marts.yml/dbt_utils_unique_combination_o_261fa70d7af111e50a16c3ffcc289531.sql)",
+      "Bash(find:*)"
     ]
   }
 }
