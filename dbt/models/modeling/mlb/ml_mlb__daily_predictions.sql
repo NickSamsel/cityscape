@@ -3,7 +3,9 @@
 		materialized='incremental',
 		incremental_strategy='merge',
 		unique_key=['player_id', 'game_date', 'pitcher_id', 'game_id'],
-		partition_by={"field": "game_date", "data_type": "date"},
+		partition_by={"field": "game_date",
+      "data_type": "date",
+      "granularity": "month"},
 		cluster_by=['player_id', 'pitcher_id'],
 		tags=["modeling", "mlb", "predictions"]
 	)
@@ -12,7 +14,7 @@
 -- Daily predictions from ML inference pipeline
 -- Enriched with player, team, and game context for analysis
 
-with raw_predictions as (
+with raw_predictions_source as (
 	select
 		cast(player_id as string) as player_id,
 		game_date,
@@ -26,6 +28,28 @@ with raw_predictions as (
 	{% if is_incremental() %}
 		where game_date >= (select max(game_date) from {{ this }})
 	{% endif %}
+)
+
+, raw_predictions as (
+	-- Deduplicate raw predictions - keep most recent prediction
+	select
+		player_id,
+		game_date,
+		pitcher_id,
+		game_id,
+		hit_probability,
+		model_version,
+		predicted_at
+	from (
+		select
+			*,
+			row_number() over (
+				partition by player_id, game_date, pitcher_id, game_id
+				order by predicted_at desc, model_version desc
+			) as row_num
+		from raw_predictions_source
+	)
+	where row_num = 1
 )
 
 , players as (
@@ -52,11 +76,13 @@ with raw_predictions as (
 
 , player_teams as (
 	-- Get each player's team for the game date
+	-- Use team_rank = 1 to get primary team if player was traded mid-season
 	select
 		player_id,
 		team_id,
 		season
 	from {{ ref('fct_mlb__player_team_season') }}
+	where team_rank = 1  -- Primary team (most games played)
 )
 
 select

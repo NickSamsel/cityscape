@@ -1,7 +1,14 @@
 {{-
   config(
     materialized='incremental',
+    incremental_strategy='merge',
     unique_key='game_id',
+    partition_by={
+      "field": "game_date",
+      "data_type": "date",
+      "granularity": "month"
+    },
+    cluster_by=["season", "home_team_id", "away_team_id"],
     on_schema_change='sync_all_columns',
     tags=["stg", "mlb"]
   )
@@ -22,10 +29,10 @@ with source_data as (
     from {{ source('raw', 'mlb_games') }}
 
     {% if is_incremental() %}
-    where not exists (
-        select 1 from {{ this }} as existing
-        where existing.game_id = {{ cast_string('game_id') }}
-          and existing.season = {{ cast_integer('season') }}
+    -- Look back 3 days to catch stat corrections
+    where {{ cast_date('game_date') }} >= date_sub(
+      (select max(game_date) from {{ this }}),
+      interval 3 day
     )
     {% endif %}
 ),

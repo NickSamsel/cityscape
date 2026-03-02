@@ -1,7 +1,14 @@
 {{-
   config(
     materialized='incremental',
+    incremental_strategy='merge',
     unique_key='play_id',
+    partition_by={
+      "field": "game_date",
+      "data_type": "date",
+      "granularity": "month"
+    },
+    cluster_by=["season", "pitcher_id", "batter_id"],
     on_schema_change='sync_all_columns',
     tags=["intermediate", "mlb", "statcast"]
   )
@@ -14,7 +21,11 @@ with pitches as (
 
     select * from {{ ref('stg_mlb__statcast_pitches') }}
     {% if is_incremental() %}
-    where loaded_at > (select max(loaded_at) from {{ this }})
+    -- Look back 3 days to catch stat corrections
+    where loaded_at > timestamp_sub(
+      (select max(loaded_at) from {{ this }}),
+      interval 3 day
+    )
     {% endif %}
 
 ),

@@ -3,7 +3,9 @@
     materialized='incremental',
     incremental_strategy='merge',
     unique_key=['pitcher_id', 'game_id'],
-    partition_by={"field": "game_date", "data_type": "date"},
+    partition_by={"field": "game_date",
+      "data_type": "date",
+      "granularity": "month"},
     cluster_by=["pitcher_id"],
     on_schema_change='sync_all_columns',
     tags=["modeling", "mlb"]

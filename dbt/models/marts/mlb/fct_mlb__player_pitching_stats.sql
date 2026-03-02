@@ -1,7 +1,14 @@
 {{-
   config(
     materialized='incremental',
+    incremental_strategy='merge',
     unique_key=['game_id', 'player_id', 'team_id'],
+    partition_by={
+      "field": "game_date",
+      "data_type": "date",
+      "granularity": "month"
+    },
+    cluster_by=["season", "player_id", "team_id"],
     on_schema_change='sync_all_columns',
     tags=["mart", "mlb", "fact", "player_stats"]
   )

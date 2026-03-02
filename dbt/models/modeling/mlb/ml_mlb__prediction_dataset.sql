@@ -1,7 +1,9 @@
 {{-
   config(
   materialized='table',
-  partition_by={"field": "game_date", "data_type": "date"},
+  partition_by={"field": "game_date",
+      "data_type": "date",
+      "granularity": "month"},
   cluster_by=["game_id", "player_id", "pitcher_id"],
     tags=["modeling", "mlb"]
   )

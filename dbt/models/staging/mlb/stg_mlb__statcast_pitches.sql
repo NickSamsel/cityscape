@@ -1,7 +1,14 @@
 {{-
   config(
     materialized='incremental',
+    incremental_strategy='merge',
     unique_key='play_id',
+    partition_by={
+      "field": "loaded_at",
+      "data_type": "timestamp",
+      "granularity": "day"
+    },
+    cluster_by=["game_id", "pitcher_id", "batter_id"],
     on_schema_change='sync_all_columns',
     tags=["staging", "mlb", "statcast"]
   )
@@ -14,7 +21,11 @@ with source as (
 
     select * from {{ source('raw', 'mlb_statcast_pitches') }}
     {% if is_incremental() %}
-    where loaded_at > (select max(loaded_at) from {{ this }})
+    -- Look back 3 days to catch any late-arriving or corrected data
+    where loaded_at > timestamp_sub(
+      (select max(loaded_at) from {{ this }}),
+      interval 3 day
+    )
     {% endif %}
 
 ),
