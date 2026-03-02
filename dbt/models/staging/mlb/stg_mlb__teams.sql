@@ -13,8 +13,8 @@ with source_data as (
     {{ cast_integer('season') }} as season,
     {{ cast_string('team_name') }} as team_name,
     {{ cast_string('team_abbr') }} as team_abbr,
-    {{ cast_integer('league_id') }} as league_id,
-    {{ cast_integer('division_id') }} as division_id
+    {{ cast_string('league_id') }} as league_id,
+    {{ cast_string('division_id') }} as division_id
   from {{ source('raw', 'mlb_teams') }}
 
   {% if is_incremental() %}

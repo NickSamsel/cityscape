@@ -34,8 +34,8 @@ players as (
 -- Aggregate Statcast pitch metrics by game + pitcher
 game_statcast_pitching as (
     select
-        cast(game_id as string) as game_id,
-        cast(pitcher_id as string) as player_id,
+        game_id,
+        pitcher_id as player_id,
         count(*) as pitches_thrown,
         avg(release_speed) as avg_pitch_velocity,
         max(release_speed) as max_pitch_velocity,
@@ -278,7 +278,7 @@ final as (
         
     from pitching_stats as ps
     left join games as g
-        on ps.game_id = cast(g.game_id as string)
+        on ps.game_id = g.game_id
     left join teams as t
         on ps.team_id = t.team_id
         and g.season = t.season

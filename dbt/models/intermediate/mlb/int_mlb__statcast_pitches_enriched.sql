@@ -54,10 +54,10 @@ enriched as (
     select
         -- Primary keys
         p.play_id,
-        cast(p.game_id as string) as game_id,
+        p.game_id,
         p.at_bat_index,
         p.pitch_number,
-        
+
         -- Game context
         g.season,
         g.game_date,
@@ -71,35 +71,35 @@ enriched as (
         ta.team_abbr as away_team_abbr,
         g.home_score,
         g.away_score,
-        
+
         -- Pitcher details
-        cast(p.pitcher_id as string) as pitcher_id,
+        p.pitcher_id,
         pitcher.full_name as pitcher_name,
         pitcher.primary_position_code as pitcher_position,
         pitcher.pitch_hand_code as pitcher_hand,
         pitcher.pitch_hand_description as pitcher_hand_desc,
         date_diff(g.game_date, pitcher.birth_date, year) as pitcher_age,
         date_diff(g.game_date, pitcher.mlb_debut_date, year) as pitcher_experience_years,
-        
+
         -- Batter details
-        cast(p.batter_id as string) as batter_id,
+        p.batter_id,
         batter.full_name as batter_name,
         batter.primary_position_code as batter_position,
         batter.bat_side_code as batter_hand,
         batter.bat_side_description as batter_hand_desc,
         date_diff(g.game_date, batter.birth_date, year) as batter_age,
         date_diff(g.game_date, batter.mlb_debut_date, year) as batter_experience_years,
-        
+
         -- Matchup context
         case
             when pitcher.pitch_hand_code = batter.bat_side_code then 'Same'
             when pitcher.pitch_hand_code is null or batter.bat_side_code is null then 'Unknown'
             else 'Opposite'
         end as pitcher_batter_handedness,
-        
+
         -- Catcher and umpire
-        cast(p.catcher_id as string) as catcher_id,
-        cast(p.umpire_id as string) as umpire_id,
+        p.catcher_id,
+        p.umpire_id,
         
         -- Pitch characteristics
         p.pitch_type,
@@ -158,11 +158,11 @@ enriched as (
 
     from pitches as p
     left join games as g
-        on cast(p.game_id as string) = g.game_id
+        on p.game_id = g.game_id
     left join pitchers as pitcher
-        on cast(p.pitcher_id as string) = pitcher.player_id
+        on p.pitcher_id = pitcher.player_id
     left join batters as batter
-        on cast(p.batter_id as string) = batter.player_id
+        on p.batter_id = batter.player_id
     left join teams_home as th
         on g.home_team_id = th.team_id
         and g.season = th.season

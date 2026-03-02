@@ -17,8 +17,8 @@ with pitches as (
 pitcher_pitch_aggregates as (
 
     select
-        cast(pitcher_id as string) as pitcher_id,
-        
+        pitcher_id,
+
         -- Overall pitch counts
         count(*) as total_pitches,
         count(distinct game_id) as games_pitched,
@@ -57,7 +57,7 @@ pitcher_pitch_aggregates as (
 pitcher_pitch_types as (
 
     select
-        cast(pitcher_id as string) as pitcher_id,
+        pitcher_id,
         pitch_type,
         pitch_type_description,
         count(*) as pitch_count,

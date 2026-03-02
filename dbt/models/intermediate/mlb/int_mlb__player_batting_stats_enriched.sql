@@ -34,8 +34,8 @@ players as (
 -- Aggregate Statcast batted ball metrics by game + batter
 game_statcast_batting as (
     select
-        cast(game_id as string) as game_id,
-        cast(batter_id as string) as player_id,
+        game_id,
+        batter_id as player_id,
         count(*) as batted_balls,
         avg(launch_speed) as avg_exit_velocity,
         max(launch_speed) as max_exit_velocity,
@@ -231,7 +231,7 @@ final as (
         
     from batting_stats as bs
     left join games as g
-        on bs.game_id = cast(g.game_id as string)
+        on bs.game_id = g.game_id
     left join teams as t
         on bs.team_id = t.team_id
         and g.season = t.season

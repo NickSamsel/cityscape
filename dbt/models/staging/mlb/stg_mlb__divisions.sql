@@ -9,16 +9,16 @@
 
 with source_data as (
   select
-    {{ cast_integer('division_id') }} as division_id,
+    {{ cast_string('division_id') }} as division_id,
     {{ cast_string('division_name') }} as division_name,
     {{ cast_string('division_abbr') }} as division_abbr,
-    {{ cast_integer('league_id') }} as league_id
+    {{ cast_string('league_id') }} as league_id
   from {{ source('raw', 'mlb_divisions') }}
 
   {% if is_incremental() %}
   where not exists (
     select 1 from {{ this }} as existing
-    where existing.division_id = {{ cast_integer('division_id') }}
+    where existing.division_id = {{ cast_string('division_id') }}
   )
   {% endif %}
 ),

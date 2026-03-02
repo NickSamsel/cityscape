@@ -9,7 +9,7 @@
 
 with source_data as (
   select
-    {{ cast_integer('league_id') }} as league_id,
+    {{ cast_string('league_id') }} as league_id,
     {{ cast_string('league_name') }} as league_name,
     {{ cast_string('league_abbr') }} as league_abbr
   from {{ source('raw', 'mlb_leagues') }}
@@ -17,7 +17,7 @@ with source_data as (
   {% if is_incremental() %}
   where not exists (
     select 1 from {{ this }} as existing
-    where existing.league_id = {{ cast_integer('league_id') }}
+    where existing.league_id = {{ cast_string('league_id') }}
   )
   {% endif %}
 ),

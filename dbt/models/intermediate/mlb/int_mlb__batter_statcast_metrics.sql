@@ -17,8 +17,8 @@ with batted_balls as (
 batter_batted_ball_aggregates as (
 
     select
-        cast(batter_id as string) as batter_id,
-        
+        batter_id,
+
         -- Overall counts
         count(*) as total_batted_balls,
         count(distinct game_id) as games_with_batted_balls,

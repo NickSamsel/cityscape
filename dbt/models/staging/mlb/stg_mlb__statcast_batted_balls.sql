@@ -24,11 +24,11 @@ renamed as (
     select
         -- IDs
         play_id,
-        cast(game_id as int64) as game_id,
+        cast(game_id as string) as game_id,
         at_bat_index,
-        cast(batter_id as int64) as batter_id,
-        cast(pitcher_id as int64) as pitcher_id,
-        
+        cast(batter_id as string) as batter_id,
+        cast(pitcher_id as string) as pitcher_id,
+
         -- Batted ball metrics
         launch_speed, -- mph (exit velocity)
         launch_angle, -- degrees
@@ -36,14 +36,14 @@ renamed as (
         hit_location,
         hit_trajectory,
         hit_result,
-        
+
         -- Runner metrics
         sprint_speed, -- ft/sec
-        
+
         -- Quality flags
         is_barrel,
         is_hard_hit, -- 95+ mph exit velo
-        
+
         -- Metadata
         loaded_at
 

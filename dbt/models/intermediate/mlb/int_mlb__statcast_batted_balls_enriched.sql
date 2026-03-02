@@ -54,9 +54,9 @@ enriched as (
     select
         -- Primary keys
         bb.play_id,
-        cast(bb.game_id as string) as game_id,
+        bb.game_id,
         bb.at_bat_index,
-        
+
         -- Game context
         g.season,
         g.game_date,
@@ -70,18 +70,18 @@ enriched as (
         ta.team_abbr as away_team_abbr,
         g.home_score,
         g.away_score,
-        
+
         -- Batter details
-        cast(bb.batter_id as string) as batter_id,
+        bb.batter_id,
         batter.full_name as batter_name,
         batter.primary_position_code as batter_position,
         batter.bat_side_code as batter_hand,
         batter.bat_side_description as batter_hand_desc,
         date_diff(g.game_date, batter.birth_date, year) as batter_age,
         date_diff(g.game_date, batter.mlb_debut_date, year) as batter_experience_years,
-        
+
         -- Pitcher details
-        cast(bb.pitcher_id as string) as pitcher_id,
+        bb.pitcher_id,
         pitcher.full_name as pitcher_name,
         pitcher.primary_position_code as pitcher_position,
         pitcher.pitch_hand_code as pitcher_hand,
@@ -155,11 +155,11 @@ enriched as (
 
     from batted_balls as bb
     left join games as g
-        on cast(bb.game_id as string) = g.game_id
+        on bb.game_id = g.game_id
     left join batters as batter
-        on cast(bb.batter_id as string) = batter.player_id
+        on bb.batter_id = batter.player_id
     left join pitchers as pitcher
-        on cast(bb.pitcher_id as string) = pitcher.player_id
+        on bb.pitcher_id = pitcher.player_id
     left join teams_home as th
         on g.home_team_id = th.team_id
         and g.season = th.season

@@ -14,10 +14,10 @@
 
 with raw_predictions as (
 	select
-		player_id,
+		cast(player_id as string) as player_id,
 		game_date,
-		pitcher_id,
-		game_id,
+		cast(pitcher_id as string) as pitcher_id,
+		cast(game_id as string) as game_id,
 		hit_probability,
 		model_version,
 		predicted_at

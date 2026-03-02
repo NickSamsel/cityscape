@@ -1,6 +1,6 @@
 {{
   config(
-    materialized='view',
+    materialized='table',
     tags=["staging", "mlb", "rosters"]
   )
 }}
@@ -17,8 +17,8 @@ with source as (
 renamed as (
 
     select
-        cast(team_id as int64) as team_id,
-        cast(player_id as int64) as player_id,
+        cast(team_id as string) as team_id,
+        cast(player_id as string) as player_id,
         cast(season as int64) as season,
         player_name,
         position_code,

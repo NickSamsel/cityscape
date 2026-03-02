@@ -20,6 +20,18 @@ teams as (
 
 ),
 
+leagues as (
+
+    select * from {{ ref('int_mlb__leagues') }}
+
+),
+
+divisions as (
+
+    select * from {{ ref('int_mlb__divisions_enriched') }}
+
+),
+
 players as (
 
     select * from {{ ref('int_mlb__players') }}
@@ -37,12 +49,12 @@ enriched as (
         -- Team info
         t.team_name,
         t.team_abbr,
-        t.league_id,
-        t.league_name,
-        t.league_abbr,
-        t.division_id,
-        t.division_name,
-        t.division_abbr,
+        l.league_id,
+        l.league_name,
+        l.league_abbr,
+        d.division_id,
+        d.division_name,
+        d.division_abbr,
         
         -- Player info
         p.full_name,
@@ -109,6 +121,10 @@ enriched as (
         and r.season = t.season
     left join players as p
         on r.player_id = p.player_id
+    left join leagues as l
+        on t.league_id = l.league_id
+    left join divisions as d
+        on t.division_id = d.division_id
 
 )
 

@@ -24,18 +24,18 @@ renamed as (
     select
         -- IDs
         play_id,
-        cast(game_id as int64) as game_id,
+        cast(game_id as string) as game_id,
         at_bat_index,
-        cast(pitcher_id as int64) as pitcher_id,
-        cast(batter_id as int64) as batter_id,
-        cast(catcher_id as int64) as catcher_id,
-        cast(umpire_id as int64) as umpire_id,
-        
+        cast(pitcher_id as string) as pitcher_id,
+        cast(batter_id as string) as batter_id,
+        cast(catcher_id as string) as catcher_id,
+        cast(umpire_id as string) as umpire_id,
+
         -- Pitch details
         pitch_number,
         pitch_type,
         pitch_type_description,
-        
+
         -- Release metrics
         release_speed, -- mph
         release_spin_rate, -- rpm
@@ -43,21 +43,21 @@ renamed as (
         release_pos_x, -- feet
         release_pos_y, -- feet
         release_pos_z, -- feet
-        
+
         -- Plate location
         zone,
         plate_x, -- feet from center
         plate_z, -- feet from ground
-        
+
         -- Count context
         strikes,
         balls,
         outs,
-        
+
         -- Outcome
         pitch_result,
         pitch_result_description,
-        
+
         -- Metadata
         loaded_at
 
