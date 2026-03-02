@@ -96,7 +96,20 @@ jobs:
 
       - name: Write GCP credentials
         if: steps.season_check.outputs.skip != 'true'
-        run: echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d > /tmp/gcp-key.json
+        run: |
+          # Try to decode as base64, if that fails, assume it's raw JSON
+          if echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d > /tmp/gcp-key.json 2>/dev/null; then
+            echo "Decoded base64-encoded service account key"
+          else
+            echo "Using raw JSON service account key"
+            echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
+          fi
+          # Verify the file is valid JSON
+          if ! python3 -c "import json; json.load(open('/tmp/gcp-key.json'))" 2>/dev/null; then
+            echo "ERROR: Invalid JSON in service account key"
+            exit 1
+          fi
+          echo "GCP credentials written successfully"
 
       - name: Create dbt profiles.yml
         if: steps.season_check.outputs.skip != 'true'
