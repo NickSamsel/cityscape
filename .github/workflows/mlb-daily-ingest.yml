@@ -133,15 +133,15 @@ jobs:
         if: steps.season_check.outputs.skip != 'true'
         working-directory: dbt
         run: |
-          uv run dbt deps
-          uv run dbt build --select tag:mlb --target dev
+          uv run dbt deps --profiles-dir .
+          uv run dbt build --select tag:mlb --target dev --profiles-dir .
 
       - name: Build prediction dataset
         if: steps.season_check.outputs.skip != 'true'
         working-directory: dbt
         run: |
           # Build the prediction dataset for today's games
-          uv run dbt run --select ml_mlb__prediction_dataset --target dev
+          uv run dbt run --select ml_mlb__prediction_dataset --target dev --profiles-dir .
           echo "Prediction dataset built successfully"
 
       - name: Trigger ML inference workflow
@@ -209,7 +209,7 @@ jobs:
         working-directory: dbt
         run: |
           # Build the downstream prediction models
-          uv run dbt run --select ml_mlb__daily_predictions ml_mlb__prediction_outcomes --target dev
+          uv run dbt run --select ml_mlb__daily_predictions ml_mlb__prediction_outcomes --target dev --profiles-dir .
           echo "Prediction models built successfully"
 
       - name: Cleanup credentials
