@@ -309,6 +309,26 @@ models:
         description: "1 = home, 0 = away"
       - name: opponent_team_id
         description: "Opposing team ID"
+      - name: rolling_batting_avg_L7
+        description: "{{ doc('mlb_ml_rolling_batting_avg_L7') }}"
+      - name: rolling_batting_avg_L15
+        description: "{{ doc('mlb_ml_rolling_batting_avg_L15') }}"
+      - name: rolling_batting_avg_L30
+        description: "{{ doc('mlb_ml_rolling_batting_avg_L30') }}"
+      - name: games_with_hit_L5
+        description: "{{ doc('mlb_ml_games_with_hit_L5') }}"
+      - name: obp_L30
+        description: "{{ doc('mlb_ml_obp_L30') }}"
+      - name: slg_L30
+        description: "{{ doc('mlb_ml_slg_L30') }}"
+      - name: exit_velo_L15
+        description: "{{ doc('mlb_ml_exit_velo_L15') }}"
+      - name: hard_hit_rate_L15
+        description: "{{ doc('mlb_ml_hard_hit_rate_L15') }}"
+      - name: barrel_rate_L15
+        description: "{{ doc('mlb_ml_barrel_rate_L15') }}"
+      - name: batter_stats_asof_date
+        description: "Most recent game_date used to source batter rolling features"
 
   - name: ml_mlb__prediction_outcomes
     description: |

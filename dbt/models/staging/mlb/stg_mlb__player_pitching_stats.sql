@@ -25,7 +25,7 @@ with source as (
     cast(era as string) as era,
     row_number() over (
       partition by cast(game_id as string), cast(player_id as string), cast(team_id as string)
-      order by cast(innings_pitched as float64) desc nulls last
+      order by safe_cast(nullif(cast(innings_pitched as string), '-.--') as float64) desc nulls last
     ) as row_num
   from {{ source('raw', 'mlb_player_pitching_stats') }}
 

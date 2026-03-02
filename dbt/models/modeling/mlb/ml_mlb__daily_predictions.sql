@@ -85,6 +85,30 @@ with raw_predictions_source as (
 	where team_rank = 1  -- Primary team (most games played)
 )
 
+, batter_rolling_stats as (
+	-- Get latest rolling stats for each player as of the game date
+	select
+		r.player_id,
+		r.avg_L7,
+		r.avg_L15,
+		r.avg_L30,
+		r.games_with_hit_L5,
+		r.obp_L30,
+		r.slg_L30,
+		r.exit_velo_L15,
+		r.hard_hit_rate_L15,
+		r.barrel_rate_L15,
+		r.game_date as stats_asof_date
+	from {{ ref('ml_mlb__rolling_batter_stats') }} r
+	join (
+		select 
+			player_id, 
+			max(game_date) as max_game_date
+		from {{ ref('ml_mlb__rolling_batter_stats') }}
+		group by player_id
+	) latest on r.player_id = latest.player_id and r.game_date = latest.max_game_date
+)
+
 select
 	-- Identifiers
 	p.player_id,
@@ -109,6 +133,18 @@ select
 	s.game_datetime,
 	s.status as game_status,
 
+	-- Rolling batting stats (coalesce to handle missing data)
+	coalesce(brs.avg_L7, 0) as rolling_batting_avg_L7,
+	coalesce(brs.avg_L15, 0) as rolling_batting_avg_L15,
+	coalesce(brs.avg_L30, 0) as rolling_batting_avg_L30,
+	coalesce(brs.games_with_hit_L5, 0) as games_with_hit_L5,
+	coalesce(brs.obp_L30, 0) as obp_L30,
+	coalesce(brs.slg_L30, 0) as slg_L30,
+	coalesce(brs.exit_velo_L15, 0) as exit_velo_L15,
+	coalesce(brs.hard_hit_rate_L15, 0) as hard_hit_rate_L15,
+	coalesce(brs.barrel_rate_L15, 0) as barrel_rate_L15,
+	brs.stats_asof_date as batter_stats_asof_date,
+
 	-- Derive whether player is home or away
 	case
 		when pt.team_id = s.home_team_id then 1
@@ -131,4 +167,6 @@ left join schedule s
 left join player_teams pt
 	on p.player_id = pt.player_id
 	and extract(year from p.game_date) = pt.season
+left join batter_rolling_stats brs
+	on p.player_id = brs.player_id
 
