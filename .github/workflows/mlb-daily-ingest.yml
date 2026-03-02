@@ -101,12 +101,13 @@ jobs:
           if echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d > /tmp/gcp-key.json 2>/dev/null; then
             echo "Decoded base64-encoded service account key"
           else
-            echo "Using raw JSON service account key"
-            echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
+            echo "Using raw JSON service account key (treating as single-line JSON)"
+            printf '%s' "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
           fi
           # Verify the file is valid JSON
           if ! python3 -c "import json; json.load(open('/tmp/gcp-key.json'))" 2>/dev/null; then
             echo "ERROR: Invalid JSON in service account key"
+            cat /tmp/gcp-key.json
             exit 1
           fi
           echo "GCP credentials written successfully"
