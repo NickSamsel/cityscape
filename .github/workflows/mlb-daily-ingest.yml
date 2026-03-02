@@ -108,7 +108,7 @@ jobs:
                 type: bigquery
                 method: service-account
                 keyfile: /tmp/gcp-key.json
-                project: ${{ secrets.GCP_PROJECT_ID }}
+                project: ${GCP_PROJECT_ID}
                 dataset: raw
                 threads: 4
                 timeout_seconds: 300
@@ -116,7 +116,7 @@ jobs:
                 priority: interactive
             target: dev
           EOF
-          echo "Created dbt/profiles.yml with project: ${{ secrets.GCP_PROJECT_ID }}"
+          echo "Created dbt/profiles.yml with project: ${GCP_PROJECT_ID}"
 
       - name: Run MLB daily ingestion
         if: steps.season_check.outputs.skip != 'true'
