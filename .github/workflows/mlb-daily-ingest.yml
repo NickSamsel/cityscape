@@ -98,6 +98,26 @@ jobs:
         if: steps.season_check.outputs.skip != 'true'
         run: echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d > /tmp/gcp-key.json
 
+      - name: Create dbt profiles.yml
+        if: steps.season_check.outputs.skip != 'true'
+        run: |
+          cat > dbt/profiles.yml <<EOF
+          cityscape:
+            outputs:
+              dev:
+                type: bigquery
+                method: service-account
+                keyfile: /tmp/gcp-key.json
+                project: ${{ secrets.GCP_PROJECT_ID }}
+                dataset: raw
+                threads: 4
+                timeout_seconds: 300
+                location: US
+                priority: interactive
+            target: dev
+          EOF
+          echo "Created dbt/profiles.yml with project: ${{ secrets.GCP_PROJECT_ID }}"
+
       - name: Run MLB daily ingestion
         if: steps.season_check.outputs.skip != 'true'
         run: |
