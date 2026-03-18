@@ -12,6 +12,7 @@ Supports:
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from typing import Any
 
@@ -285,9 +286,6 @@ def ingest_standings_historical_parallel(
     ensure_raw_dataset(client, cfg.project_id)
     ensure_mlb_tables(client, cfg.project_id)
 
-    # Fetch standings in parallel using ThreadPoolExecutor
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    
     chunk_size = max_workers * 2
     total_inserted = 0
     snapshot_count = 0

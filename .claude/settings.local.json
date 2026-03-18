@@ -22,7 +22,16 @@
       "Bash(if [ -f /tmp/gcp-key.json ])",
       "Bash(then cat /tmp/gcp-key.json)",
       "Bash(else echo \"File not found at /tmp/gcp-key.json\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(__NEW_LINE_b4dfb49ed7841a25__ echo:*)",
+      "Bash(__NEW_LINE_1175ebfcbc577a1c__ for:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/intermediate/$league/**)",
+      "Read(//Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/marts/$league/**)",
+      "Bash(__NEW_LINE_0b9e3e87f65fc67a__ echo:*)",
+      "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/staging/mlb/*.sql)",
+      "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/intermediate/mlb/*.sql)",
+      "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/marts/mlb/*.sql)"
     ]
   }
 }

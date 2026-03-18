@@ -92,9 +92,9 @@ final as (
         on away_t.division_id = away_div.division_id
 
     {% if is_incremental() %}
-    where not exists (
-        select 1 from {{ this }} as existing
-        where existing.game_id = g.game_id
+    where g.game_date >= date_sub(
+        (select max(game_date) from {{ this }}),
+        interval 3 day
     )
     {% endif %}
 )

@@ -206,12 +206,11 @@ def ingest_mlb_statcast_data_bigquery(
 
     logger = get_run_logger()
     settings = get_settings()
-    api = MlbStatsApi()
 
     if game_ids is None:
         if season is None:
             raise ValueError("Either season or game_ids must be provided")
-        
+
         # Statcast data only available from 2015 onwards
         if season < 2015:
             logger.info(f"Skipping Statcast for season {season} (Statcast only available 2015+)")
@@ -221,19 +220,20 @@ def ingest_mlb_statcast_data_bigquery(
             f"Fetching games for Statcast data: season={season} "
             f"start_date={start_date} end_date={end_date}"
         )
+        api = MlbStatsApi()
         games = api.list_games(
             season=season,
             game_types="R",
             start_date=start_date,
             end_date=end_date,
         )
-        
+
         # Filter out scheduled games - Statcast only available for completed games
         completed_games = [g for g in games if g.status and g.status.lower() != "scheduled"]
         skipped = len(games) - len(completed_games)
         if skipped > 0:
             logger.info(f"Skipped {skipped} scheduled games (Statcast only for completed games)")
-        
+
         game_ids = [g.game_id for g in completed_games]
         logger.info(f"Found {len(game_ids)} completed games to process")
     else:

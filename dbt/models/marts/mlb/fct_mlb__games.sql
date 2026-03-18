@@ -1,15 +1,6 @@
 {{-
   config(
-    materialized='incremental',
-    incremental_strategy='merge',
-    unique_key='game_id',
-    partition_by={
-      "field": "game_date",
-      "data_type": "date",
-      "granularity": "month"
-    },
-    cluster_by=["season", "home_team_id", "away_team_id"],
-    on_schema_change='sync_all_columns',
+    materialized='view',
     tags=["mart", "mlb", "fact"]
   )
 -}}

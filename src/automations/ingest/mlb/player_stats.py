@@ -7,6 +7,7 @@ and load them into BigQuery raw tables.
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from typing import Any
 
@@ -49,8 +50,6 @@ def fetch_game_player_stats(game_id: int, retries: int = 3) -> tuple[list[dict[s
             return [], []
     
     try:
-        batting_stats, pitching_stats
-        
         batting_rows = [
             {
                 "game_id": b.game_id,
@@ -142,6 +141,11 @@ def ingest_player_stats_parallel(
     client = get_client(cfg)
     api = MlbStatsApi()
 
+    # Ensure BigQuery tables exist before fetching data
+    logger.info(f"Connecting to BigQuery project={cfg.project_id}")
+    ensure_raw_dataset(client, cfg.project_id)
+    ensure_mlb_tables(client, cfg.project_id)
+
     # Fetch games for the season/date range
     if start_date is not None or end_date is not None:
         logger.info(
@@ -154,23 +158,17 @@ def ingest_player_stats_parallel(
     games = api.list_games(
         season=season, game_types=game_types, start_date=start_date, end_date=end_date
     )
-    
+
     logger.info(f"Found {len(games)} games, fetching player stats in parallel...")
 
-    # Extract game IDs for parallel processing
     game_ids = [game.game_id for game in games]
-    
-    # Fetch stats for all games in parallel using ThreadPoolExecutor
-    logger.info(f"Starting parallel fetch of player stats for {len(game_ids)} games...")
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    
+
     all_batting_rows = []
     all_pitching_rows = []
-    
-    # Increased from 10 to 30 - MLB API can handle this
+
     with ThreadPoolExecutor(max_workers=30) as executor:
         futures = {executor.submit(fetch_game_player_stats, game_id): game_id for game_id in game_ids}
-        
+
         for future in as_completed(futures):
             batting_rows, pitching_rows = future.result()
             all_batting_rows.extend(batting_rows)
@@ -180,11 +178,6 @@ def ingest_player_stats_parallel(
         f"Fetched {len(all_batting_rows)} batting stat records and "
         f"{len(all_pitching_rows)} pitching stat records"
     )
-
-    # Ensure BigQuery tables exist
-    logger.info(f"Connecting to BigQuery project={cfg.project_id}")
-    ensure_raw_dataset(client, cfg.project_id)
-    ensure_mlb_tables(client, cfg.project_id)
 
     # Upsert data to BigQuery
     inserted_batting = upsert_mlb_player_batting_stats(client, cfg.project_id, all_batting_rows)
@@ -231,6 +224,11 @@ def ingest_player_stats_sequential(
     client = get_client(cfg)
     api = MlbStatsApi()
 
+    # Ensure BigQuery tables exist before fetching data
+    logger.info(f"Connecting to BigQuery project={cfg.project_id}")
+    ensure_raw_dataset(client, cfg.project_id)
+    ensure_mlb_tables(client, cfg.project_id)
+
     # Fetch games for the season/date range
     if start_date is not None or end_date is not None:
         logger.info(
@@ -243,78 +241,23 @@ def ingest_player_stats_sequential(
     games = api.list_games(
         season=season, game_types=game_types, start_date=start_date, end_date=end_date
     )
-    
+
     logger.info(f"Found {len(games)} games, fetching player stats sequentially...")
 
     all_batting_rows = []
     all_pitching_rows = []
-    
-    # Fetch stats sequentially for each game
+
     for i, game in enumerate(games, 1):
         if i % 100 == 0:
             logger.info(f"Processing game {i}/{len(games)}...")
-            
-        try:
-            batting_stats, pitching_stats = api.get_player_game_stats(game_id=game.game_id)
-            
-            for b in batting_stats:
-                all_batting_rows.append({
-                    "game_id": b.game_id,
-                    "player_id": b.player_id,
-                    "team_id": b.team_id,
-                    "player_name": b.player_name,
-                    "batting_order": b.batting_order,
-                    "position": b.position,
-                    "at_bats": b.at_bats,
-                    "runs": b.runs,
-                    "hits": b.hits,
-                    "doubles": b.doubles,
-                    "triples": b.triples,
-                    "home_runs": b.home_runs,
-                    "rbi": b.rbi,
-                    "stolen_bases": b.stolen_bases,
-                    "walks": b.walks,
-                    "strikeouts": b.strikeouts,
-                    "left_on_base": b.left_on_base,
-                    "avg": b.avg,
-                    "obp": b.obp,
-                    "slg": b.slg,
-                    "ops": b.ops,
-                    "raw": b.raw,
-                })
-            
-            for p in pitching_stats:
-                all_pitching_rows.append({
-                    "game_id": p.game_id,
-                    "player_id": p.player_id,
-                    "team_id": p.team_id,
-                    "player_name": p.player_name,
-                    "innings_pitched": p.innings_pitched,
-                    "hits": p.hits,
-                    "runs": p.runs,
-                    "earned_runs": p.earned_runs,
-                    "walks": p.walks,
-                    "strikeouts": p.strikeouts,
-                    "home_runs": p.home_runs,
-                    "pitches": p.pitches,
-                    "strikes": p.strikes,
-                    "era": p.era,
-                    "raw": p.raw,
-                })
-                
-        except Exception as e:
-            logger.warning(f"Failed to fetch stats for game_id={game.game_id}: {e}")
-            continue
+        batting_rows, pitching_rows = fetch_game_player_stats(game.game_id)
+        all_batting_rows.extend(batting_rows)
+        all_pitching_rows.extend(pitching_rows)
 
     logger.info(
         f"Fetched {len(all_batting_rows)} batting stat records and "
         f"{len(all_pitching_rows)} pitching stat records"
     )
-
-    # Ensure BigQuery tables exist
-    logger.info(f"Connecting to BigQuery project={cfg.project_id}")
-    ensure_raw_dataset(client, cfg.project_id)
-    ensure_mlb_tables(client, cfg.project_id)
 
     # Upsert data to BigQuery
     inserted_batting = upsert_mlb_player_batting_stats(client, cfg.project_id, all_batting_rows)

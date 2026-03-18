@@ -1,14 +1,6 @@
 {{-
   config(
-    materialized='incremental',
-    unique_key='play_id',
-    partition_by={
-      "field": "game_date",
-      "data_type": "date",
-      "granularity": "month"
-    },
-    cluster_by=["batter_id", "pitcher_id", "season"],
-    on_schema_change='sync_all_columns',
+    materialized='view',
     tags=["mart", "mlb", "fact", "statcast"]
   )
 -}}
