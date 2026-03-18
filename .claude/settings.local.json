@@ -31,7 +31,9 @@
       "Bash(__NEW_LINE_0b9e3e87f65fc67a__ echo:*)",
       "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/staging/mlb/*.sql)",
       "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/intermediate/mlb/*.sql)",
-      "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/marts/mlb/*.sql)"
+      "Bash(ls /Users/nicksamsel/Documents/personal-projects/cityscape/dbt/models/marts/mlb/*.sql)",
+      "Bash(grep -rn \"gcp-key\\\\|gcp_key\\\\|key.json\\\\|tmp/gcp\" /Users/nicksamsel/Documents/personal-projects/cityscape --include=*.py --include=*.sh --include=*.json --include=Makefile --include=*.yml --include=*.yaml -l)",
+      "Bash(docker ps:*)"
     ]
   }
 }

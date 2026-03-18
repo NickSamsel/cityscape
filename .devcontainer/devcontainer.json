@@ -5,6 +5,7 @@
   "workspaceFolder": "/workspaces/cityscape",
   "shutdownAction": "stopCompose",
   "overrideCommand": false,
+  "postCreateCommand": "until [ -f /tmp/gcp-key.json ]; do echo 'Waiting for GCP key...'; sleep 1; done && echo 'GCP key ready.'",
   "remoteUser": "root",
   "customizations": {
     "vscode": {
